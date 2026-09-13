@@ -13,26 +13,22 @@
       <p v-else-if="failed" class="text-base-content/60 p-4 text-sm">
         {{ $t("notifications.history.failed") }}
       </p>
-      <!--
-        An unlinked instance is not a locked feature. It gets one muted line
-        naming what would be here, because alerts already show in the live
-        stream and simply are not remembered without a database behind them.
-      -->
-      <p v-else-if="!linked" class="text-base-content/60 p-4 text-sm">
-        {{ $t("notifications.history.empty-unlinked") }}
-      </p>
       <p v-else-if="alerts.length === 0" class="text-base-content/60 p-4 text-sm">
         {{ $t("notifications.history.empty") }}
       </p>
 
-      <AlertRow v-for="alert in alerts" :key="alert.alertId" :alert="alert" />
+      <!-- Part of the chain above, not a sibling of it. As a sibling the rows
+           rendered underneath whichever line was showing, so a list of alerts
+           carried "loading" or "nothing yet" above it. -->
+      <template v-else>
+        <AlertRow v-for="alert in alerts" :key="alert.alertId" :alert="alert" />
+      </template>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
 const { alerts, fetchRecentAlerts, loading, loaded, failed } = useRecentAlerts();
-const { linked } = useCloudSurface();
 
 onMounted(() => fetchRecentAlerts());
 </script>

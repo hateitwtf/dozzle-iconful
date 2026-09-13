@@ -5,6 +5,9 @@ toolbar:
   search: Chercher
   inverse-on: Exclure les correspondances (inverse)
   inverse-off: Inclure les correspondances (normal)
+  invalid-regex: Expression régulière invalide
+  close-search: Fermer la recherche
+  move-search: Glisser pour déplacer
   show: Montrer seulement {std}
   show-all: Afficher tous les flux
   stop: Stop
@@ -110,9 +113,9 @@ label:
   no-logs-hint: "Tout ce que le conteneur écrit apparaîtra ici immédiatement."
   search-status:
     searching: Recherche dans les logs plus anciens…
-    searching-to: Recherche dans les logs plus anciens… jusqu'à {time}
-    capped: "{count} résultats · recherché jusqu'à {time}"
-    exhausted: Tous les logs recherchés · {count} résultats
+    matches: "{count} résultats"
+    searched-all: "Tous les logs recherchés"
+    scanned-to: "jusqu'à {time}"
     empty: "Aucun log correspondant"
     empty-hint: "Tous les logs ont été recherchés. Essayez un autre terme ou effacez la recherche."
   show-all-containers: Afficher tous les conteneurs
@@ -138,6 +141,8 @@ tooltip:
   volume-unreachable: inaccessible depuis cet hôte
   volume-full: "{destination} est plein à {pct}"
   open-container-url: "Ouvrir {url}"
+  agent-version: "Agent Dozzle {version}"
+  agent-version-mismatch: "L'agent {version} ne correspond pas à Dozzle {current}. Mettez à jour l'agent."
 popup:
   started: Démarré
   finished: Arrêté
@@ -156,7 +161,8 @@ error:
   invalid-auth: Nom d'utilisateur ou mot de passe non valides
   oauth-failed: Échec de la connexion. Veuillez réessayer.
   copy-not-supported: La copie dans le presse-papiers n'est pas prise en charge par votre navigateur
-  copy-not-supported-hint: Presse-papiers indisponible. Copiez le lien ci-dessous
+  copy-insecure: Presse-papiers bloqué en http
+  copy-insecure-hint: Votre navigateur n'autorise l'accès au presse-papiers qu'en https. Copiez le texte manuellement.
   logs-skipped: Afficher {total} entrées cachées
   container-not-found: Conteneur non trouvé
   action-failed: Action Échouée
@@ -209,6 +215,7 @@ button:
   refresh: Actualiser
 placeholder:
   search-containers: Recherche de conteneurs (⌘ + k, ⌃k)
+  find-logs: Rechercher dans les logs ou regex
   search: Recherche
 settings:
   show-image-update-alert: 'Afficher une notification lorsqu''un conteneur a une mise à jour'
@@ -230,6 +237,8 @@ settings:
   show-timestamps-desc: 'Préfixe chaque ligne avec l''heure à laquelle elle a été écrite.'
   soft-wrap: Lignes d'enroulement souples
   soft-wrap-desc: 'Renvoie les lignes longues à la ligne au lieu de défiler latéralement.'
+  highlight-errors: Mettre en évidence les lignes d'erreur
+  highlight-errors-desc: "Colore l'arrière-plan des lignes d'erreur. Le marqueur de niveau reste toujours visible."
   datetime-format: Remplacer le format de la date et de l'heure
   datetime-format-desc: 'Suit par défaut la langue et l''horloge de votre navigateur.'
   font-size: Taille de police à utiliser pour les journaux
@@ -294,9 +303,6 @@ releases:
   no_releases: Vous avez la dernière version
   newer: "1 version plus récente | {count} versions plus récentes"
   all: Toutes les versions
-log_actions:
-  copy_log: Copier le journal
-  jump_to_context: Aller au contexte
 toasts:
   copied:
     title: Copié
@@ -343,7 +349,6 @@ notifications:
     title: Activité
     loading: Chargement de l'activité…
     failed: Impossible de charger l'activité.
-    empty-unlinked: Les alertes apparaissent ici dès que cette instance est liée à Dozzle Cloud. En attendant, elles passent dans le flux de logs et sont oubliées au rechargement.
     empty: Rien ne s'est déclenché récemment.
     still-happening: toujours en cours
     events: "{n} événements"

@@ -10,6 +10,7 @@ require (
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-chi/jwtauth/v5 v5.4.0
 	github.com/go-faker/faker/v4 v4.11.0
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	github.com/moby/moby/api v1.56.0
 	github.com/moby/moby/client v0.6.0
@@ -20,12 +21,12 @@ require (
 	github.com/spf13/afero v1.15.0
 	github.com/stretchr/testify v1.12.1
 	github.com/wk8/go-ordered-map/v2 v2.1.8
-	github.com/yuin/goldmark/v2 v2.0.1
+	github.com/yuin/goldmark/v2 v2.0.2
 	go.yaml.in/yaml/v3 v3.0.5
-	golang.org/x/crypto v0.56.0
+	golang.org/x/crypto v0.57.0
 	golang.org/x/oauth2 v0.37.0
 	golang.org/x/sync v0.23.0
-	golang.org/x/term v0.45.0
+	golang.org/x/term v0.46.0
 	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	gopkg.in/yaml.v3 v3.0.1
@@ -81,7 +82,6 @@ require (
 	github.com/gohugoio/hugo v0.164.0 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.4 // indirect
@@ -121,8 +121,8 @@ require (
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	golang.org/x/net v0.58.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.6.2 // indirect

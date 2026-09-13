@@ -5,6 +5,9 @@ toolbar:
   search: Zoeken
   inverse-on: Overeenkomsten uitsluiten (omgekeerd)
   inverse-off: Overeenkomsten opnemen (normaal)
+  invalid-regex: Ongeldige reguliere expressie
+  close-search: Zoeken sluiten
+  move-search: Sleep om te verplaatsen
   show: Toon {std}
   show-all: Toon alles
   stop: Stoppen
@@ -110,9 +113,9 @@ label:
   no-logs-hint: "Alles wat de container schrijft, verschijnt hier direct."
   search-status:
     searching: Oudere logs doorzoeken…
-    searching-to: Oudere logs doorzoeken… terug tot {time}
-    capped: "{count} overeenkomsten · doorzocht tot {time}"
-    exhausted: Alle logs doorzocht · {count} overeenkomsten
+    matches: "{count} overeenkomsten"
+    searched-all: "Alle logs doorzocht"
+    scanned-to: "terug tot {time}"
     empty: "Geen overeenkomende logs"
     empty-hint: "Alle logs doorzocht. Probeer een andere zoekterm of wis de zoekopdracht."
   show-all-containers: Toon alle containers
@@ -138,6 +141,8 @@ tooltip:
   volume-unreachable: niet bereikbaar vanaf deze host
   volume-full: "{destination} is {pct} vol"
   open-container-url: "{url} openen"
+  agent-version: "Dozzle-agent {version}"
+  agent-version-mismatch: "Agent {version} komt niet overeen met Dozzle {current}. Werk de agent bij."
 popup:
   started: Gestart
   finished: Gestopt
@@ -156,7 +161,8 @@ error:
   invalid-auth: Gebruikersnaam of wachtwoord is ongeldig
   oauth-failed: Aanmelden mislukt. Probeer het opnieuw.
   copy-not-supported: Kopiëren naar klembord wordt niet ondersteund in je browser
-  copy-not-supported-hint: Klembord niet beschikbaar. Kopieer de link hieronder
+  copy-insecure: Klembord geblokkeerd op http
+  copy-insecure-hint: Je browser staat klembordtoegang alleen toe via https. Kopieer de tekst handmatig.
   logs-skipped: Toon {total} verborgen items
   container-not-found: Container niet gevonden
   action-failed: Actie Mislukt
@@ -210,6 +216,7 @@ button:
   refresh: Vernieuwen
 placeholder:
   search-containers: Zoek containers (⌘ + k, ⌃k)
+  find-logs: Zoek in logs of regex
   search: Zoeken
 settings:
   show-image-update-alert: 'Toon een melding wanneer een container een update heeft'
@@ -231,6 +238,8 @@ settings:
   show-timestamps-desc: 'Zet voor elke regel het tijdstip waarop die geschreven is.'
   soft-wrap: Regels zacht afbreken
   soft-wrap-desc: 'Breek lange regels af in plaats van zijwaarts te scrollen.'
+  highlight-errors: Foutregels markeren
+  highlight-errors-desc: 'Geeft foutregels een gekleurde achtergrond. De gekleurde niveaumarkering blijft altijd zichtbaar.'
   datetime-format: Datum- en tijdnotatie aanpassen
   datetime-format-desc: 'Volgt standaard de taal en klok van je browser.'
   font-size: Lettergrootte voor logs
@@ -295,9 +304,6 @@ releases:
   no_releases: Je gebruikt de nieuwste versie
   newer: "1 nieuwere versie | {count} nieuwere versies"
   all: Alle versies
-log_actions:
-  copy_log: Log kopiëren
-  jump_to_context: Ga naar context
 toasts:
   copied:
     title: Gekopieerd
@@ -344,7 +350,6 @@ notifications:
     title: Activiteit
     loading: Activiteit laden…
     failed: Kon activiteit niet laden.
-    empty-unlinked: Waarschuwingen verschijnen hier zodra deze instantie aan Dozzle Cloud is gekoppeld. Tot dan komen ze langs in de logstroom en zijn ze na verversen vergeten.
     empty: Er is recent niets afgegaan.
     still-happening: gebeurt nog steeds
     events: "{n} gebeurtenissen"

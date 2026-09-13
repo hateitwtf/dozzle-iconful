@@ -5,6 +5,9 @@ toolbar:
   search: 검색
   inverse-on: 일치 항목 제외 (반전)
   inverse-off: 일치 항목 포함 (일반)
+  invalid-regex: 잘못된 정규식
+  close-search: 검색 닫기
+  move-search: 드래그하여 이동
   show: "{std} 보기"
   show-all: 전체 보기
   stop: 중지
@@ -110,9 +113,9 @@ label:
   no-logs-hint: "컨테이너가 출력하는 내용이 바로 여기에 표시됩니다."
   search-status:
     searching: 이전 로그 검색 중…
-    searching-to: 이전 로그 검색 중… {time}까지
-    capped: "{count}개 일치 · {time}까지 검색함"
-    exhausted: 모든 로그 검색 완료 · {count}개 일치
+    matches: "{count}개 일치"
+    searched-all: "모든 로그 검색 완료"
+    scanned-to: "{time}까지"
     empty: "일치하는 로그가 없습니다"
     empty-hint: "모든 로그를 검색했습니다. 다른 검색어를 시도하거나 검색을 지우세요."
   show-all-containers: 전체 컨테이너 보기
@@ -138,6 +141,8 @@ tooltip:
   volume-unreachable: 이 호스트에서 접근할 수 없음
   volume-full: "{destination}이(가) {pct} 사용 중"
   open-container-url: "{url} 열기"
+  agent-version: "Dozzle 에이전트 {version}"
+  agent-version-mismatch: "에이전트 {version}이(가) Dozzle {current}과(와) 일치하지 않습니다. 에이전트를 업데이트하세요."
 popup:
   started: 시작됨
   finished: 종료됨
@@ -156,7 +161,8 @@ error:
   invalid-auth: 사용자 이름 또는 비밀번호가 올바르지 않습니다
   oauth-failed: 로그인에 실패했습니다. 다시 시도해 주세요.
   copy-not-supported: 클립보드 복사는 브라우저에서 지원되지 않습니다
-  copy-not-supported-hint: 클립보드를 사용할 수 없습니다. 아래 링크를 복사하세요
+  copy-insecure: http에서는 클립보드가 차단됩니다
+  copy-insecure-hint: 브라우저는 https에서만 클립보드 접근을 허용합니다. 텍스트를 직접 복사하세요.
   logs-skipped: 숨겨진 항목 {total}개 보기
   container-not-found: 컨테이너를 찾을 수 없습니다
   action-failed: 작업 실패
@@ -211,6 +217,7 @@ button:
   refresh: 새로고침
 placeholder:
   search-containers: 컨테이너 검색 (⌘ + k, ⌃k)
+  find-logs: 로그에서 찾기 또는 정규식
   search: 검색
 settings:
   show-image-update-alert: '컨테이너에 업데이트가 있을 때 알림 표시'
@@ -233,6 +240,8 @@ settings:
   show-timestamps-desc: '각 줄 앞에 기록된 시각을 표시합니다.'
   soft-wrap: 자동 줄바꿈
   soft-wrap-desc: '가로로 스크롤하는 대신 긴 줄을 줄바꿈합니다.'
+  highlight-errors: 오류 줄 강조
+  highlight-errors-desc: '오류 줄의 배경에 색을 입힙니다. 색상 레벨 표시는 항상 나타납니다.'
   datetime-format: 날짜 및 시간 형식 변경
   datetime-format-desc: '기본적으로 브라우저의 언어와 시간 형식을 따릅니다.'
   font-size: 로그 글꼴 크기
@@ -298,9 +307,6 @@ releases:
   no_releases: 최신 버전을 사용하고 있습니다
   newer: "새 릴리스 1개 | 새 릴리스 {count}개"
   all: 모든 릴리스
-log_actions:
-  copy_log: 로그 복사
-  jump_to_context: 해당 위치로 이동
 toasts:
   copied:
     title: 복사 완료
@@ -347,7 +353,6 @@ notifications:
     title: 활동
     loading: 활동을 불러오는 중…
     failed: 활동을 불러올 수 없습니다.
-    empty-unlinked: 이 인스턴스를 Dozzle Cloud에 연결하면 알림이 여기에 표시됩니다. 그전까지는 로그 스트림에만 나타나고 새로고침하면 사라집니다.
     empty: 최근에 발생한 알림이 없습니다.
     still-happening: 계속 발생 중
     events: 이벤트 {n}건

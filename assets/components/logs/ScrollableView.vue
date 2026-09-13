@@ -24,12 +24,13 @@
         :date="scrollContext.currentDate"
       />
     </div>
-    <main
-      ref="scrollableMain"
-      :data-scrolling="scrollable ? true : undefined"
-      class="min-h-[300px] snap-y overflow-auto"
-    >
-      <div ref="scrollableContent">
+    <main ref="scrollableMain" :data-scrolling="scrollable ? true : undefined" class="min-h-75 snap-y overflow-auto">
+      <!-- The find box floats over the top of this column, so the list starts below
+           it while it is open and sitting where it opened. -->
+      <div
+        ref="scrollableContent"
+        :style="{ paddingTop: searchOverlayHeight ? `${searchOverlayHeight}px` : undefined }"
+      >
         <slot></slot>
       </div>
 
@@ -98,7 +99,7 @@ const { loadingMore, historical } = useLoggingContext();
 provideViewContextOwner(ownsViewContext);
 if (ownsViewContext) publishViewContext(buildViewContext(scrollContext));
 
-const { isSearching } = useSearchFilter();
+const { isSearching, searchOverlayHeight } = useSearchFilter();
 if (!historical.value) {
   useIntersectionObserver(scrollObserver, ([entry]) => (scrollContext.paused = entry.intersectionRatio == 0), {
     threshold: [0, 1],

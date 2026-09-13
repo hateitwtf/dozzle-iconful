@@ -5,6 +5,9 @@ toolbar:
   search: Cari
   inverse-on: Kecualikan yang cocok (inversi)
   inverse-off: Sertakan yang cocok (normal)
+  invalid-regex: Ekspresi reguler tidak valid
+  close-search: Tutup pencarian
+  move-search: Seret untuk memindahkan
   show: Tampilkan {std}
   show-all: Tampilkan semua
   stop: Hentikan
@@ -111,9 +114,9 @@ label:
   no-logs-hint: "Apa pun yang ditulis kontainer akan langsung muncul di sini."
   search-status:
     searching: Mencari log lama…
-    searching-to: Mencari log lama… kembali ke {time}
-    capped: "{count} hasil · dicari kembali ke {time}"
-    exhausted: Semua log dicari · {count} hasil
+    matches: "{count} hasil"
+    searched-all: "Semua log dicari"
+    scanned-to: "kembali ke {time}"
     empty: "Tidak ada log yang cocok"
     empty-hint: "Semua log sudah dicari. Coba kata lain atau hapus pencarian."
   show-all-containers: Tampilkan semua kontainer
@@ -141,6 +144,8 @@ tooltip:
   volume-full: "{destination} terisi {pct}"
 
   open-container-url: "Buka {url}"
+  agent-version: "Agen Dozzle {version}"
+  agent-version-mismatch: "Agen {version} tidak cocok dengan Dozzle {current}. Perbarui agennya."
 popup:
   started: Dimulai
   finished: Berhenti
@@ -159,7 +164,8 @@ error:
   invalid-auth: Nama pengguna atau kata sandi tidak valid
   oauth-failed: Gagal masuk. Silakan coba lagi.
   copy-not-supported: Salin ke clipboard tidak didukung di browser Anda
-  copy-not-supported-hint: Clipboard tidak tersedia. Salin tautan di bawah ini
+  copy-insecure: Clipboard diblokir di http
+  copy-insecure-hint: Browser Anda hanya mengizinkan akses clipboard melalui https. Salin teks secara manual.
   logs-skipped: Tampilkan {total} entri tersembunyi
   container-not-found: Kontainer tidak ditemukan
   action-failed: Tindakan Gagal
@@ -216,6 +222,7 @@ button:
 
 placeholder:
   search-containers: Cari kontainer (⌘ + k, ⌃k)
+  find-logs: Cari di log atau regex
   search: Cari
 
 settings:
@@ -238,6 +245,8 @@ settings:
   show-timestamps-desc: 'Tambahkan waktu penulisan di awal setiap baris.'
   soft-wrap: Bungkus baris secara lunak
   soft-wrap-desc: 'Bungkus baris panjang alih-alih menggulir ke samping.'
+  highlight-errors: Sorot baris galat
+  highlight-errors-desc: 'Beri warna latar pada baris galat. Penanda level berwarna selalu ditampilkan.'
   datetime-format: Ganti format tanggal dan waktu
   datetime-format-desc: 'Secara bawaan mengikuti bahasa dan format jam peramban Anda.'
   font-size: Ukuran font untuk log
@@ -304,9 +313,6 @@ releases:
 
   newer: "1 rilis lebih baru | {count} rilis lebih baru"
   all: Semua rilis
-log_actions:
-  copy_log: Salin log
-  jump_to_context: Lompat ke konteks
 
 toasts:
   copied:
@@ -355,7 +361,6 @@ notifications:
     title: Aktivitas
     loading: Memuat aktivitas…
     failed: Tidak dapat memuat aktivitas.
-    empty-unlinked: Peringatan muncul di sini setelah instance ini ditautkan ke Dozzle Cloud. Sebelum itu, peringatan hanya lewat di aliran log dan hilang saat dimuat ulang.
     empty: Belum ada yang terpicu baru-baru ini.
     still-happening: masih berlangsung
     events: "{n} kejadian"

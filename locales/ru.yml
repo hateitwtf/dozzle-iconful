@@ -5,6 +5,9 @@ toolbar:
   search: Поиск
   inverse-on: Исключить совпадения (инверсия)
   inverse-off: Включить совпадения (обычно)
+  invalid-regex: Некорректное регулярное выражение
+  close-search: Закрыть поиск
+  move-search: Перетащите, чтобы переместить
   show: Показать только {std}
   show-all: Показать все потоки
   stop: Остановить
@@ -110,9 +113,9 @@ label:
   no-logs-hint: "Всё, что запишет контейнер, сразу появится здесь."
   search-status:
     searching: Поиск в старых логах…
-    searching-to: Поиск в старых логах… до {time}
-    capped: "{count} совпадений · поиск до {time}"
-    exhausted: Все логи просмотрены · {count} совпадений
+    matches: "{count} совпадений"
+    searched-all: "Все логи просмотрены"
+    scanned-to: "до {time}"
     empty: "Нет подходящих логов"
     empty-hint: "Просмотрены все логи. Попробуйте другой запрос или очистите поиск."
   show-all-containers: Показать все контейнеры
@@ -138,6 +141,8 @@ tooltip:
   volume-unreachable: недоступно с этого хоста
   volume-full: "{destination} заполнено на {pct}"
   open-container-url: "Открыть {url}"
+  agent-version: "Агент Dozzle {version}"
+  agent-version-mismatch: "Агент {version} не совпадает с Dozzle {current}. Обновите агент."
 popup:
   started: Запущен
   finished: Остановлен
@@ -156,7 +161,8 @@ error:
   invalid-auth: Имя пользователя или пароль неверны.
   oauth-failed: Не удалось выполнить вход. Попробуйте ещё раз.
   copy-not-supported: Копирование в буфер обмена не поддерживается вашим браузером
-  copy-not-supported-hint: Буфер обмена недоступен. Скопируйте ссылку ниже
+  copy-insecure: Буфер обмена заблокирован по http
+  copy-insecure-hint: Браузер разрешает доступ к буферу обмена только по https. Скопируйте текст вручную.
   logs-skipped: Показать {total} скрытых записей
   container-not-found: Контейнер не найден.
   action-failed: Действие не выполнено
@@ -209,6 +215,7 @@ button:
   refresh: Обновить
 placeholder:
   search-containers: Поиск контейнеров (⌘ + k, ⌃k)
+  find-logs: Поиск в логах или regex
   search: Поиск
 settings:
   show-image-update-alert: 'Показывать уведомление, когда у контейнера есть обновление'
@@ -230,6 +237,8 @@ settings:
   show-timestamps-desc: 'Добавляет в начало каждой строки время её записи.'
   soft-wrap: Плавный перенос текста
   soft-wrap-desc: 'Переносит длинные строки вместо горизонтальной прокрутки.'
+  highlight-errors: Подсвечивать строки с ошибками
+  highlight-errors-desc: 'Окрашивает фон строк с ошибками. Цветной маркер уровня отображается всегда.'
   datetime-format: Формат даты и времени
   datetime-format-desc: 'По умолчанию следует языку и формату времени браузера.'
   font-size: Размер шрифта
@@ -294,9 +303,6 @@ releases:
   no_releases: У вас последняя версия
   newer: "1 новая версия | Новых версий: {count}"
   all: Все версии
-log_actions:
-  copy_log: Копировать лог
-  jump_to_context: Перейти к контексту
 toasts:
   copied:
     title: Скопировано
@@ -343,7 +349,6 @@ notifications:
     title: Активность
     loading: Загрузка активности…
     failed: Не удалось загрузить активность.
-    empty-unlinked: Оповещения появятся здесь, когда этот экземпляр будет связан с Dozzle Cloud. До этого они мелькают в потоке логов и теряются после перезагрузки.
     empty: Недавно ничего не срабатывало.
     still-happening: всё ещё происходит
     events: "{n} событий"

@@ -5,6 +5,9 @@ toolbar:
   search: Ara
   inverse-on: Eşleşenleri hariç tut (ters)
   inverse-off: Eşleşenleri dahil et (normal)
+  invalid-regex: Geçersiz düzenli ifade
+  close-search: Aramayı kapat
+  move-search: Taşımak için sürükleyin
   show: Sadece {std} göster
   show-all: Tüm akışları göster
   stop: Durdur
@@ -110,9 +113,9 @@ label:
   no-logs-hint: "Konteynerin yazdığı her şey anında burada görünür."
   search-status:
     searching: Eski loglar aranıyor…
-    searching-to: Eski loglar aranıyor… {time} tarihine kadar
-    capped: "{count} eşleşme · {time} tarihine kadar arandı"
-    exhausted: Tüm loglar arandı · {count} eşleşme
+    matches: "{count} eşleşme"
+    searched-all: "Tüm loglar arandı"
+    scanned-to: "{time} tarihine kadar"
     empty: "Eşleşen log yok"
     empty-hint: "Tüm loglar arandı. Farklı bir terim deneyin veya aramayı temizleyin."
   show-all-containers: Tüm konteynerleri göster
@@ -138,6 +141,8 @@ tooltip:
   volume-unreachable: bu sunucudan erişilemiyor
   volume-full: "{destination} {pct} dolu"
   open-container-url: "{url} adresini aç"
+  agent-version: "Dozzle aracısı {version}"
+  agent-version-mismatch: "Aracı {version}, Dozzle {current} ile eşleşmiyor. Aracıyı güncelleyin."
 popup:
   started: Başlatıldı
   finished: Durduruldu
@@ -156,7 +161,8 @@ error:
   invalid-auth: Kullanıcı adı veya şifre geçersiz
   oauth-failed: Giriş başarısız oldu. Lütfen tekrar deneyin.
   copy-not-supported: Panoya kopyalama tarayıcınızda desteklenmiyor
-  copy-not-supported-hint: Pano kullanılamıyor. Aşağıdaki bağlantıyı kopyalayın
+  copy-insecure: Pano http üzerinde engellendi
+  copy-insecure-hint: Tarayıcınız panoya erişime yalnızca https üzerinden izin veriyor. Metni elle kopyalayın.
   logs-skipped: "{total} gizli girişi göster"
   container-not-found: Konteyner bulunamadı
   action-failed: İşlem Başarısız
@@ -212,6 +218,7 @@ button:
   refresh: Yenile
 placeholder:
   search-containers: Konteynerlerde ara (⌘ + k, ⌃k)
+  find-logs: Günlüklerde ara veya regex
   search: Ara
 settings:
   show-image-update-alert: 'Bir kapsayıcının güncellemesi olduğunda bildirim göster'
@@ -233,6 +240,8 @@ settings:
   show-timestamps-desc: 'Her satırın başına yazıldığı saati ekler.'
   soft-wrap: Satırları yumuşak kaydır
   soft-wrap-desc: 'Yana kaydırmak yerine uzun satırları alt satıra kaydırır.'
+  highlight-errors: Hata satırlarını vurgula
+  highlight-errors-desc: 'Hata satırlarının arka planını renklendirir. Renkli seviye işareti her zaman görünür.'
   datetime-format: Tarih ve saat biçimini geçersiz kıl
   datetime-format-desc: 'Varsayılan olarak tarayıcınızın dilini ve saat biçimini kullanır.'
   font-size: Günlükler için kullanılacak yazı tipi boyutu
@@ -298,9 +307,6 @@ releases:
   no_releases: En son sürüme sahipsiniz
   newer: "1 yeni sürüm | {count} yeni sürüm"
   all: Tüm sürümler
-log_actions:
-  copy_log: Günlüğü kopyala
-  jump_to_context: Bağlama git
 toasts:
   copied:
     title: Kopyalandı
@@ -347,7 +353,6 @@ notifications:
     title: Etkinlik
     loading: Etkinlik yükleniyor…
     failed: Etkinlik yüklenemedi.
-    empty-unlinked: Bu örnek Dozzle Cloud'a bağlandığında uyarılar burada görünür. O zamana kadar yalnızca log akışında geçer ve sayfa yenilenince kaybolur.
     empty: Son zamanlarda hiçbir şey tetiklenmedi.
     still-happening: hâlâ sürüyor
     events: "{n} olay"

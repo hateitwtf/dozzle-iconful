@@ -5,6 +5,9 @@ toolbar:
   search: Search
   inverse-on: Exclude matching (inverse)
   inverse-off: Include matching (normal)
+  invalid-regex: Invalid regular expression
+  close-search: Close search
+  move-search: Drag to move
   show: Show {std}
   show-all: Show all
   stop: Stop
@@ -110,9 +113,9 @@ label:
   no-logs-hint: "Anything the container writes shows up here right away."
   search-status:
     searching: Searching older logs…
-    searching-to: Searching older logs… back to {time}
-    capped: "{count} matches · searched back to {time}"
-    exhausted: Searched all logs · {count} matches
+    matches: "{count} matches"
+    searched-all: "Searched all logs"
+    scanned-to: "back to {time}"
     empty: "No matching logs"
     empty-hint: "Searched all logs. Try a different term or clear the search."
   show-all-containers: Show all containers
@@ -138,6 +141,8 @@ tooltip:
   volume-unreachable: not reachable from this host
   volume-full: "{destination} is {pct} full"
   open-container-url: "Open {url}"
+  agent-version: "Dozzle agent {version}"
+  agent-version-mismatch: "Agent {version} does not match Dozzle {current}. Update the agent."
 popup:
   started: Started
   finished: Finished
@@ -156,7 +161,8 @@ error:
   invalid-auth: Username or password are not valid
   oauth-failed: Sign in failed. Please try again.
   copy-not-supported: Copy to clipboard is not supported in your browser
-  copy-not-supported-hint: Clipboard unavailable. Copy the link below
+  copy-insecure: Clipboard blocked on http
+  copy-insecure-hint: Your browser only allows clipboard access over https. Copy the text manually instead.
   logs-skipped: Show {total} hidden entries
   container-not-found: Container not found
   action-failed: Action Failed
@@ -217,6 +223,7 @@ button:
   refresh: Refresh
 placeholder:
   search-containers: Search containers (⌘ + k, ⌃k)
+  find-logs: Find in logs or regex
   search: Search
 cloud-rail:
   title: Dozzle Cloud
@@ -338,6 +345,8 @@ settings:
   show-timestamps-desc: Prefix each line with the time it was written.
   soft-wrap: Soft wrap lines
   soft-wrap-desc: Wrap long lines instead of scrolling sideways.
+  highlight-errors: Highlight error rows
+  highlight-errors-desc: Tint the background of error lines. The colored level marker is always shown.
   datetime-format: Override date and time format
   datetime-format-desc: Defaults to your browser locale and clock.
   font-size: Font size to use for logs
@@ -405,9 +414,6 @@ releases:
   no_releases: You have the latest version
   newer: "1 newer release | {count} newer releases"
   all: All releases
-log_actions:
-  copy_log: Copy log
-  jump_to_context: Jump to context
 toasts:
   copied:
     title: Copied
@@ -454,7 +460,6 @@ notifications:
     title: Activity
     loading: Loading activity…
     failed: Could not load activity.
-    empty-unlinked: Alerts show up here once this instance is linked to Dozzle Cloud. Until then they appear in the log stream and are forgotten on refresh.
     empty: Nothing has fired recently.
     still-happening: still happening
     events: "{n} events"

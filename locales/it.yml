@@ -5,6 +5,9 @@ toolbar:
   search: Cerca
   inverse-on: Escludi corrispondenze (inverso)
   inverse-off: Includi corrispondenze (normale)
+  invalid-regex: Espressione regolare non valida
+  close-search: Chiudi ricerca
+  move-search: Trascina per spostare
   show: Mostra solo {std}
   show-all: Mostra tutto
   stop: Stop
@@ -110,9 +113,9 @@ label:
   no-logs-hint: "Tutto ciò che il container scrive apparirà subito qui."
   search-status:
     searching: Ricerca nei log meno recenti…
-    searching-to: Ricerca nei log meno recenti… fino a {time}
-    capped: "{count} risultati · cercato fino a {time}"
-    exhausted: Cercato in tutti i log · {count} risultati
+    matches: "{count} risultati"
+    searched-all: "Cercato in tutti i log"
+    scanned-to: "fino a {time}"
     empty: "Nessun log corrispondente"
     empty-hint: "Cercato in tutti i log. Prova un altro termine o cancella la ricerca."
   show-all-containers: Mostra tutti i container
@@ -138,6 +141,8 @@ tooltip:
   volume-unreachable: non raggiungibile da questo host
   volume-full: "{destination} è pieno al {pct}"
   open-container-url: "Apri {url}"
+  agent-version: "Agente Dozzle {version}"
+  agent-version-mismatch: "L'agente {version} non corrisponde a Dozzle {current}. Aggiorna l'agente."
 popup:
   started: Avviato
   finished: Terminato
@@ -156,7 +161,8 @@ error:
   invalid-auth: Username o password non valide
   oauth-failed: Accesso non riuscito. Riprova.
   copy-not-supported: La copia negli appunti non è supportata dal tuo browser
-  copy-not-supported-hint: Appunti non disponibili. Copia il link qui sotto
+  copy-insecure: Appunti bloccati su http
+  copy-insecure-hint: Il tuo browser consente l'accesso agli appunti solo tramite https. Copia il testo manualmente.
   logs-skipped: Mostra {total} voci nascoste
   container-not-found: Container non trovato
   action-failed: Azione Fallita
@@ -209,6 +215,7 @@ button:
   refresh: Aggiorna
 placeholder:
   search-containers: Ricerca container (⌘ + k, ⌃k)
+  find-logs: Cerca nei log o regex
   search: Cerca
 settings:
   show-image-update-alert: 'Mostra una notifica quando un container ha un aggiornamento'
@@ -230,6 +237,8 @@ settings:
   show-timestamps-desc: 'Antepone a ogni riga l''ora in cui è stata scritta.'
   soft-wrap: Soft Wrap
   soft-wrap-desc: 'Manda a capo le righe lunghe invece di scorrere in orizzontale.'
+  highlight-errors: Evidenzia le righe di errore
+  highlight-errors-desc: "Colora lo sfondo delle righe di errore. L'indicatore di livello è sempre visibile."
   datetime-format: Sovrascrivi data e formato dell'ora
   datetime-format-desc: 'Per impostazione predefinita segue lingua e orologio del browser.'
   font-size: Grandezza del Font da usare nei log
@@ -294,9 +303,6 @@ releases:
   no_releases: Stai utilizzando l'ultima versione
   newer: "1 versione più recente | {count} versioni più recenti"
   all: Tutte le versioni
-log_actions:
-  copy_log: Copia log
-  jump_to_context: Vai a
 toasts:
   copied:
     title: Copiato
@@ -343,7 +349,6 @@ notifications:
     title: Attività
     loading: Caricamento attività…
     failed: Impossibile caricare l'attività.
-    empty-unlinked: Gli avvisi compaiono qui quando questa istanza è collegata a Dozzle Cloud. Fino ad allora passano nel flusso dei log e vengono dimenticati al ricaricamento.
     empty: Nulla è scattato di recente.
     still-happening: ancora in corso
     events: "{n} eventi"

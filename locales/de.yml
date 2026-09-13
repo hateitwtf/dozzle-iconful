@@ -5,6 +5,9 @@ toolbar:
   search: Suchen
   inverse-on: Übereinstimmungen ausschließen (invertiert)
   inverse-off: Übereinstimmungen einschließen (normal)
+  invalid-regex: Ungültiger regulärer Ausdruck
+  close-search: Suche schließen
+  move-search: Zum Verschieben ziehen
   show: Zeige nur {std}
   show-all: Zeige alle Streams
   stop: Stop
@@ -110,9 +113,9 @@ label:
   no-logs-hint: "Alles, was der Container schreibt, erscheint hier sofort."
   search-status:
     searching: Durchsuche ältere Logs…
-    searching-to: Durchsuche ältere Logs… zurück bis {time}
-    capped: "{count} Treffer · durchsucht bis {time}"
-    exhausted: Alle Logs durchsucht · {count} Treffer
+    matches: "{count} Treffer"
+    searched-all: "Alle Logs durchsucht"
+    scanned-to: "zurück bis {time}"
     empty: "Keine passenden Logs"
     empty-hint: "Alle Logs durchsucht. Probiere einen anderen Suchbegriff oder setze die Suche zurück."
   show-all-containers: Zeige alle Container
@@ -138,6 +141,8 @@ tooltip:
   volume-unreachable: von diesem Host nicht erreichbar
   volume-full: "{destination} ist zu {pct} voll"
   open-container-url: "{url} öffnen"
+  agent-version: "Dozzle-Agent {version}"
+  agent-version-mismatch: "Agent {version} passt nicht zu Dozzle {current}. Aktualisiere den Agenten."
 popup:
   started: Gestartet
   finished: Beendet
@@ -156,7 +161,8 @@ error:
   invalid-auth: Benutzername und Passwort sind ungültig.
   oauth-failed: Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.
   copy-not-supported: Kopieren in die Zwischenablage wird von Ihrem Browser nicht unterstützt
-  copy-not-supported-hint: Zwischenablage nicht verfügbar. Link unten kopieren
+  copy-insecure: Zwischenablage über http blockiert
+  copy-insecure-hint: Ihr Browser erlaubt den Zugriff auf die Zwischenablage nur über https. Kopieren Sie den Text stattdessen manuell.
   logs-skipped: Zeige {total} versteckte Einträge
   container-not-found: Container nicht gefunden.
   action-failed: Aktion fehlgeschlagen
@@ -209,6 +215,7 @@ button:
   refresh: Aktualisieren
 placeholder:
   search-containers: Suche Container (⌘ + k, ⌃k)
+  find-logs: In Logs suchen oder Regex
   search: Suche
 settings:
   show-image-update-alert: 'Benachrichtigung anzeigen, wenn ein Container ein Update hat'
@@ -230,6 +237,8 @@ settings:
   show-timestamps-desc: 'Jeder Zeile die Uhrzeit voranstellen, zu der sie geschrieben wurde.'
   soft-wrap: Zeilenumbruch
   soft-wrap-desc: 'Lange Zeilen umbrechen statt seitwärts zu scrollen.'
+  highlight-errors: Fehlerzeilen hervorheben
+  highlight-errors-desc: 'Färbt den Hintergrund von Fehlerzeilen ein. Die farbige Level-Markierung wird immer angezeigt.'
   datetime-format: Datums- und Zeitformat
   datetime-format-desc: 'Folgt standardmäßig der Sprache und Uhrzeit deines Browsers.'
   font-size: Schriftgröße für Logs
@@ -294,9 +303,6 @@ releases:
   no_releases: Du hast die aktuellste Version
   newer: "1 neuere Version | {count} neuere Versionen"
   all: Alle Versionen
-log_actions:
-  copy_log: Log kopieren
-  jump_to_context: Zum Kontext springen
 toasts:
   copied:
     title: Kopiert
@@ -343,7 +349,6 @@ notifications:
     title: Aktivität
     loading: Aktivität wird geladen…
     failed: Aktivität konnte nicht geladen werden.
-    empty-unlinked: Alarme erscheinen hier, sobald diese Instanz mit Dozzle Cloud verknüpft ist. Bis dahin tauchen sie im Log-Stream auf und sind nach dem Neuladen vergessen.
     empty: In letzter Zeit wurde nichts ausgelöst.
     still-happening: passiert weiterhin
     events: "{n} Ereignisse"

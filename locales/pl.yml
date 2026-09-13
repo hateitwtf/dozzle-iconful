@@ -5,6 +5,9 @@ toolbar:
   search: Szukaj
   inverse-on: Wyklucz pasujące (odwrotnie)
   inverse-off: Uwzględnij pasujące (normalnie)
+  invalid-regex: Nieprawidłowe wyrażenie regularne
+  close-search: Zamknij wyszukiwanie
+  move-search: Przeciągnij, aby przenieść
   show: Pokaż tylko {std}
   show-all: Pokaż wszystko
   stop: Stop
@@ -110,9 +113,9 @@ label:
   no-logs-hint: "Wszystko, co zapisze kontener, pojawi się tutaj od razu."
   search-status:
     searching: Przeszukiwanie starszych logów…
-    searching-to: Przeszukiwanie starszych logów… wstecz do {time}
-    capped: "{count} dopasowań · przeszukano do {time}"
-    exhausted: Przeszukano wszystkie logi · {count} dopasowań
+    matches: "{count} dopasowań"
+    searched-all: "Przeszukano wszystkie logi"
+    scanned-to: "wstecz do {time}"
     empty: "Brak pasujących logów"
     empty-hint: "Przeszukano wszystkie logi. Spróbuj innej frazy lub wyczyść wyszukiwanie."
   show-all-containers: Pokaż wszystkie kontenery
@@ -138,6 +141,8 @@ tooltip:
   volume-unreachable: nieosiągalne z tego hosta
   volume-full: "{destination} zapełniony w {pct}"
   open-container-url: "Otwórz {url}"
+  agent-version: "Agent Dozzle {version}"
+  agent-version-mismatch: "Agent {version} nie pasuje do Dozzle {current}. Zaktualizuj agenta."
 popup:
   started: Uruchomiono
   finished: Zatrzymano
@@ -156,7 +161,8 @@ error:
   invalid-auth: Nazwa użytkownika lub hasło są niepoprawne
   oauth-failed: Logowanie nie powiodło się. Spróbuj ponownie.
   copy-not-supported: Kopiowanie do schowka nie jest obsługiwane w twojej przeglądarce
-  copy-not-supported-hint: Schowek niedostępny. Skopiuj poniższy link
+  copy-insecure: Schowek zablokowany przez http
+  copy-insecure-hint: Twoja przeglądarka zezwala na dostęp do schowka tylko przez https. Skopiuj tekst ręcznie.
   logs-skipped: Pokaż {total} ukrytych wpisów
   container-not-found: Kontener nie został znaleziony
   action-failed: Akcja Nieudana
@@ -211,6 +217,7 @@ button:
   refresh: Odśwież
 placeholder:
   search-containers: Przeszukaj kontery (⌘ + k, ⌃k)
+  find-logs: Szukaj w logach lub regex
   search: Szukaj
 settings:
   show-image-update-alert: 'Pokaż powiadomienie, gdy kontener ma aktualizację'
@@ -232,6 +239,8 @@ settings:
   show-timestamps-desc: 'Poprzedza każdy wiersz godziną jego zapisania.'
   soft-wrap: Zwijaj linie
   soft-wrap-desc: 'Zawija długie wiersze zamiast przewijania w bok.'
+  highlight-errors: Wyróżniaj wiersze błędów
+  highlight-errors-desc: 'Koloruje tło wierszy z błędami. Kolorowy znacznik poziomu jest zawsze widoczny.'
   datetime-format: Nadpisz format daty i godziny
   datetime-format-desc: 'Domyślnie używa języka i formatu zegara przeglądarki.'
   font-size: Rozmiar czcionki używany dla logów
@@ -297,9 +306,6 @@ releases:
   no_releases: Masz najnowszą wersję
   newer: "1 nowsze wydanie | {count} nowszych wydań"
   all: Wszystkie wydania
-log_actions:
-  copy_log: Skopiuj logi
-  jump_to_context: Przeskocz do kontekstu
 toasts:
   copied:
     title: Skopiowany
@@ -346,7 +352,6 @@ notifications:
     title: Aktywność
     loading: Wczytywanie aktywności…
     failed: Nie udało się wczytać aktywności.
-    empty-unlinked: Alerty pojawią się tutaj, gdy ta instancja zostanie połączona z Dozzle Cloud. Do tego czasu przewijają się w strumieniu logów i znikają po odświeżeniu.
     empty: Ostatnio nic się nie uruchomiło.
     still-happening: nadal trwa
     events: "{n} zdarzeń"

@@ -5,6 +5,9 @@ toolbar:
   search: Iskanje
   inverse-on: Izključi ujemanja (obratno)
   inverse-off: Vključi ujemanja (običajno)
+  invalid-regex: Neveljaven regularni izraz
+  close-search: Zapri iskanje
+  move-search: Povlecite za premik
   show: Prikaži {std}
   show-all: Prikaži vse
   stop: Ustavi
@@ -116,9 +119,9 @@ label:
   no-logs-hint: "Vse, kar vsebnik zapiše, se takoj pojavi tukaj."
   search-status:
     searching: Iskanje po starejših dnevnikih…
-    searching-to: Iskanje po starejših dnevnikih… nazaj do {time}
-    capped: "{count} zadetkov · iskano nazaj do {time}"
-    exhausted: Preiskani vsi dnevniki · {count} zadetkov
+    matches: "{count} zadetkov"
+    searched-all: "Preiskani vsi dnevniki"
+    scanned-to: "nazaj do {time}"
     empty: "Ni ujemajočih se dnevnikov"
     empty-hint: "Preiskani vsi dnevniki. Poskusite z drugim izrazom ali počistite iskanje."
 tooltip:
@@ -138,6 +141,8 @@ tooltip:
   volume-unreachable: nedosegljivo iz tega gostitelja
   volume-full: "{destination} je {pct} poln"
   open-container-url: "Odpri {url}"
+  agent-version: "Agent Dozzle {version}"
+  agent-version-mismatch: "Agent {version} se ne ujema z Dozzle {current}. Posodobite agenta."
 popup:
   started: Zagnan
   finished: Ustavljen
@@ -156,7 +161,8 @@ error:
   invalid-auth: Uporabniško ime ali geslo nista veljavna
   oauth-failed: Prijava ni uspela. Poskusite znova.
   copy-not-supported: Kopiranje v odložišče ni podprto v vašem brskalniku
-  copy-not-supported-hint: Odložišče ni na voljo. Kopirajte spodnjo povezavo
+  copy-insecure: Odložišče je blokirano prek http
+  copy-insecure-hint: Vaš brskalnik dovoljuje dostop do odložišča samo prek https. Besedilo kopirajte ročno.
   logs-skipped: Prikaži {total} skritih vnosov
   events-stream:
     title: Nepričakovana napaka
@@ -211,6 +217,7 @@ button:
   refresh: Osveži
 placeholder:
   search-containers: Iskanje zabojnikov (⌘ + k, ⌃k)
+  find-logs: Iskanje po dnevnikih ali regex
   search: Iskanje
 settings:
   show-image-update-alert: 'Pokaži obvestilo, ko je za vsebnik na voljo posodobitev'
@@ -230,6 +237,8 @@ settings:
   show-timestamps-desc: 'Pred vsako vrstico doda čas, ko je bila zapisana.'
   soft-wrap: Mehke ovojne linije
   soft-wrap-desc: 'Prelomi dolge vrstice namesto drsenja vstran.'
+  highlight-errors: Označi vrstice z napakami
+  highlight-errors-desc: 'Obarva ozadje vrstic z napakami. Barvna oznaka ravni je vedno vidna.'
   datetime-format: Preglasi obliko zapisa datuma in časa
   datetime-format-desc: 'Privzeto sledi jeziku in uri v brskalniku.'
   font-size: Velikost pisave za dnevnike
@@ -300,9 +309,6 @@ releases:
   no_releases: Imate najnovejšo različico
   newer: "1 novejša izdaja | {count} novejših izdaj"
   all: Vse izdaje
-log_actions:
-  copy_log: Kopiraj dnevnik
-  jump_to_context: Skoči na kontekst
 toasts:
   copied:
     title: Kopirano
@@ -349,7 +355,6 @@ notifications:
     title: Dejavnost
     loading: Nalaganje dejavnosti…
     failed: Dejavnosti ni bilo mogoče naložiti.
-    empty-unlinked: Opozorila se pokažejo tukaj, ko je ta instanca povezana z Dozzle Cloud. Do takrat se pojavijo v toku dnevnikov in se ob osvežitvi pozabijo.
     empty: Nedavno se ni sprožilo nič.
     still-happening: še vedno se dogaja
     events: "{n} dogodkov"

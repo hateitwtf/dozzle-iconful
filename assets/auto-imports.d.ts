@@ -91,6 +91,7 @@ declare global {
   const hasIcon: typeof import('./utils/index').hasIcon
   const hasViewContext: typeof import('./composable/logs/viewContext').hasViewContext
   const hashCode: typeof import('./utils/index').hashCode
+  const highlightErrors: typeof import('./stores/settings').highlightErrors
   const highlightSubstringInHtml: typeof import('./utils/index').highlightSubstringInHtml
   const hourStyle: typeof import('./stores/settings').hourStyle
   const iconSlugForImage: typeof import('./utils/index').iconSlugForImage
@@ -268,6 +269,7 @@ declare global {
   const useContainerActions: typeof import('./composable/containers/containerActions').useContainerActions
   const useContainerStore: typeof import('./stores/container').useContainerStore
   const useContainerStream: typeof import('./composable/logs/eventStreams').useContainerStream
+  const useCopy: typeof import('./composable/app/clipboard').useCopy
   const useCountdown: typeof import('@vueuse/core').useCountdown
   const useCounter: typeof import('@vueuse/core').useCounter
   const useCssModule: typeof import('vue').useCssModule
@@ -439,6 +441,7 @@ declare global {
   const useVModel: typeof import('@vueuse/core').useVModel
   const useVModels: typeof import('@vueuse/core').useVModels
   const useVibrate: typeof import('@vueuse/core').useVibrate
+  const useViewAlerts: typeof import('./composable/cloud/cloudRail').useViewAlerts
   const useViewContext: typeof import('./composable/logs/viewContext').useViewContext
   const useVirtualList: typeof import('@vueuse/core').useVirtualList
   const useVisibleFilter: typeof import('./composable/logs/visible').useVisibleFilter
@@ -626,6 +629,7 @@ declare module 'vue' {
     readonly hasIcon: UnwrapRef<typeof import('./utils/index')['hasIcon']>
     readonly hasViewContext: UnwrapRef<typeof import('./composable/logs/viewContext')['hasViewContext']>
     readonly hashCode: UnwrapRef<typeof import('./utils/index')['hashCode']>
+    readonly highlightErrors: UnwrapRef<typeof import('./stores/settings')['highlightErrors']>
     readonly hourStyle: UnwrapRef<typeof import('./stores/settings')['hourStyle']>
     readonly iconSlugForImage: UnwrapRef<typeof import('./utils/index')['iconSlugForImage']>
     readonly iconUrl: UnwrapRef<typeof import('./utils/index')['iconUrl']>
@@ -797,6 +801,7 @@ declare module 'vue' {
     readonly useContainerActions: UnwrapRef<typeof import('./composable/containers/containerActions')['useContainerActions']>
     readonly useContainerStore: UnwrapRef<typeof import('./stores/container')['useContainerStore']>
     readonly useContainerStream: UnwrapRef<typeof import('./composable/logs/eventStreams')['useContainerStream']>
+    readonly useCopy: UnwrapRef<typeof import('./composable/app/clipboard')['useCopy']>
     readonly useCountdown: UnwrapRef<typeof import('@vueuse/core')['useCountdown']>
     readonly useCounter: UnwrapRef<typeof import('@vueuse/core')['useCounter']>
     readonly useCssModule: UnwrapRef<typeof import('vue')['useCssModule']>
@@ -968,6 +973,7 @@ declare module 'vue' {
     readonly useVModel: UnwrapRef<typeof import('@vueuse/core')['useVModel']>
     readonly useVModels: UnwrapRef<typeof import('@vueuse/core')['useVModels']>
     readonly useVibrate: UnwrapRef<typeof import('@vueuse/core')['useVibrate']>
+    readonly useViewAlerts: UnwrapRef<typeof import('./composable/cloud/cloudRail')['useViewAlerts']>
     readonly useViewContext: UnwrapRef<typeof import('./composable/logs/viewContext')['useViewContext']>
     readonly useVirtualList: UnwrapRef<typeof import('@vueuse/core')['useVirtualList']>
     readonly useVisibleFilter: UnwrapRef<typeof import('./composable/logs/visible')['useVisibleFilter']>
