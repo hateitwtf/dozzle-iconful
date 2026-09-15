@@ -23,6 +23,7 @@ export const es: Labels = {
   pages: {
     "what-is-dozzle": "¿Qué es Dozzle?",
     "getting-started": "Primeros pasos",
+    "setup-wizard": "Asistente de configuración",
     "whats-new": "Novedades de la v11",
     "swarm-mode": "Swarm",
     k8s: "Kubernetes",
@@ -38,6 +39,7 @@ export const es: Labels = {
     authentication: "Autenticación",
     "authentication/simple": "Simple (users.yml)",
     "authentication/oauth": "GitHub y OIDC",
+    "authentication/oidc": "OpenID Connect",
     "authentication/forward-proxy": "Proxy inverso",
     actions: "Acciones",
     "app-icons": "Iconos",

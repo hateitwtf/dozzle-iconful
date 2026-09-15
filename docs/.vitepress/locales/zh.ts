@@ -23,6 +23,7 @@ export const zh: Labels = {
   pages: {
     "what-is-dozzle": "什么是 Dozzle？",
     "getting-started": "快速开始",
+    "setup-wizard": "设置向导",
     "whats-new": "v11 新变化",
     "swarm-mode": "Swarm",
     k8s: "Kubernetes",
@@ -38,6 +39,7 @@ export const zh: Labels = {
     authentication: "身份验证",
     "authentication/simple": "简单模式 (users.yml)",
     "authentication/oauth": "GitHub 与 OIDC",
+    "authentication/oidc": "OpenID Connect",
     "authentication/forward-proxy": "前置代理",
     actions: "操作",
     "app-icons": "图标",

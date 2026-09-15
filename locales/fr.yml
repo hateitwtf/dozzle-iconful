@@ -66,6 +66,11 @@ log-details:
   fields-hint: Faites glisser pour réordonner. Activez ou désactivez pour les afficher ou les masquer dans le flux de logs.
   toggle-all: Basculer tous les champs
 label:
+  hide-sidebar: "Masquer la barre latérale"
+  show-sidebar: "Afficher la barre latérale"
+  host-unreachable: "injoignable"
+  agent-unreachable: "Impossible de joindre l'agent à {endpoint}"
+  agent-outdated: "agent {version}"
   historical-at: "Logs historiques · {time}"
   containers: Conteneurs
   container: Pas de conteneur | 1 conteneur | {count} conteneurs
@@ -185,7 +190,6 @@ alert:
     title: 'Mise à jour disponible'
     message: 'Une image plus récente a été publiée pour {image}.'
     enable-actions: '<a href="https://dozzle.dev/guide/actions" target="_blank" rel="noreferrer noopener">Activez les actions</a> pour la télécharger et recréer le conteneur ici.'
-    self: 'Dozzle ne peut pas se mettre à jour lui-même, redémarrez-le pour appliquer la mise à jour.'
   redirected:
     title: Redirigé vers le nouveau conteneur
     message: Dozzle vous a automatiquement redirigé vers le nouveau conteneur {containerId}.
@@ -218,52 +222,43 @@ placeholder:
   find-logs: Rechercher dans les logs ou regex
   search: Recherche
 settings:
-  show-image-update-alert: 'Afficher une notification lorsqu''un conteneur a une mise à jour'
-  show-image-update-alert-desc: 'Vérifie dans le registre s''il existe un tag plus récent de l''image.'
-  help-support: >
-    Veuillez soutenir Dozzle en faisant un don ou en nous parrainant sur GitHub. Vos contributions nous aident à améliorer Dozzle pour tout le monde. Merci ! 🙏🏼
-  about-desc: Informations sur votre installation de Dozzle et comment soutenir le projet.
-  display-desc: Personnalisez l'apparence des logs et du reste de l'application. L'aperçu reflète vos modifications en direct.
-  options-desc: Préférences de langue, de navigation et de regroupement.
+  subtitle: Préférences pour ce navigateur. Les modifications sont enregistrées automatiquement.
+  appearance: Apparence
+  logs: Logs
+  sidebar: Barre latérale
+  behavior: Comportement
+  advanced: Avancé
+  instance: Cette instance
+  about: À propos
+  reset: Rétablir les valeurs par défaut
+  sponsor: Sponsoriser
+  new-version: "{version} disponible"
+  show-image-update-alert: 'Alertes de mise à jour d''image'
+  show-image-update-alert-desc: 'Prévenir lorsqu''un tag plus récent d''une image en cours d''exécution existe.'
   cloud-desc: Diffusez les logs vers Dozzle Cloud pour des analyses assistées par IA et la recherche entre instances.
-  support-title: Soutenir Dozzle
-  support-help: Les dons aident à garder Dozzle gratuit et maintenu. Merci 🙏
-  display: Afficher
-  locale: Langue de remplacement
-  locale-desc: 'Suit par défaut la langue de votre navigateur.'
-  small-scrollbars: Utiliser des barres de défilement plus petites
+  locale: Langue
+  small-scrollbars: Barres de défilement fines
   small-scrollbars-desc: 'Barres de défilement plus fines, pratiques sur les petits écrans.'
   show-timestamps: Afficher les horodatages
-  show-timestamps-desc: 'Préfixe chaque ligne avec l''heure à laquelle elle a été écrite.'
-  soft-wrap: Lignes d'enroulement souples
-  soft-wrap-desc: 'Renvoie les lignes longues à la ligne au lieu de défiler latéralement.'
+  soft-wrap: Retour à la ligne
   highlight-errors: Mettre en évidence les lignes d'erreur
-  highlight-errors-desc: "Colore l'arrière-plan des lignes d'erreur. Le marqueur de niveau reste toujours visible."
-  datetime-format: Remplacer le format de la date et de l'heure
-  datetime-format-desc: 'Suit par défaut la langue et l''horloge de votre navigateur.'
-  font-size: Taille de police à utiliser pour les journaux
-  font-size-desc: 'S''applique uniquement aux logs, pas au reste de l''application.'
-  color-scheme: Schéma de couleurs
-  color-scheme-desc: 'Auto suit le réglage de votre système.'
-  options: Options
+  highlight-errors-desc: "Le marqueur de niveau coloré est toujours affiché."
+  datetime-format: Date et heure
+  font-size: Taille de police
+  color-scheme: Thème
   show-stopped-containers: Afficher les conteneurs arrêtés
-  show-stopped-containers-desc: 'Inclut les conteneurs arrêtés dans la barre latérale et les listes.'
-  group-containers: Regrouper les conteneurs par namespace
-  group-containers-desc: 'Regroupe par projet Compose, stack Swarm ou dev.dozzle.group.'
-  show-app-icons: 'Afficher les icônes des applications'
-  show-app-icons-desc: 'Associe les images connues à leur logo. Les icônes sont fournies avec Dozzle et ne sont jamais téléchargées depuis internet.'
-  about: A propos de
-  search: Activer la recherche avec Dozzle en utilisant
-  search-desc: 'Recherche dans les logs du conteneur que vous consultez.'
-  using-version: Vous utilisez <a href="https://dozzle.dev/" target="_blank" rel="noreferrer noopener">Dozzle</a> {version}.
-  update-available: >-
-    Nouvelle version disponible! Mise à jour de <a href="{href}" target="_blank" rel="noreferrer noopener">{nextVersion}</a>.
+  group-containers: Grouper les conteneurs
+  group-containers-desc: 'Par projet Compose, stack Swarm ou dev.dozzle.group.'
+  show-app-icons: 'Icônes d''applications'
+  show-app-icons-desc: 'Fournies avec Dozzle, jamais téléchargées depuis Internet.'
+  search: Rechercher dans les logs avec
+  search-desc: 'Remplace la recherche du navigateur lors de l''affichage d''un conteneur.'
   show-std: Afficher les étiquettes stdout et stderr
   show-std-desc: 'Indique si une ligne provient de stdout ou de stderr.'
-  automatic-redirect: Redirection automatique vers de nouveaux conteneurs portant le même nom
-  automatic-redirect-desc: 'Lorsqu''un conteneur est remplacé, basculer vers le nouveau.'
-  compact: Activer le mode compact pour les journaux
-  compact-desc: 'Réduit l''espacement entre les lignes pour en afficher davantage.'
+  automatic-redirect: Suivre les conteneurs recréés
+  automatic-redirect-desc: 'Quand un conteneur est remplacé, passer au nouveau.'
+  compact: Mode compact
+  compact-desc: 'Espacement réduit pour afficher plus de lignes à l''écran.'
   size:
     small: Petit
     medium: Moyen
@@ -618,7 +613,7 @@ cloud:
     turn-on: "Activer 1 alerte | Activer {count} alertes"
     turn-on-short: "Activer"
     continue-without: "Continuer sans alertes"
-    skip-alerts: "Pas maintenant, envoyez seulement les investigations quotidiennes"
+    skip-alerts: "Pas maintenant"
     ready: "Prêt"
     done-title: "Tout est en place"
     done-body: "Voici où apparaît chaque type de notification."
@@ -632,6 +627,10 @@ cloud:
     where-tuning: "Réglage par conteneur"
     where-tuning-detail: "Restreindre, mettre en sourdine ou supprimer une règle depuis la page Notifications."
     done: "Terminé"
+    steps:
+      watching: "Ce que fait Cloud"
+      alerts: "Alertes en temps réel"
+      done: "Où tout apparaît"
     signals:
       exited: "Conteneur terminé avec une erreur"
       unhealthy: "Conteneur devenu unhealthy"
@@ -744,3 +743,126 @@ command-palette:
   toggle-std: Basculer les étiquettes stdout/stderr
   toggle-scrollbars: Basculer les barres de défilement réduites
   open-settings: Ouvrir les paramètres
+setup:
+  title: "Configurer Dozzle"
+  next: "Suivant"
+  back: "Retour"
+  finish-later: "Terminer plus tard"
+  close: "Fermer"
+  copy: "Copier"
+  settings-title: "Configurer Dozzle"
+  settings-desc: "Connexion, actions sur les conteneurs, shell et Dozzle Cloud en quelques étapes."
+  settings-open: "Ouvrir la configuration"
+  steps:
+    login: "Connexion"
+    login-note: "À faire en premier"
+    actions: "Actions et shell"
+    cloud: "Dozzle Cloud"
+    cloud-note: "Facultatif"
+    update: "Mise à jour auto"
+    update-note: "Nécessite les actions"
+    restart: "Redémarrage"
+  login:
+    title: "Activer la connexion"
+    subtitle: "Toute personne pouvant accéder à Dozzle peut lire vos logs. Verrouillez-le avant toute chose."
+    no-data-title: "/data n'est pas monté"
+    no-data-body: "Les utilisateurs et les paramètres sont enregistrés dans /data. Sans volume, ils disparaissent la prochaine fois que le conteneur est recréé. Montez-en un et vérifiez à nouveau."
+    check-again: "Vérifier à nouveau"
+    tab-account: "Compte Dozzle"
+    tab-proxy: "Mon proxy"
+    tab-oidc: "OIDC"
+    username: "Nom d'utilisateur"
+    email: "E-mail"
+    optional: "(facultatif)"
+    password: "Mot de passe"
+    confirm: "Confirmer le mot de passe"
+    password-hint: "Au moins 8 caractères. Lettres, chiffres, points, tirets et tirets bas dans le nom d'utilisateur."
+    saved-volume: "Enregistré sur un volume monté"
+    after-restart: "La connexion sera activée après le redémarrage"
+    "on": "La connexion est activée"
+    users-exist: "Un fichier users.yml existe déjà. Définissez le fournisseur d'authentification sur simple pour l'utiliser."
+    create-account: "Créer le compte"
+    proxy-body: "Authelia, Authentik, Cloudflare Access et outils similaires authentifient les utilisateurs, puis transmettent le nom d'utilisateur à Dozzle dans l'en-tête Remote-User."
+    proxy-warning-title: "Exposez uniquement le proxy"
+    proxy-warning-body: "Dozzle fait confiance à cet en-tête, quelle que soit sa provenance. Si son propre port est accessible, n'importe qui peut se faire passer pour n'importe quel utilisateur."
+    proxy-docs: "Guide du forward proxy"
+    use-proxy: "Utiliser mon proxy"
+    oidc-body: "OIDC nécessite un client secret, donc rien n'est enregistré ici. Ajoutez ceci à votre fichier compose et recréez le conteneur."
+    oidc-docs: "Guide OpenID Connect"
+    skip: "Continuer sans connexion"
+    manual-restart: "Dozzle ne peut pas se redémarrer lui-même ici. Redémarrez le conteneur pour activer la connexion, ou définissez ceci dans votre fichier compose."
+    restart-hint: "Vous arriverez sur la page de connexion. La configuration reprend une fois connecté."
+  actions:
+    title: "Actions et shell"
+    subtitle: "Choisissez ce que Dozzle a le droit de faire à vos conteneurs."
+    example-status: "Arrêté (1) il y a 2 minutes"
+    example-restart: "Redémarrer"
+    example: "Exemple"
+    actions-label: "Démarrer, arrêter et redémarrer"
+    actions-desc: "Réparez un conteneur planté depuis la page où vous avez trouvé l'erreur."
+    shell-label: "Shell"
+    shell-desc: "S'attacher à un conteneur ou y exécuter des commandes."
+    shell-warning: "Un accès shell à un conteneur vaut souvent un accès à l'hôte. Laissez-le désactivé sauf si vous en avez besoin."
+    locked: "Défini par {env}"
+    window-closed: "Sans connexion, la configuration n'accepte des modifications que pendant les 15 premières minutes d'une nouvelle installation. Définissez ces valeurs avec des variables d'environnement, ou activez d'abord la connexion."
+    no-access: "Votre compte ne peut pas modifier ces paramètres."
+    restart-note: "Ces changements prennent effet après le redémarrage de Dozzle."
+  cloud:
+    title: "Connecter Dozzle Cloud"
+    subtitle: "Soyez prévenu quand quelque chose casse, sans garder un onglet ouvert."
+    alerts-title: "Des alertes dès que quelque chose casse"
+    alerts-body: "Plantages, OOM kills et pics d'erreurs, envoyés par e-mail, Slack ou Discord."
+    summary-title: "Un récapitulatif matinal de ce qu'il faut corriger"
+    summary-body: "Chaque jour, une liste classée des problèmes qui méritent votre temps."
+    history-title: "Un historique qui survit aux redémarrages"
+    history-body: "Les alertes et les constats restent disponibles après un rechargement, un redémarrage ou une semaine."
+    connect: "Connecter Dozzle Cloud"
+    learn-more: "En savoir plus"
+    skip: "Pas maintenant"
+  update:
+    pill-on: "Utilise les actions · activé"
+    pill-pending: "S'active avec les actions"
+    title: "Garder Dozzle à jour"
+    subtitle: "Dozzle télécharge la nouvelle image et remplace son propre conteneur à une heure creuse. Les paramètres, utilisateurs et alertes sont conservés."
+    auto-label: "Mettre à jour automatiquement"
+    auto-desc: "Vérifie s'il existe une image plus récente et ne remplace Dozzle que s'il y en a une."
+    when-label: "Quand"
+    time-label: "Heure"
+    server-time: "Utilise le fuseau horaire du serveur."
+    daily: "Tous les jours"
+    weekly: "Chaque semaine le dimanche"
+    version-label: "Version"
+    update-now: "Mettre à jour maintenant"
+    pulling: "Téléchargement de la nouvelle image"
+    up-to-date: "Dozzle est déjà à jour."
+    restarting: "Dozzle se remplace par la nouvelle version."
+    restarting-hint: "La page se recharge dès que la nouvelle version répond."
+    needs-actions: "Mettre à jour maintenant fonctionne une fois les actions activées, après le redémarrage."
+    reason-pinned-tag: "Vous utilisez un tag de version figé, il n'y a donc rien de plus récent à télécharger. Utilisez un tag comme latest pour recevoir les mises à jour."
+    reason-unsupported: "Dozzle ne trouve pas son propre conteneur ici, il ne peut donc pas se remplacer lui-même."
+    reason-swarm-worker: "Dozzle tourne comme service Swarm sur un nœud worker. Seul un manager peut mettre à jour le service : exécutez Dozzle sur un manager ou mettez-le à jour avec docker service update."
+    pull-denied: "Impossible de récupérer {image}. Elle n'existe peut-être que sur cette machine, ou le registre demande docker login."
+  restart:
+    title: "Redémarrer Dozzle"
+    subtitle: "Ces changements sont enregistrés et prendront effet après un redémarrage."
+    change-auth: "Connexion"
+    "on": "Activé"
+    "off": "Désactivé"
+    button: "Redémarrer Dozzle"
+    restarting: "Redémarrage de Dozzle"
+    restarting-hint: "La page se rechargera dès que Dozzle sera de retour."
+    slow-title: "Cela prend un certain temps"
+    slow-body: "Dozzle n'est pas encore revenu. Vérifiez le conteneur, puis rechargez."
+    reload: "Recharger"
+    manual: "Dozzle ne peut pas se redémarrer lui-même ici. Redémarrez le conteneur, ou définissez ces valeurs dans votre fichier compose."
+    done-title: "Tout est prêt"
+    done-body: "Aucun redémarrage n'est nécessaire. Vous pouvez revenir ici depuis les Paramètres à tout moment."
+    nothing-title: "Rien à redémarrer"
+    nothing-body: "Aucune étape n'a été configurée cette fois. Ouvrez la configuration depuis les paramètres quand vous voulez."
+    done: "Terminé"
+  error:
+    generic: "Une erreur s'est produite. Réessayez."
+    load: "Impossible de charger la configuration. Réessayez plus tard."
+    conflict: "Ceci est déjà défini, ou imposé par une variable d'environnement."
+    no-data: "/data n'est pas monté, cela ne peut donc pas être enregistré."
+    window-closed: "Sans connexion, la configuration n'accepte des modifications que pendant les 15 premières minutes d'une nouvelle installation. Activez plutôt la connexion avec des variables d'environnement."

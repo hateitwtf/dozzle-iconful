@@ -30,6 +30,26 @@ type User struct {
 	RolesConfigured string                    `json:"-" yaml:"roles"`
 	ContainerLabels container.ContainerLabels `json:"-" yaml:"-"`
 	Roles           Role                      `json:"-" yaml:"-"`
+	// Picture is an avatar URL the identity provider asserted, set only by the
+	// oidc provider.
+	Picture string `json:"-" yaml:"-"`
+}
+
+// PictureURL is the provider-asserted avatar, or "" when there is none or it is
+// not an https URL. The avatar handler proxies it, but only from public
+// addresses, because at many providers a user can edit their own picture.
+func (u User) PictureURL() string {
+	picture := strings.TrimSpace(u.Picture)
+	if picture == "" {
+		return ""
+	}
+
+	parsed, err := url.Parse(picture)
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" {
+		return ""
+	}
+
+	return picture
 }
 
 func (u User) AvatarURL() string {

@@ -61,7 +61,7 @@
             </div>
           </div>
 
-          <template v-if="config.authProvider === 'simple' || config.logoutUrl">
+          <template v-if="hasSession || config.logoutUrl">
             <div class="bg-base-content/10 my-1.5 h-px"></div>
             <button
               @click.prevent="logout()"
@@ -79,6 +79,10 @@
 <script lang="ts" setup>
 const { mounted: cloudSurfaceMounted } = useCloudSurface();
 const { logoutUrl } = config;
+
+// simple and oidc hold a session cookie Dozzle issued, so logging out means
+// clearing it. Forward proxy has none: the logout URL is the whole logout there.
+const hasSession = config.authProvider === "simple" || config.authProvider === "oidc";
 
 // The bell is the only place that watches for a fire the reader has not seen, so
 // it owns the polling. Without a cloud link there is nothing to remember and
@@ -100,15 +104,41 @@ watch(visibility, (state) => {
   }
 });
 
+type LogoutTarget = { url: string; params?: Record<string, string> };
+
 async function logout() {
-  if (logoutUrl) {
-    location.href = logoutUrl;
-  } else {
-    await fetch(withBase("/api/token"), {
+  let target: LogoutTarget | undefined = logoutUrl ? { url: logoutUrl } : undefined;
+
+  if (hasSession) {
+    const response = await fetch(withBase("/api/token"), {
       method: "DELETE",
     });
+    // Under oidc the server answers with the issuer's logout, since only it can
+    // read the ID token the session was issued with.
+    if (response.headers.get("Content-Type")?.includes("application/json")) {
+      target = await response.json();
+    }
+  }
 
+  if (!target) {
     location.reload();
+  } else if (target.params) {
+    // A form POST, because the ID token in the hint can be several KB, past the
+    // request line a proxy in front of the issuer accepts on a GET.
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = target.url;
+    for (const [name, value] of Object.entries(target.params)) {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    }
+    document.body.appendChild(form);
+    form.submit();
+  } else {
+    location.href = target.url;
   }
 }
 </script>

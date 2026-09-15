@@ -81,7 +81,7 @@ func (h *handler) executeTemplate(w http.ResponseWriter, req *http.Request) {
 			}
 			http.Error(w, "Unauthorized user", http.StatusUnauthorized)
 			return
-		case SIMPLE:
+		case SIMPLE, OIDC:
 			if req.URL.Path != "login" {
 				log.Debug().Str("url", req.URL.String()).Msg("Redirecting to login page")
 				// The login page navigates to whatever comes back in redirectUrl, so
@@ -137,6 +137,12 @@ func (h *handler) executeTemplate(w http.ResponseWriter, req *http.Request) {
 		// local cloud is one env var on this process — same as DOLIGENCE_URL,
 		// which is the API half of the same override.
 		config["cloudUrl"] = cloudWebURL()
+		config["dataPersisted"] = profile.Persisted()
+		// Lets the page tell Dozzle's own container apart from other Dozzle
+		// containers, since updating it replaces the process serving the page.
+		if id := setupSelfID(); id != "" {
+			config["selfContainerId"] = id
+		}
 
 		if user != nil {
 			config["enableShell"] = h.config.EnableShell && user.Roles.Has(auth.Shell)
@@ -150,8 +156,13 @@ func (h *handler) executeTemplate(w http.ResponseWriter, req *http.Request) {
 			config["user"] = user
 		}
 
-		if h.config.Authorization.Provider == FORWARD_PROXY && strings.TrimSpace(h.config.Authorization.LogoutUrl) != "" {
-			config["logoutUrl"] = strings.TrimSpace(h.config.Authorization.LogoutUrl)
+		// Forward proxy has no session of its own to clear, so the URL is the
+		// whole logout. Under oidc the logout response says where to go, since
+		// it carries the session's ID token.
+		if h.config.Authorization.Provider == FORWARD_PROXY {
+			if logoutURL := strings.TrimSpace(h.config.Authorization.LogoutUrl); logoutURL != "" {
+				config["logoutUrl"] = logoutURL
+			}
 		}
 	}
 

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/amir20/dozzle/internal/utils"
 	"github.com/rs/zerolog/log"
 )
 
@@ -51,6 +52,8 @@ type Profile struct {
 	CollapsedGroups       []string  `json:"collapsedGroups"`
 	DismissedImageUpdates []string  `json:"dismissedImageUpdates,omitempty"`
 	DismissedLinkHint     bool      `json:"dismissedLinkHint,omitempty"`
+	SetupSeen             bool      `json:"setupSeen,omitempty"`
+	CloudWelcomeShown     bool      `json:"cloudWelcomeShown,omitempty"`
 	// Nanoseconds of the newest alert this user has opened the history for.
 	// Follows them across browsers, because "have I looked at this" is about
 	// the person and not the machine.
@@ -117,19 +120,16 @@ func save(username string, profile Profile) error {
 		return err
 	}
 
-	f, err := os.Create(filePath)
-	if err != nil {
+	if err := utils.WriteFile(filePath, func(w io.Writer) error {
+		_, err := w.Write(data)
 		return err
-	}
-	defer f.Close()
-
-	if _, err := f.Write(data); err != nil {
+	}); err != nil {
 		return err
 	}
 
 	log.Debug().Str("path", filePath).Msg("Profile saved")
 
-	return f.Sync()
+	return nil
 }
 
 func Load(username string) (Profile, error) {

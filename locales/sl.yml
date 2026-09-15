@@ -66,6 +66,11 @@ log-details:
   fields-hint: Povlecite za spremembo vrstnega reda. Preklopite za prikaz ali skritje v toku dnevnikov.
   toggle-all: Preklopi vsa polja
 label:
+  hide-sidebar: "Skrij stransko vrstico"
+  show-sidebar: "Prikaži stransko vrstico"
+  host-unreachable: "nedosegljiv"
+  agent-unreachable: "Agenta na {endpoint} ni mogoče doseči"
+  agent-outdated: "agent {version}"
   historical-at: "Zgodovinski dnevniki · {time}"
   containers: Zabojniki
   host-count: Ni Gostiteljev | 1 Gostitelj | {count} Gostiteljev
@@ -186,7 +191,6 @@ alert:
     title: 'Na voljo je posodobitev'
     message: 'Za {image} je bila objavljena novejša slika.'
     enable-actions: '<a href="https://dozzle.dev/guide/actions" target="_blank" rel="noreferrer noopener">Omogoči dejanja</a> za prenos in ponovno ustvarjanje od tu.'
-    self: 'Dozzle se ne more posodobiti sam, zato ga znova zaženi, da uveljaviš posodobitev.'
   redirected:
     title: Preusmerjeno v nov zabojnik
     message: Dozzle vas je samodejno preusmeril v nov zabojnik {containerId}.
@@ -220,47 +224,41 @@ placeholder:
   find-logs: Iskanje po dnevnikih ali regex
   search: Iskanje
 settings:
-  show-image-update-alert: 'Pokaži obvestilo, ko je za vsebnik na voljo posodobitev'
-  show-image-update-alert-desc: 'V registru preveri, ali obstaja novejša oznaka slike.'
-  about-desc: Informacije o vaši namestitvi Dozzle in kako podpreti projekt.
-  display-desc: Prilagodite videz dnevnikov in preostalega dela aplikacije. Predogled v živo prikazuje vaše spremembe.
-  options-desc: Nastavitve jezika, navigacije in združevanja.
+  subtitle: Nastavitve za ta brskalnik. Spremembe se shranijo samodejno.
+  appearance: Videz
+  logs: Dnevniki
+  sidebar: Stranska vrstica
+  behavior: Vedenje
+  advanced: Napredno
+  instance: Ta instanca
+  about: O programu
+  reset: Ponastavi na privzeto
+  sponsor: Podpri
+  new-version: "Na voljo je {version}"
+  show-image-update-alert: 'Opozorila o posodobitvah slik'
+  show-image-update-alert-desc: 'Obvesti, ko obstaja novejša oznaka slike, ki se izvaja.'
   cloud-desc: Pretakajte dnevnike v Dozzle Cloud za preiskave z umetno inteligenco in iskanje med instancami.
-  support-title: Podprite Dozzle
-  support-help: Donacije pomagajo, da Dozzle ostane brezplačen in vzdrževan. Hvala 🙏
-  display: Prikaz
-  locale: Preglasi jezik
-  locale-desc: 'Privzeto sledi jeziku brskalnika.'
-  small-scrollbars: Uporabite manjše drsne trakove
+  locale: Jezik
+  small-scrollbars: Tanki drsniki
   small-scrollbars-desc: 'Tanjši drsniki, priročno na manjših zaslonih.'
   show-timestamps: Prikaži časovne žige
-  show-timestamps-desc: 'Pred vsako vrstico doda čas, ko je bila zapisana.'
-  soft-wrap: Mehke ovojne linije
-  soft-wrap-desc: 'Prelomi dolge vrstice namesto drsenja vstran.'
+  soft-wrap: Prelom vrstic
   highlight-errors: Označi vrstice z napakami
-  highlight-errors-desc: 'Obarva ozadje vrstic z napakami. Barvna oznaka ravni je vedno vidna.'
-  datetime-format: Preglasi obliko zapisa datuma in časa
-  datetime-format-desc: 'Privzeto sledi jeziku in uri v brskalniku.'
-  font-size: Velikost pisave za dnevnike
-  font-size-desc: 'Velja samo za izpis dnevnika, ne za preostanek aplikacije.'
-  color-scheme: Barvna shema
-  color-scheme-desc: 'Samodejno sledi nastavitvi sistema.'
-  options: Možnosti
+  highlight-errors-desc: 'Barvna oznaka ravni je vedno prikazana.'
+  datetime-format: Datum in čas
+  font-size: Velikost pisave
+  color-scheme: Tema
   show-stopped-containers: Prikaži ustavljene zabojnike
-  show-stopped-containers-desc: 'Vključi ustavljene vsebnike v stranski vrstici in seznamih.'
-  group-containers: Združi zabojnike po imenskem prostoru
-  group-containers-desc: 'Združuje po projektu Compose, skladu Swarm ali dev.dozzle.group.'
-  show-app-icons: 'Prikaži ikone aplikacij'
-  show-app-icons-desc: 'Znane slike poveži z njihovim logotipom. Ikone so priložene Dozzle in se nikoli ne prenašajo iz interneta.'
-  about: O programu
-  search: Omogočite iskanje z Dozzle z uporabo
-  search-desc: 'Išče po dnevniku vsebnika, ki ga gledate.'
-  update-available: Nova različica je na voljo! Posodobi na <a href="{href}"
-    target="_blank" rel="noreferrer noopener">{nextVersion}</a>.
+  group-containers: Združi zabojnike
+  group-containers-desc: 'Po projektu Compose, skladu Swarm ali dev.dozzle.group.'
+  show-app-icons: 'Ikone aplikacij'
+  show-app-icons-desc: 'Priložene Dozzlu, nikoli prenesene z interneta.'
+  search: Iskanje po dnevnikih s
+  search-desc: 'Nadomesti iskanje brskalnika med ogledom zabojnika.'
   show-std: Prikaži oznake stdout in stderr
   show-std-desc: 'Označi, ali vrstica prihaja iz stdout ali stderr.'
-  compact: Omogoči kompaktni način za dnevnike
-  compact-desc: 'Zmanjša razmike med vrsticami dnevnika, da jih je na zaslonu več.'
+  compact: Kompaktni način
+  compact-desc: 'Manjši razmiki, da se na zaslon prilega več vrstic.'
   size:
     small: Majhna
     medium: Srednja
@@ -293,12 +291,8 @@ settings:
       onemogočite mehke ovoje, bi to onemogočili. Lorem ipsum dolor sit amet,
       consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
       dolore magna aliqua.
-  using-version: Uporabljaš <a href="https://dozzle.dev/" target="_blank"
-    rel="noreferrer noopener">Dozzle</a> {version}.
-  help-support: "Prosimo, podprite Dozzle z donacijo ali sponzoriranjem na GitHubu.
-    Vaši prispevki nam pomagajo izboljšati Dozzle za vse. Hvala! 🙏🏼\n"
-  automatic-redirect: Samodejna preusmeritev na nove zabojnike z istim imenom
-  automatic-redirect-desc: 'Ko je vsebnik zamenjan, sledi novemu.'
+  automatic-redirect: Sledi ponovno ustvarjenim zabojnikom
+  automatic-redirect-desc: 'Ko je zabojnik zamenjan, skoči na novega.'
 releases:
   features: ena nova funkcija | {count} funkcij
   bugFixes: en popravek napake | {count} popravkov
@@ -624,7 +618,7 @@ cloud:
     turn-on: "Vklopi 1 opozorilo | Vklopi {count} opozoril"
     turn-on-short: "Vklopi"
     continue-without: "Nadaljuj brez opozoril"
-    skip-alerts: "Ne zdaj, pošiljajte samo dnevne ugotovitve"
+    skip-alerts: "Ne zdaj"
     ready: "Pripravljeno"
     done-title: "Vse je nastavljeno"
     done-body: "Tukaj se pojavi vsaka vrsta obvestila."
@@ -638,6 +632,10 @@ cloud:
     where-tuning: "Prilagajanje po vsebnikih"
     where-tuning-detail: "Zožite, utišajte ali izbrišite katerokoli pravilo na strani Obvestila."
     done: "Končano"
+    steps:
+      watching: "Kaj naredi Cloud"
+      alerts: "Opozorila v realnem času"
+      done: "Kje se vse prikaže"
     signals:
       exited: "Vsebnik se je končal z napako"
       unhealthy: "Vsebnik je postal unhealthy"
@@ -750,3 +748,126 @@ command-palette:
   toggle-std: Preklopi oznake stdout/stderr
   toggle-scrollbars: Preklopi manjše drsnike
   open-settings: Odpri nastavitve
+setup:
+  title: Nastavitev Dozzle
+  next: Naprej
+  back: Nazaj
+  finish-later: Dokončaj pozneje
+  close: Zapri
+  copy: Kopiraj
+  settings-title: Nastavitev Dozzle
+  settings-desc: Prijava, dejanja na vsebnikih, lupina in Dozzle Cloud v nekaj korakih.
+  settings-open: Odpri nastavitev
+  steps:
+    login: Prijava
+    login-note: To naredite najprej
+    actions: Dejanja in lupina
+    cloud: Dozzle Cloud
+    cloud-note: Neobvezno
+    update: "Samodejna posodobitev"
+    update-note: "Potrebuje dejanja"
+    restart: Ponovni zagon
+  login:
+    title: Vklopi prijavo
+    subtitle: Kdorkoli, ki lahko doseže Dozzle, lahko bere vaše dnevnike. Pred vsem drugim omejite dostop.
+    no-data-title: /data ni priklopljen
+    no-data-body: Uporabniki in nastavitve se shranijo v /data. Brez nosilca izginejo, ko je vsebnik naslednjič znova ustvarjen. Priklopite nosilec in preverite znova.
+    check-again: Preveri znova
+    tab-account: Račun Dozzle
+    tab-proxy: Moj posrednik
+    tab-oidc: OIDC
+    username: Uporabniško ime
+    email: E-pošta
+    optional: (neobvezno)
+    password: Geslo
+    confirm: Potrdi geslo
+    password-hint: Vsaj 8 znakov. V uporabniškem imenu so dovoljene črke, številke, pike, vezaji in podčrtaji.
+    saved-volume: Shranjeno na priklopljen nosilec
+    after-restart: Prijava se vklopi po ponovnem zagonu
+    on: Prijava je vklopljena
+    users-exist: Datoteka users.yml že obstaja. Za njeno uporabo nastavite ponudnika overjanja na simple.
+    create-account: Ustvari račun
+    proxy-body: Authelia, Authentik, Cloudflare Access in podobni prijavijo uporabnike, nato pa uporabniško ime posredujejo Dozzle v glavi Remote-User.
+    proxy-warning-title: Objavite samo posrednika
+    proxy-warning-body: Dozzle tej glavi zaupa ne glede na pošiljatelja. Če so vrata Dozzle dosegljiva neposredno, se lahko kdorkoli izdaja za kateregakoli uporabnika.
+    proxy-docs: Vodnik za forward proxy
+    use-proxy: Uporabi mojega posrednika
+    oidc-body: OIDC potrebuje skrivnost odjemalca, zato se tukaj nič ne shrani. Dodajte to v datoteko compose in znova ustvarite vsebnik.
+    oidc-docs: Vodnik za OpenID Connect
+    skip: "Nadaljuj brez prijave"
+    manual-restart: Dozzle se tukaj ne more sam znova zagnati. Znova zaženite vsebnik, da vklopite prijavo, ali to nastavite v datoteki compose.
+    restart-hint: Pristali boste na strani za prijavo. Nastavitev se nadaljuje po prijavi.
+  actions:
+    title: Dejanja in lupina
+    subtitle: Odločite, kaj sme Dozzle početi z vašimi vsebniki.
+    example-status: Končan (1) pred 2 minutama
+    example-restart: Znova zaženi
+    example: "Primer"
+    actions-label: Zagon, ustavitev in ponovni zagon
+    actions-desc: Popravite sesut vsebnik kar na strani, kjer ste našli napako.
+    shell-label: Lupina
+    shell-desc: Priključite se na vsebnik ali v njem izvajajte ukaze.
+    shell-warning: Dostop do lupine vsebnika je pogosto enakovreden dostopu do gostitelja. Pustite izklopljeno, razen če ga potrebujete.
+    locked: "Nastavljeno z {env}"
+    window-closed: "Brez prijave nastavitev sprejema spremembe samo v prvih 15 minutah nove namestitve. To nastavite z okoljskimi spremenljivkami ali najprej vklopite prijavo."
+    no-access: Vaš račun ne more spreminjati teh nastavitev.
+    restart-note: Spremembe začnejo veljati po ponovnem zagonu Dozzle.
+  cloud:
+    title: Poveži Dozzle Cloud
+    subtitle: Izvedite, ko se kaj pokvari, ne da bi imeli odprt zavihek.
+    alerts-title: Opozorila v trenutku, ko se kaj pokvari
+    alerts-body: Sesutja, prekinitve zaradi OOM in porasti napak, poslani na e-pošto, Slack ali Discord.
+    summary-title: Jutranji povzetek, kaj popraviti
+    summary-body: En razvrščen seznam težav, vrednih vašega časa, vsak dan.
+    history-title: Zgodovina, ki preživi ponovne zagone
+    history-body: Opozorila in ugotovitve ostanejo po osvežitvi, ponovnem zagonu ali tednu dni.
+    connect: Poveži Dozzle Cloud
+    learn-more: Več o tem
+    skip: "Ne zdaj"
+  update:
+    pill-on: "Uporablja dejanja · vklopljeno"
+    pill-pending: "Vklopi se z dejanji"
+    title: "Ohrani Dozzle posodobljen"
+    subtitle: "Dozzle ob mirni uri prenese novo sliko in zamenja svoj vsebnik. Nastavitve, uporabniki in opozorila ostanejo."
+    auto-label: "Posodabljaj samodejno"
+    auto-desc: "Preveri, ali obstaja novejša slika, in zamenja Dozzle le, če ta obstaja."
+    when-label: "Kdaj"
+    time-label: "Čas"
+    server-time: "Uporablja časovni pas strežnika."
+    daily: "Dnevno"
+    weekly: "Tedensko ob nedeljah"
+    version-label: "Različica"
+    update-now: "Posodobi zdaj"
+    pulling: "Prenašanje nove slike"
+    up-to-date: "Dozzle je že posodobljen."
+    restarting: "Dozzle se zamenjuje z novo različico."
+    restarting-hint: "Stran se znova naloži, takoj ko se nova različica odzove."
+    needs-actions: "Posodobi zdaj deluje, ko so dejanja vklopljena, po ponovnem zagonu."
+    reason-pinned-tag: "Uporabljaš pripeto oznako različice, zato ni ničesar novejšega za prenos. Za posodobitve uporabi oznako, kot je latest."
+    reason-unsupported: "Dozzle tukaj ne najde svojega vsebnika, zato se ne more zamenjati sam."
+    reason-swarm-worker: "Dozzle teče kot storitev Swarm na delovnem vozlišču. Storitev lahko posodobi samo upravitelj, zato Dozzle zaženite na upravitelju ali ga posodobite z docker service update."
+    pull-denied: "{image} ni bilo mogoče prenesti. Morda obstaja samo na tem računalniku ali register zahteva docker login."
+  restart:
+    title: Znova zaženi Dozzle
+    subtitle: Spremembe so shranjene in začnejo delovati po ponovnem zagonu.
+    change-auth: Prijava
+    "on": "Vklopljeno"
+    "off": "Izklopljeno"
+    button: Znova zaženi Dozzle
+    restarting: Ponovni zagon Dozzle
+    restarting-hint: Stran se osveži, takoj ko je Dozzle spet na voljo.
+    slow-title: To traja dlje kot običajno
+    slow-body: Dozzle še ni spet na voljo. Preverite vsebnik in nato osvežite stran.
+    reload: Osveži
+    manual: Dozzle se tukaj ne more sam znova zagnati. Znova zaženite vsebnik ali to nastavite v datoteki compose.
+    done-title: Vse je pripravljeno
+    done-body: Ponovni zagon ni potreben. K temu se lahko kadarkoli vrnete v nastavitvah.
+    nothing-title: "Ničesar ni treba znova zagnati"
+    nothing-body: "Tokrat ni bil nastavljen noben korak. Nastavitev odprite v Nastavitvah, ko boste pripravljeni."
+    done: Končano
+  error:
+    generic: Nekaj je šlo narobe. Poskusite znova.
+    load: Nastavitve ni bilo mogoče naložiti. Poskusite pozneje.
+    conflict: To je že nastavljeno ali določeno z okoljsko spremenljivko.
+    no-data: /data ni priklopljen, zato tega ni mogoče shraniti.
+    window-closed: "Brez prijave nastavitev sprejema spremembe samo v prvih 15 minutah nove namestitve. Prijavo namesto tega vklopite z okoljskimi spremenljivkami."

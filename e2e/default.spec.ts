@@ -14,7 +14,7 @@ test("has dashboard text", async ({ page }) => {
 
 test("click on settings button", async ({ page }) => {
   await page.getByTestId("settings").click();
-  await expect(page.getByRole("heading", { name: "About" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Logs" })).toBeVisible();
 });
 
 test("shortcut for fuzzy search", async ({ page }) => {
@@ -23,7 +23,7 @@ test("shortcut for fuzzy search", async ({ page }) => {
 });
 
 test("route by name", async ({ page }) => {
-  await page.goto("http://dozzle:8080/show?name=dozzle");
+  await page.goto("http://dozzle:8080/show?name=dozzle_e2e_dozzle");
   await expect(page).toHaveURL(/\/container/);
 });
 

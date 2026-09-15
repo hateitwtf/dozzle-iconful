@@ -67,6 +67,11 @@ log-details:
   fields-hint: Seret untuk mengurutkan ulang. Alihkan untuk menampilkan atau menyembunyikan di aliran log.
   toggle-all: Alihkan semua bidang
 label:
+  hide-sidebar: "Sembunyikan bilah sisi"
+  show-sidebar: "Tampilkan bilah sisi"
+  host-unreachable: "tidak dapat dijangkau"
+  agent-unreachable: "Tidak dapat menjangkau agen di {endpoint}"
+  agent-outdated: "agen {version}"
   historical-at: "Log historis · {time}"
   containers: Kontainer
   container: Tidak ada kontainer | 1 kontainer | {count} kontainer
@@ -189,7 +194,6 @@ alert:
     title: 'Pembaruan tersedia'
     message: 'Image yang lebih baru telah dirilis untuk {image}.'
     enable-actions: '<a href="https://dozzle.dev/guide/actions" target="_blank" rel="noreferrer noopener">Aktifkan aksi</a> untuk mengunduh dan membuat ulang kontainer dari sini.'
-    self: 'Dozzle tidak dapat memperbarui dirinya sendiri, mulai ulang untuk menerapkannya.'
   redirected:
     title: Dialihkan ke kontainer baru
     message: Dozzle secara otomatis mengalihkan Anda ke kontainer baru {containerId}.
@@ -226,52 +230,43 @@ placeholder:
   search: Cari
 
 settings:
-  show-image-update-alert: 'Tampilkan notifikasi saat kontainer memiliki pembaruan'
-  show-image-update-alert-desc: 'Memeriksa registry untuk tag image yang lebih baru.'
-  help-support: >
-    Silakan dukung Dozzle dengan berdonasi atau mensponsori kami di GitHub. Kontribusi Anda membantu kami meningkatkan Dozzle untuk semua orang. Terima kasih! 🙏🏼
-  about-desc: Informasi tentang instalasi Dozzle Anda dan cara mendukung proyek ini.
-  display-desc: Sesuaikan tampilan log dan sisa aplikasi. Pratinjau mencerminkan perubahan Anda secara langsung.
-  options-desc: Preferensi bahasa, navigasi, dan pengelompokan.
+  subtitle: Preferensi untuk browser ini. Perubahan disimpan secara otomatis.
+  appearance: Tampilan
+  logs: Log
+  sidebar: Bilah sisi
+  behavior: Perilaku
+  advanced: Lanjutan
+  instance: Instans ini
+  about: Tentang
+  reset: Kembalikan ke default
+  sponsor: Sponsori
+  new-version: "{version} tersedia"
+  show-image-update-alert: 'Peringatan pembaruan image'
+  show-image-update-alert-desc: 'Beri tahu jika ada tag lebih baru untuk image yang sedang berjalan.'
   cloud-desc: Streaming log ke Dozzle Cloud untuk investigasi bertenaga AI dan pencarian lintas instans.
-  support-title: Dukung Dozzle
-  support-help: Donasi membantu menjaga Dozzle tetap gratis dan terawat. Terima kasih 🙏
-  display: Tampilan
-  locale: Ganti bahasa
-  locale-desc: 'Secara bawaan mengikuti bahasa peramban Anda.'
-  small-scrollbars: Gunakan scrollbar kecil
+  locale: Bahasa
+  small-scrollbars: Scrollbar tipis
   small-scrollbars-desc: 'Bilah gulir lebih tipis, berguna pada layar kecil.'
   show-timestamps: Tampilkan cap waktu
-  show-timestamps-desc: 'Tambahkan waktu penulisan di awal setiap baris.'
-  soft-wrap: Bungkus baris secara lunak
-  soft-wrap-desc: 'Bungkus baris panjang alih-alih menggulir ke samping.'
+  soft-wrap: Bungkus baris
   highlight-errors: Sorot baris galat
-  highlight-errors-desc: 'Beri warna latar pada baris galat. Penanda level berwarna selalu ditampilkan.'
-  datetime-format: Ganti format tanggal dan waktu
-  datetime-format-desc: 'Secara bawaan mengikuti bahasa dan format jam peramban Anda.'
-  font-size: Ukuran font untuk log
-  font-size-desc: 'Hanya berlaku untuk keluaran log, bukan bagian lain aplikasi.'
-  color-scheme: Skema warna
-  color-scheme-desc: 'Auto mengikuti pengaturan sistem Anda.'
-  options: Opsi
+  highlight-errors-desc: 'Penanda level berwarna selalu ditampilkan.'
+  datetime-format: Tanggal dan waktu
+  font-size: Ukuran font
+  color-scheme: Tema
   show-stopped-containers: Tampilkan kontainer yang dihentikan
-  show-stopped-containers-desc: 'Sertakan kontainer yang berhenti di bilah sisi dan daftar.'
-  group-containers: Kelompokkan kontainer berdasarkan namespace
-  group-containers-desc: 'Mengelompokkan berdasarkan proyek Compose, stack Swarm, atau dev.dozzle.group.'
-  show-app-icons: 'Tampilkan ikon aplikasi'
-  show-app-icons-desc: 'Cocokkan image yang dikenal dengan logonya. Ikon disertakan dalam Dozzle dan tidak pernah diunduh dari internet.'
-  about: Tentang
-  search: Aktifkan pencarian dengan Dozzle menggunakan
-  search-desc: 'Cari di dalam log kontainer yang sedang Anda lihat.'
-  using-version: Anda menggunakan <a href="https://dozzle.dev/" target="_blank" rel="noreferrer noopener">Dozzle</a> {version}.
-  update-available: >-
-    Versi baru tersedia! Perbarui ke <a href="{href}" target="_blank" rel="noreferrer noopener">{nextVersion}</a>.
+  group-containers: Kelompokkan kontainer
+  group-containers-desc: 'Berdasarkan proyek Compose, stack Swarm, atau dev.dozzle.group.'
+  show-app-icons: 'Ikon aplikasi'
+  show-app-icons-desc: 'Disertakan bersama Dozzle, tidak pernah diunduh dari internet.'
+  search: Cari log dengan
+  search-desc: 'Menggantikan pencarian browser saat melihat kontainer.'
   show-std: Tampilkan label stdout dan stderr
   show-std-desc: 'Tandai apakah baris berasal dari stdout atau stderr.'
-  automatic-redirect: Alihkan otomatis ke kontainer baru dengan nama yang sama
-  automatic-redirect-desc: 'Saat kontainer diganti, ikuti ke kontainer yang baru.'
-  compact: Aktifkan mode ringkas untuk log
-  compact-desc: 'Kurangi jarak antar baris log agar lebih banyak yang muat di layar.'
+  automatic-redirect: Ikuti kontainer yang dibuat ulang
+  automatic-redirect-desc: 'Saat kontainer diganti, pindah ke yang baru.'
+  compact: Mode ringkas
+  compact-desc: 'Jarak lebih rapat agar lebih banyak baris muat di layar.'
   size:
     small: Kecil
     medium: Sedang
@@ -630,7 +625,7 @@ cloud:
     turn-on: "Aktifkan 1 peringatan | Aktifkan {count} peringatan"
     turn-on-short: "Aktifkan"
     continue-without: "Lanjutkan tanpa peringatan"
-    skip-alerts: "Nanti saja, kirim temuan harian saja"
+    skip-alerts: "Jangan sekarang"
     ready: "Siap"
     done-title: "Semua siap"
     done-body: "Berikut tempat setiap jenis notifikasi muncul."
@@ -644,6 +639,10 @@ cloud:
     where-tuning: "Penyetelan per kontainer"
     where-tuning-detail: "Persempit, bisukan, atau hapus aturan apa pun dari halaman Notifikasi."
     done: "Selesai"
+    steps:
+      watching: "Apa yang dilakukan Cloud"
+      alerts: "Peringatan real-time"
+      done: "Di mana semuanya muncul"
     signals:
       exited: "Kontainer keluar dengan error"
       unhealthy: "Kontainer menjadi unhealthy"
@@ -756,3 +755,126 @@ command-palette:
   toggle-std: Alihkan label stdout/stderr
   toggle-scrollbars: Alihkan bilah gulir lebih kecil
   open-settings: Buka pengaturan
+setup:
+  title: "Siapkan Dozzle"
+  next: "Berikutnya"
+  back: "Kembali"
+  finish-later: "Selesaikan nanti"
+  close: "Tutup"
+  copy: "Salin"
+  settings-title: "Siapkan Dozzle"
+  settings-desc: "Login, aksi kontainer, shell, dan Dozzle Cloud dalam beberapa langkah."
+  settings-open: "Buka penyiapan"
+  steps:
+    login: "Login"
+    login-note: "Lakukan ini dulu"
+    actions: "Aksi dan shell"
+    cloud: "Dozzle Cloud"
+    cloud-note: "Opsional"
+    update: "Pembaruan otomatis"
+    update-note: "Perlu aksi"
+    restart: "Mulai ulang"
+  login:
+    title: "Aktifkan login"
+    subtitle: "Siapa pun yang dapat menjangkau Dozzle dapat membaca log Anda. Amankan ini sebelum hal lainnya."
+    no-data-title: "/data tidak di-mount"
+    no-data-body: "Pengguna dan pengaturan disimpan di /data. Tanpa volume, semuanya hilang saat kontainer dibuat ulang. Mount sebuah volume lalu periksa lagi."
+    check-again: "Periksa lagi"
+    tab-account: "Akun Dozzle"
+    tab-proxy: "Proxy saya"
+    tab-oidc: "OIDC"
+    username: "Nama pengguna"
+    email: "Email"
+    optional: "(opsional)"
+    password: "Kata sandi"
+    confirm: "Konfirmasi kata sandi"
+    password-hint: "Minimal 8 karakter. Huruf, angka, titik, tanda hubung, dan garis bawah pada nama pengguna."
+    saved-volume: "Disimpan ke volume yang di-mount"
+    after-restart: "Login aktif setelah dimulai ulang"
+    "on": "Login aktif"
+    users-exist: "users.yml sudah ada. Setel penyedia autentikasi ke simple untuk menggunakannya."
+    create-account: "Buat akun"
+    proxy-body: "Authelia, Authentik, Cloudflare Access, dan sejenisnya memproses login pengguna, lalu meneruskan nama pengguna ke Dozzle melalui header Remote-User."
+    proxy-warning-title: "Publikasikan hanya proxy"
+    proxy-warning-body: "Dozzle memercayai header itu dari siapa pun. Jika port Dozzle sendiri dapat dijangkau, siapa pun dapat menyamar sebagai pengguna mana pun."
+    proxy-docs: "Panduan forward proxy"
+    use-proxy: "Gunakan proxy saya"
+    oidc-body: "OIDC memerlukan client secret, jadi tidak ada yang disimpan di sini. Tambahkan ini ke berkas compose Anda lalu buat ulang kontainer."
+    oidc-docs: "Panduan OpenID Connect"
+    skip: "Lanjut tanpa login"
+    manual-restart: "Dozzle tidak dapat memulai ulang dirinya sendiri di sini. Mulai ulang kontainer untuk mengaktifkan login, atau setel ini di berkas compose Anda."
+    restart-hint: "Anda akan diarahkan ke halaman login. Penyiapan berlanjut setelah Anda masuk."
+  actions:
+    title: "Aksi dan shell"
+    subtitle: "Tentukan apa yang boleh dilakukan Dozzle terhadap kontainer Anda."
+    example-status: "Keluar (1) 2 menit yang lalu"
+    example-restart: "Mulai ulang"
+    example: "Contoh"
+    actions-label: "Mulai, hentikan, dan mulai ulang"
+    actions-desc: "Perbaiki kontainer yang crash dari halaman tempat Anda menemukan error."
+    shell-label: "Shell"
+    shell-desc: "Terhubung ke kontainer atau jalankan perintah di dalamnya."
+    shell-warning: "Akses shell ke kontainer sering kali setara dengan akses ke host. Biarkan nonaktif kecuali Anda membutuhkannya."
+    locked: "Disetel oleh {env}"
+    window-closed: "Tanpa login, penyiapan hanya menerima perubahan pada 15 menit pertama instalasi baru. Setel ini dengan variabel lingkungan, atau aktifkan login terlebih dahulu."
+    no-access: "Akun Anda tidak dapat mengubah pengaturan ini."
+    restart-note: "Perubahan ini berlaku setelah Dozzle dimulai ulang."
+  cloud:
+    title: "Hubungkan Dozzle Cloud"
+    subtitle: "Ketahui saat ada yang rusak tanpa harus membiarkan tab terbuka."
+    alerts-title: "Peringatan begitu ada yang rusak"
+    alerts-body: "Crash, OOM kill, dan lonjakan error, dikirim ke email, Slack, atau Discord."
+    summary-title: "Ringkasan pagi tentang apa yang perlu diperbaiki"
+    summary-body: "Satu daftar berperingkat berisi masalah yang layak Anda tangani, setiap hari."
+    history-title: "Riwayat yang bertahan setelah mulai ulang"
+    history-body: "Peringatan dan temuan tetap ada setelah memuat ulang, mulai ulang, atau seminggu."
+    connect: "Hubungkan Dozzle Cloud"
+    learn-more: "Pelajari lebih lanjut"
+    skip: "Jangan sekarang"
+  update:
+    pill-on: "Memakai aksi · aktif"
+    pill-pending: "Aktif bersama aksi"
+    title: "Jaga Dozzle tetap terbaru"
+    subtitle: "Dozzle menarik image baru dan mengganti container-nya sendiri pada jam sepi. Pengaturan, pengguna, dan peringatan tetap ada."
+    auto-label: "Perbarui otomatis"
+    auto-desc: "Memeriksa image yang lebih baru dan hanya mengganti Dozzle jika ada."
+    when-label: "Kapan"
+    time-label: "Waktu"
+    server-time: "Memakai zona waktu server."
+    daily: "Harian"
+    weekly: "Mingguan pada hari Minggu"
+    version-label: "Versi"
+    update-now: "Perbarui sekarang"
+    pulling: "Menarik image baru"
+    up-to-date: "Dozzle sudah versi terbaru."
+    restarting: "Dozzle sedang mengganti dirinya dengan versi baru."
+    restarting-hint: "Halaman dimuat ulang begitu versi baru merespons."
+    needs-actions: "Perbarui sekarang berfungsi setelah aksi aktif, sesudah mulai ulang."
+    reason-pinned-tag: "Anda memakai tag versi yang dipatok, jadi tidak ada yang lebih baru untuk ditarik. Gunakan tag seperti latest untuk mendapat pembaruan."
+    reason-unsupported: "Dozzle tidak dapat menemukan kontainernya sendiri di sini, jadi tidak dapat mengganti dirinya sendiri."
+    reason-swarm-worker: "Dozzle berjalan sebagai layanan Swarm di node worker. Hanya manager yang dapat memperbarui layanan, jadi jalankan Dozzle di manager atau perbarui dengan docker service update."
+    pull-denied: "Tidak dapat menarik {image}. Image ini mungkin hanya ada di mesin ini, atau registry memerlukan docker login."
+  restart:
+    title: "Mulai ulang Dozzle"
+    subtitle: "Perubahan ini sudah disimpan dan mulai berlaku setelah dimulai ulang."
+    change-auth: "Login"
+    "on": "Aktif"
+    "off": "Nonaktif"
+    button: "Mulai ulang Dozzle"
+    restarting: "Memulai ulang Dozzle"
+    restarting-hint: "Halaman akan dimuat ulang begitu Dozzle kembali."
+    slow-title: "Ini memakan waktu cukup lama"
+    slow-body: "Dozzle belum kembali. Periksa kontainer, lalu muat ulang."
+    reload: "Muat ulang"
+    manual: "Dozzle tidak dapat memulai ulang dirinya sendiri di sini. Mulai ulang kontainer, atau setel ini di berkas compose Anda."
+    done-title: "Semua sudah siap"
+    done-body: "Tidak ada yang perlu dimulai ulang. Anda dapat kembali ke sini dari Pengaturan kapan saja."
+    nothing-title: "Tidak ada yang perlu dimulai ulang"
+    nothing-body: "Belum ada langkah yang disiapkan kali ini. Buka penyiapan dari Pengaturan kapan pun Anda siap."
+    done: "Selesai"
+  error:
+    generic: "Terjadi kesalahan. Coba lagi."
+    load: "Tidak dapat memuat penyiapan. Coba lagi nanti."
+    conflict: "Ini sudah disetel, atau ditetapkan oleh variabel lingkungan."
+    no-data: "/data tidak di-mount, jadi ini tidak dapat disimpan."
+    window-closed: "Tanpa login, penyiapan hanya menerima perubahan pada 15 menit pertama instalasi baru. Aktifkan login dengan variabel lingkungan sebagai gantinya."

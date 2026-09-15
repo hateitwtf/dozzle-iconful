@@ -66,6 +66,11 @@ log-details:
   fields-hint: Yeniden sıralamak için sürükleyin. Günlük akışında göstermek veya gizlemek için değiştirin.
   toggle-all: Tüm alanları değiştir
 label:
+  hide-sidebar: "Kenar çubuğunu gizle"
+  show-sidebar: "Kenar çubuğunu göster"
+  host-unreachable: "erişilemiyor"
+  agent-unreachable: "{endpoint} adresindeki ajana ulaşılamıyor"
+  agent-outdated: "ajan {version}"
   historical-at: "Geçmiş günlükler · {time}"
   containers: Konteynerlar
   container: Konteyner yok | 1 konteyner | {count} konteyner
@@ -187,7 +192,6 @@ alert:
     title: 'Güncelleme mevcut'
     message: '{image} için daha yeni bir imaj yayımlandı.'
     enable-actions: 'Buradan indirip yeniden oluşturmak için <a href="https://dozzle.dev/guide/actions" target="_blank" rel="noreferrer noopener">eylemleri etkinleştirin</a>.'
-    self: 'Dozzle kendini güncelleyemez, uygulamak için yeniden başlatın.'
   redirected:
     title: Yeni konteynere yönlendirildi
     message: Dozzle sizi otomatik olarak yeni {containerId} konteynerine yönlendirdi.
@@ -221,53 +225,43 @@ placeholder:
   find-logs: Günlüklerde ara veya regex
   search: Ara
 settings:
-  show-image-update-alert: 'Bir kapsayıcının güncellemesi olduğunda bildirim göster'
-  show-image-update-alert-desc: 'Çalışan imajın daha yeni bir etiketi için kayıt defterini denetler.'
-  help-support: >
-    Lütfen GitHub'da bağış yaparak veya bizi sponsor olarak destekleyerek Dozzle'ı destekleyin. Katkılarınız Dozzle'ı herkes için geliştirmemize yardımcı oluyor. Teşekkürler! 🙏🏼
-  about-desc: Dozzle kurulumunuz ve projeyi nasıl destekleyebileceğiniz hakkında bilgiler.
-  display-desc: Logların ve uygulamanın geri kalanının görünümünü özelleştirin. Önizleme değişikliklerinizi canlı olarak yansıtır.
-  options-desc: Dil, gezinme ve gruplama tercihleri.
+  subtitle: Bu tarayıcı için tercihler. Değişiklikler otomatik olarak kaydedilir.
+  appearance: Görünüm
+  logs: Loglar
+  sidebar: Kenar çubuğu
+  behavior: Davranış
+  advanced: Gelişmiş
+  instance: Bu örnek
+  about: Hakkında
+  reset: Varsayılanlara sıfırla
+  sponsor: Sponsor ol
+  new-version: "{version} mevcut"
+  show-image-update-alert: 'İmaj güncelleme uyarıları'
+  show-image-update-alert-desc: 'Çalışan bir imajın daha yeni bir etiketi olduğunda bildir.'
   cloud-desc: AI destekli incelemeler ve örnekler arasında arama için logları Dozzle Cloud'a aktarın.
-  support-title: Dozzle'ı Destekle
-  support-help: Bağışlar Dozzle'ın ücretsiz kalmasına ve bakımının sürmesine yardımcı olur. Teşekkürler 🙏
-  display: Görünüm
-  locale: Dili geçersiz kıl
-  locale-desc: 'Varsayılan olarak tarayıcınızın dilini kullanır.'
-  small-scrollbars: Daha küçük kaydırma çubukları kullan
+  locale: Dil
+  small-scrollbars: İnce kaydırma çubukları
   small-scrollbars-desc: 'Daha ince kaydırma çubukları, küçük ekranlarda kullanışlıdır.'
   show-timestamps: Zaman damgalarını göster
-  show-timestamps-desc: 'Her satırın başına yazıldığı saati ekler.'
-  soft-wrap: Satırları yumuşak kaydır
-  soft-wrap-desc: 'Yana kaydırmak yerine uzun satırları alt satıra kaydırır.'
+  soft-wrap: Satır kaydırma
   highlight-errors: Hata satırlarını vurgula
-  highlight-errors-desc: 'Hata satırlarının arka planını renklendirir. Renkli seviye işareti her zaman görünür.'
-  datetime-format: Tarih ve saat biçimini geçersiz kıl
-  datetime-format-desc: 'Varsayılan olarak tarayıcınızın dilini ve saat biçimini kullanır.'
-  font-size: Günlükler için kullanılacak yazı tipi boyutu
-  font-size-desc: 'Yalnızca günlük çıktısı için geçerlidir, uygulamanın geri kalanı için değil.'
-  color-scheme: Renk düzeni
-  color-scheme-desc: 'Otomatik, sistem ayarınızı izler.'
-  options: Seçenekler
+  highlight-errors-desc: 'Renkli seviye işareti her zaman gösterilir.'
+  datetime-format: Tarih ve saat
+  font-size: Yazı boyutu
+  color-scheme: Tema
   show-stopped-containers: Durdurulan konteynerleri göster
-  show-stopped-containers-desc: 'Durdurulmuş konteynerleri kenar çubuğuna ve listelere dahil eder.'
-  group-containers: Konteynerleri ad alanına göre grupla
-  group-containers-desc: 'Compose projesine, Swarm yığınına veya dev.dozzle.group değerine göre gruplar.'
-  show-app-icons: 'Uygulama simgelerini göster'
-  show-app-icons-desc: 'Bilinen imajları logolarıyla eşleştir. Simgeler Dozzle ile birlikte gelir ve hiçbir zaman internetten indirilmez.'
-  about: Hakkında
-  search: Dozzle kullanarak aramayı etkinleştir
-  search-desc: 'Görüntülediğiniz konteynerin günlüklerinde arama yapar.'
-  using-version: <a href="https://dozzle.dev/" target="_blank" rel="noreferrer noopener">Dozzle</a> {version} kullanıyorsunuz.
-  update-available: >-
-    Yeni sürüm mevcut! <a href="{href}" target="_blank"
-    rel="noreferrer noopener">{nextVersion}</a> sürümüne güncelleyin.
+  group-containers: Konteynerleri grupla
+  group-containers-desc: 'Compose projesi, Swarm yığını veya dev.dozzle.group ile.'
+  show-app-icons: 'Uygulama simgeleri'
+  show-app-icons-desc: 'Dozzle ile birlikte gelir, asla internetten indirilmez.'
+  search: Loglarda ara
+  search-desc: 'Bir konteyner görüntülenirken tarayıcının bulma özelliğinin yerini alır.'
   show-std: stdout ve stderr etiketlerini göster
   show-std-desc: 'Satırın stdout''tan mı stderr''den mi geldiğini gösterir.'
-  automatic-redirect: Aynı ada sahip yeni konteynerlere otomatik olarak yönlendir
+  automatic-redirect: Yeniden oluşturulan konteynerleri takip et
   automatic-redirect-desc: 'Bir konteyner değiştirildiğinde yenisine geç.'
-  compact: Günlükler için kompakt modu etkinleştir
-  compact-desc: 'Günlük satırları arasındaki boşluğu azaltarak ekrana daha fazlası sığar.'
+  compact: Kompakt mod
+  compact-desc: 'Ekrana daha fazla satır sığması için daha sıkı aralık.'
   size:
     small: Küçük
     medium: Orta
@@ -622,7 +616,7 @@ cloud:
     turn-on: "1 uyarıyı aç | {count} uyarıyı aç"
     turn-on-short: "Aç"
     continue-without: "Uyarı olmadan devam et"
-    skip-alerts: "Şimdi değil, sadece günlük bulguları gönder"
+    skip-alerts: "Şimdi değil"
     ready: "Hazır"
     done-title: "Her şey hazır"
     done-body: "Her bildirim türünün nerede göründüğü aşağıda."
@@ -636,6 +630,10 @@ cloud:
     where-tuning: "Konteyner bazında ayarlama"
     where-tuning-detail: "Bildirimler sayfasından herhangi bir kuralı daraltın, sessize alın veya silin."
     done: "Tamam"
+    steps:
+      watching: "Cloud ne yapar"
+      alerts: "Gerçek zamanlı uyarılar"
+      done: "Her şey nerede görünür"
     signals:
       exited: "Konteyner hatayla sonlandı"
       unhealthy: "Konteyner unhealthy oldu"
@@ -748,3 +746,126 @@ command-palette:
   toggle-std: stdout/stderr etiketlerini aç/kapat
   toggle-scrollbars: Daha küçük kaydırma çubuklarını aç/kapat
   open-settings: Ayarları aç
+setup:
+  title: Dozzle kurulumu
+  next: İleri
+  back: Geri
+  finish-later: Daha sonra bitir
+  close: Kapat
+  copy: Kopyala
+  settings-title: Dozzle kurulumu
+  settings-desc: Giriş, konteyner işlemleri, kabuk ve Dozzle Cloud birkaç adımda.
+  settings-open: Kurulumu aç
+  steps:
+    login: Giriş
+    login-note: Önce bunu yapın
+    actions: İşlemler ve kabuk
+    cloud: Dozzle Cloud
+    cloud-note: İsteğe bağlı
+    update: "Otomatik güncelleme"
+    update-note: "Eylemler gerekli"
+    restart: Yeniden başlat
+  login:
+    title: Girişi aç
+    subtitle: Dozzle'a erişebilen herkes loglarınızı okuyabilir. Her şeyden önce erişimi kısıtlayın.
+    no-data-title: /data bağlı değil
+    no-data-body: Kullanıcılar ve ayarlar /data içine kaydedilir. Bir birim olmadan konteyner bir sonraki yeniden oluşturulduğunda kaybolurlar. Bir birim bağlayın ve tekrar kontrol edin.
+    check-again: Tekrar kontrol et
+    tab-account: Dozzle hesabı
+    tab-proxy: Kendi proxy'm
+    tab-oidc: OIDC
+    username: Kullanıcı adı
+    email: E-posta
+    optional: (isteğe bağlı)
+    password: Parola
+    confirm: Parolayı onayla
+    password-hint: En az 8 karakter. Kullanıcı adında harf, rakam, nokta, tire ve alt çizgi kullanılabilir.
+    saved-volume: Bağlı bir birime kaydedildi
+    after-restart: Giriş yeniden başlatmadan sonra açılır
+    on: Giriş açık
+    users-exist: Bir users.yml zaten mevcut. Kullanmak için kimlik doğrulama sağlayıcısını simple olarak ayarlayın.
+    create-account: Hesap oluştur
+    proxy-body: Authelia, Authentik, Cloudflare Access ve benzerleri kullanıcıların girişini yapar, ardından kullanıcı adını Remote-User başlığıyla Dozzle'a iletir.
+    proxy-warning-title: Yalnızca proxy'yi yayınlayın
+    proxy-warning-body: Dozzle bu başlığa kimden gelirse gelsin güvenir. Dozzle'ın kendi portuna erişilebiliyorsa herkes herhangi bir kullanıcı gibi davranabilir.
+    proxy-docs: Forward proxy rehberi
+    use-proxy: Kendi proxy'mi kullan
+    oidc-body: OIDC bir istemci sırrı gerektirdiği için burada hiçbir şey kaydedilmez. Bunları compose dosyanıza ekleyin ve konteyneri yeniden oluşturun.
+    oidc-docs: OpenID Connect rehberi
+    skip: "Giriş olmadan devam et"
+    manual-restart: Dozzle burada kendini yeniden başlatamıyor. Girişi açmak için konteyneri yeniden başlatın veya bunu compose dosyanızda ayarlayın.
+    restart-hint: Giriş sayfasına yönlendirileceksiniz. Giriş yaptıktan sonra kurulum devam eder.
+  actions:
+    title: İşlemler ve kabuk
+    subtitle: Dozzle'ın konteynerlerinize neler yapabileceğine karar verin.
+    example-status: Çıktı (1) 2 dakika önce
+    example-restart: Yeniden başlat
+    example: "Örnek"
+    actions-label: Başlat, durdur ve yeniden başlat
+    actions-desc: Çöken bir konteyneri hatayı bulduğunuz sayfadan düzeltin.
+    shell-label: Kabuk
+    shell-desc: Bir konteynere bağlanın veya içinde komut çalıştırın.
+    shell-warning: Bir konteynerin kabuğuna erişim çoğu zaman sunucuya erişim kadar güçlüdür. İhtiyacınız yoksa kapalı bırakın.
+    locked: "{env} ile ayarlandı"
+    window-closed: "Giriş olmadan kurulum, yeni bir kurulumun yalnızca ilk 15 dakikasında değişiklik kabul eder. Bunları ortam değişkenleriyle ayarlayın veya önce girişi açın."
+    no-access: Hesabınız bu ayarları değiştiremez.
+    restart-note: Bunlar Dozzle yeniden başladıktan sonra geçerli olur.
+  cloud:
+    title: Dozzle Cloud'a bağlan
+    subtitle: Bir sekmeyi açık tutmadan bir şeyler bozulduğunda haberdar olun.
+    alerts-title: Bir şey bozulduğu anda uyarılar
+    alerts-body: Çökmeler, OOM sonlandırmaları ve hata artışları e-posta, Slack veya Discord'a gönderilir.
+    summary-title: Neyin düzeltilmesi gerektiğine dair sabah özeti
+    summary-body: Her gün, zamanınıza değer sorunların sıralı tek bir listesi.
+    history-title: Yeniden başlatmalardan sonra da kalan geçmiş
+    history-body: Uyarılar ve bulgular sayfa yenilemesinden, yeniden başlatmadan ve bir haftadan sonra da kalır.
+    connect: Dozzle Cloud'a bağlan
+    learn-more: Daha fazla bilgi
+    skip: "Şimdi değil"
+  update:
+    pill-on: "Eylemleri kullanır · açık"
+    pill-pending: "Eylemlerle birlikte açılır"
+    title: "Dozzle'ı güncel tutun"
+    subtitle: "Dozzle sakin bir saatte yeni imajı çeker ve kendi konteynerini değiştirir. Ayarlar, kullanıcılar ve uyarılar korunur."
+    auto-label: "Otomatik güncelle"
+    auto-desc: "Daha yeni bir imaj olup olmadığını kontrol eder ve yalnızca varsa Dozzle'ı değiştirir."
+    when-label: "Ne zaman"
+    time-label: "Saat"
+    server-time: "Sunucunun saat dilimini kullanır."
+    daily: "Günlük"
+    weekly: "Her pazar"
+    version-label: "Sürüm"
+    update-now: "Şimdi güncelle"
+    pulling: "Yeni imaj çekiliyor"
+    up-to-date: "Dozzle zaten güncel."
+    restarting: "Dozzle kendini yeni sürümle değiştiriyor."
+    restarting-hint: "Yeni sürüm yanıt verir vermez sayfa yeniden yüklenir."
+    needs-actions: "Şimdi güncelle, yeniden başlatmadan sonra eylemler açıldığında çalışır."
+    reason-pinned-tag: "Sabitlenmiş bir sürüm etiketi kullanıyorsunuz, bu yüzden çekilecek daha yeni bir şey yok. Güncelleme almak için latest gibi bir etiket kullanın."
+    reason-unsupported: "Dozzle burada kendi konteynerini bulamıyor, bu yüzden kendini değiştiremez."
+    reason-swarm-worker: "Dozzle bir worker düğümünde Swarm servisi olarak çalışıyor. Servisi yalnızca bir manager güncelleyebilir; Dozzle'ı bir manager üzerinde çalıştırın veya docker service update ile güncelleyin."
+    pull-denied: "{image} çekilemedi. Yalnızca bu makinede bulunuyor olabilir ya da kayıt defteri docker login gerektiriyor."
+  restart:
+    title: Dozzle'ı yeniden başlat
+    subtitle: Bu değişiklikler kaydedildi ve yeniden başlatmadan sonra çalışmaya başlar.
+    change-auth: Giriş
+    "on": "Açık"
+    "off": "Kapalı"
+    button: Dozzle'ı yeniden başlat
+    restarting: Dozzle yeniden başlatılıyor
+    restarting-hint: Dozzle geri gelir gelmez sayfa yenilenir.
+    slow-title: Bu biraz uzun sürüyor
+    slow-body: Dozzle henüz geri gelmedi. Konteyneri kontrol edin, ardından sayfayı yenileyin.
+    reload: Yenile
+    manual: Dozzle burada kendini yeniden başlatamıyor. Konteyneri yeniden başlatın veya bunları compose dosyanızda ayarlayın.
+    done-title: Her şey hazır
+    done-body: Yeniden başlatma gerekmiyor. Buraya istediğiniz zaman Ayarlar'dan dönebilirsiniz.
+    nothing-title: "Yeniden başlatılacak bir şey yok"
+    nothing-body: "Bu sefer hiçbir adım ayarlanmadı. Hazır olduğunuzda kurulumu Ayarlar'dan açabilirsiniz."
+    done: Tamam
+  error:
+    generic: Bir şeyler ters gitti. Tekrar deneyin.
+    load: Kurulum yüklenemedi. Daha sonra tekrar deneyin.
+    conflict: Bu zaten ayarlanmış veya bir ortam değişkeniyle sabitlenmiş.
+    no-data: /data bağlı değil, bu yüzden bu kaydedilemiyor.
+    window-closed: "Giriş olmadan kurulum, yeni bir kurulumun yalnızca ilk 15 dakikasında değişiklik kabul eder. Bunun yerine girişi ortam değişkenleriyle açın."

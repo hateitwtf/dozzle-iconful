@@ -14,25 +14,31 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	// The image has no zoneinfo, so without this TZ is ignored and the
+	// auto-update time silently means UTC.
+	_ "time/tzdata"
 
-	"github.com/amir20/dozzle/internal/agent"
 	"github.com/amir20/dozzle/internal/auth"
+	"github.com/amir20/dozzle/internal/cli"
 	"github.com/amir20/dozzle/internal/cloud"
+	dozzleconfig "github.com/amir20/dozzle/internal/config"
 	"github.com/amir20/dozzle/internal/container"
-	"github.com/amir20/dozzle/internal/docker"
+	"github.com/amir20/dozzle/internal/container/agent"
+	"github.com/amir20/dozzle/internal/container/docker"
+	"github.com/amir20/dozzle/internal/container/k8s"
+	"github.com/amir20/dozzle/internal/hostservice"
 	"github.com/amir20/dozzle/internal/imagecheck"
-	"github.com/amir20/dozzle/internal/k8s"
 	"github.com/amir20/dozzle/internal/notification/dispatcher"
-	"github.com/amir20/dozzle/internal/support/cli"
-	container_support "github.com/amir20/dozzle/internal/support/container"
-	docker_support "github.com/amir20/dozzle/internal/support/docker"
-	k8s_support "github.com/amir20/dozzle/internal/support/k8s"
 	"github.com/amir20/dozzle/internal/web"
 	"github.com/rs/zerolog/log"
 )
 
 //go:embed all:dist
 var content embed.FS
+
+// freshInstall is whether ./data held nothing from an earlier run when this
+// process started. Only a fresh install gets the no-login setup window.
+var freshInstall bool
 
 //go:embed shared_cert.pem shared_key.pem
 var certs embed.FS
@@ -55,6 +61,10 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Read before anything below writes to ./data (profiles, notification rules,
+	// session secrets), so it reflects earlier runs only.
+	freshInstall = dozzleconfig.FreshDataDir(filepath.Dir(dozzleconfig.Path))
+
 	// "github" and "google" are aliases for simple auth. OAuth is a second way to
 	// prove you are one of the users in users.yml, not a provider of its own, but
 	// they are the first thing someone reaches for, and hitting a fatal there is a
@@ -63,7 +73,7 @@ func main() {
 	case "github", "google":
 		log.Debug().Str("alias", args.AuthProvider).Msg("Auth provider is an alias for simple")
 		args.AuthProvider = "simple"
-	case "none", "forward-proxy", "simple":
+	case "none", "forward-proxy", "simple", "oidc":
 	default:
 		log.Fatal().Str("provider", args.AuthProvider).Msg("Invalid auth provider")
 	}
@@ -99,9 +109,9 @@ func main() {
 		if err != nil {
 			log.Fatal().Err(err).Msg("Could not read certificates")
 		}
-		agentManager := docker_support.NewRetriableClientManager(args.RemoteAgent, args.Timeout, certs)
-		manager := docker_support.NewSwarmClientManager(localClient, certs, args.Timeout, agentManager, args.Filter)
-		multiHostService := docker_support.NewMultiHostService(manager, args.Timeout)
+		agentManager := hostservice.NewRetriableClientManager(args.RemoteAgent, args.Timeout, certs)
+		manager := hostservice.NewSwarmClientManager(localClient, certs, args.Timeout, agentManager, args.Filter)
+		multiHostService := hostservice.NewMultiHostService(manager, args.Timeout)
 		if err := multiHostService.StartNotificationManager(ctx); err != nil {
 			log.Fatal().Err(err).Msg("Could not start notification manager")
 		}
@@ -113,7 +123,7 @@ func main() {
 			log.Fatal().Err(err).Msg("failed to listen")
 		}
 		// Create client service for agent server in swarm mode
-		clientService := docker_support.NewDockerClientService(localClient, args.Filter)
+		clientService := docker.NewService(localClient, args.Filter)
 		server, err := agent.NewServer(clientService, certs, args.Version(), multiHostService.SwarmNotificationHandler())
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to create agent")
@@ -126,12 +136,12 @@ func main() {
 			}
 		}()
 	} else if args.Mode == "k8s" {
-		localClient, err := k8s.NewK8sClient(args.Namespace, container.NewHostIDResolver(args.HostID))
+		localClient, err := k8s.NewClient(args.Namespace, container.NewHostIDResolver(args.HostID))
 		if err != nil {
 			log.Fatal().Err(err).Msg("Could not create k8s client")
 		}
 
-		clusterService, err := k8s_support.NewK8sClusterService(localClient, args.Timeout)
+		clusterService, err := hostservice.NewK8sClusterService(localClient, args.Timeout)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Could not create k8s cluster service")
 		}
@@ -176,7 +186,7 @@ func main() {
 
 	// In swarm mode, peer broadcasts of cloud config should kick this
 	// replica's cloud client too, so every replica holds its own connection.
-	if mhs, ok := hostService.(*docker_support.MultiHostService); ok {
+	if mhs, ok := hostService.(*hostservice.MultiHostService); ok {
 		mhs.SetCloudNotifyFunc(cloudClient.Notify)
 	}
 
@@ -203,6 +213,18 @@ func main() {
 		},
 	})
 
+	if args.Mode == "server" {
+		go web.RunAutoUpdateScheduler(ctx, hostService, web.Config{
+			Mode:          args.Mode,
+			EnableActions: args.EnableActions,
+			Version:       args.Version(),
+			Setup: web.SetupConfig{
+				AutoUpdateMode: lockedValue(args.Locked.AutoUpdate, args.AutoUpdate),
+				AutoUpdateTime: lockedValue(args.Locked.AutoUpdateTime, args.AutoUpdateTime),
+			},
+		})
+	}
+
 	go func() {
 		log.Info().Msgf("Accepting connections on %s", args.Addr)
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
@@ -219,6 +241,14 @@ func main() {
 		log.Error().Err(err).Msg("failed to shut down")
 	}
 	log.Debug().Msg("shut down complete")
+}
+
+// lockedValue is value when a flag or env var set it, nil when dozzle.yml decides.
+func lockedValue(locked bool, value string) *string {
+	if !locked {
+		return nil
+	}
+	return &value
 }
 
 // oauthProviders builds the external identity providers simple auth accepts.
@@ -248,6 +278,58 @@ func oauthProviders(args cli.Args) []auth.IdentityProvider {
 	}
 
 	return providers
+}
+
+// oidcAuth builds the oidc provider, where the token is the user database.
+//
+// It shares the --auth-oidc-* flags with simple auth, so the split between the
+// two has to show up in behavior: this mode never opens users.yml, refuses the
+// GitHub flags, and says at startup which claims it will read roles from.
+func oidcAuth(args cli.Args) web.OAuthAuthorizer {
+	if args.AuthOidcIssuer == "" || args.AuthOidcClientID == "" || args.AuthOidcClientSecret == "" {
+		log.Fatal().Msg("--auth-oidc-issuer, --auth-oidc-client-id and --auth-oidc-client-secret are required with --auth-provider oidc")
+	}
+
+	// GitHub is not an OpenID Connect issuer and publishes no claims to read
+	// roles from, so it cannot be a user database. Failing here beats a button
+	// that signs nobody in.
+	if args.AuthGithubClientID != "" || args.AuthGithubClientSecret != "" {
+		log.Fatal().Msg("--auth-github-client-id and --auth-github-client-secret cannot be used with --auth-provider oidc; use --auth-provider simple to sign users.yml users in with GitHub")
+	}
+
+	dataDir := "./data"
+	for _, name := range []string{"users.yml", "users.yaml"} {
+		if fileExists(filepath.Join(dataDir, name)) {
+			log.Warn().Str("file", name).Msg("Ignoring the user database: with --auth-provider oidc every user comes from the token")
+		}
+	}
+
+	ttl := time.Duration(0)
+	if args.AuthTTL != "session" {
+		var err error
+		ttl, err = time.ParseDuration(args.AuthTTL)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Could not parse auth ttl")
+		}
+	}
+
+	authorizer := auth.NewOIDCAuth(auth.OIDCConfig{
+		Issuer:       args.AuthOidcIssuer,
+		ClientID:     args.AuthOidcClientID,
+		ClientSecret: args.AuthOidcClientSecret,
+		DisplayName:  args.AuthOidcName,
+		RolesClaim:   args.AuthOidcRolesClaim,
+		FiltersClaim: args.AuthOidcFiltersClaim,
+		LogoutURL:    args.AuthLogoutUrl,
+		DataDir:      dataDir,
+	}, args.Base, ttl, auth.SessionSecret(dataDir))
+
+	log.Info().
+		Str("issuer", args.AuthOidcIssuer).
+		Str("rolesClaim", authorizer.RolesClaims()).
+		Msg("Using OpenID Connect authentication; users and roles come from the token")
+
+	return authorizer
 }
 
 func fileExists(filename string) bool {
@@ -314,6 +396,9 @@ func createServer(args cli.Args, hostService web.HostService, cloudHooks web.Clo
 		if providers := oauthProviders(args); len(providers) > 0 {
 			authorizer = auth.NewOAuthAuth(simpleAuth, args.Base, providers...)
 		}
+	} else if args.AuthProvider == "oidc" {
+		provider = web.OIDC
+		authorizer = oidcAuth(args)
 	}
 
 	authTTL := time.Duration(0)
@@ -354,6 +439,15 @@ func createServer(args cli.Args, hostService web.HostService, cloudHooks web.Clo
 		ImageCheckMode:   imageCheckMode,
 		Labels:           args.Filter,
 		Cloud:            cloudHooks,
+		Setup: web.SetupConfig{
+			LockedAuthProvider:  args.Locked.AuthProvider,
+			LockedEnableActions: args.Locked.EnableActions,
+			LockedEnableShell:   args.Locked.EnableShell,
+			LockedAutoUpdate:    args.Locked.AutoUpdate || args.Locked.AutoUpdateTime,
+			AutoUpdateMode:      lockedValue(args.Locked.AutoUpdate, args.AutoUpdate),
+			AutoUpdateTime:      lockedValue(args.Locked.AutoUpdateTime, args.AutoUpdateTime),
+			StartedAt:           web.SetupWindowStart(time.Now(), freshInstall),
+		},
 	}
 
 	assets, err := fs.Sub(content, "dist")
@@ -393,7 +487,7 @@ func createServer(args cli.Args, hostService web.HostService, cloudHooks web.Clo
 // Everywhere else there is exactly one Dozzle holding the fleet: --remote-host
 // and --remote-agent endpoints are configured on it and on nothing else, so
 // scoping them away simply hid them from the cloud. --remote-host survived only
-// because it happens to be a *DockerClientService; agents did not appear at all.
+// because it happens to be a *docker.Service; agents did not appear at all.
 //
 // services is a func, not a slice, because an agent that is unreachable at boot
 // joins later. Reading it per call means such an agent shows up as soon as it
@@ -401,20 +495,20 @@ func createServer(args cli.Args, hostService web.HostService, cloudHooks web.Clo
 // unreachable agents to be re-dialed, which costs a connection attempt each —
 // only the periodic fan-out calls pay it.
 type cloudHostService struct {
-	services func(retry bool) []container_support.ClientService
+	services func(retry bool) []container.ClientService
 	// hs is the underlying host service, used only to learn when a previously
 	// unreachable host becomes available so log and stat subscriptions can be
 	// extended to it.
 	hs web.HostService
 
 	mu      sync.Mutex
-	hostIDs map[container_support.ClientService]string
+	hostIDs map[container.ClientService]string
 }
 
 func newCloudHostService(mode string, hs web.HostService) cloud.LogStreamHostService {
-	services := func(bool) []container_support.ClientService { return hs.LocalClientServices() }
+	services := func(bool) []container.ClientService { return hs.LocalClientServices() }
 	if mode != "swarm" {
-		if mhs, ok := hs.(*docker_support.MultiHostService); ok {
+		if mhs, ok := hs.(*hostservice.MultiHostService); ok {
 			services = mhs.ClientServices
 		}
 	}
@@ -426,7 +520,7 @@ func newCloudHostService(mode string, hs web.HostService) cloud.LogStreamHostSer
 	return &cloudHostService{
 		services: services,
 		hs:       hs,
-		hostIDs:  make(map[container_support.ClientService]string),
+		hostIDs:  make(map[container.ClientService]string),
 	}
 }
 
@@ -450,7 +544,7 @@ func (l *cloudHostService) hostTimeout() (context.Context, context.CancelFunc) {
 // cache both dial and both store, which costs one redundant call and writes the
 // same id twice; holding the lock instead would serialise every caller behind a
 // network round trip, including callers asking about other hosts.
-func (l *cloudHostService) hostID(s container_support.ClientService) string {
+func (l *cloudHostService) hostID(s container.ClientService) string {
 	l.mu.Lock()
 	id, ok := l.hostIDs[s]
 	l.mu.Unlock()
@@ -503,7 +597,7 @@ func (l *cloudHostService) ListAllContainers(labels container.ContainerLabels) (
 	return all, errs
 }
 
-func (l *cloudHostService) FindContainer(host string, id string, labels container.ContainerLabels) (*container_support.ContainerService, error) {
+func (l *cloudHostService) FindContainer(host string, id string, labels container.ContainerLabels) (*container.ContainerService, error) {
 	// No retry: this runs once per log reader, and a run of them against an
 	// unreachable agent would each wait out the dial timeout.
 	for _, s := range l.services(false) {
@@ -516,7 +610,7 @@ func (l *cloudHostService) FindContainer(host string, id string, labels containe
 		if err != nil {
 			return nil, err
 		}
-		return container_support.NewContainerService(s, cont), nil
+		return container.NewContainerService(s, cont), nil
 	}
 	return nil, fmt.Errorf("host %s is not served by this Dozzle instance", host)
 }
@@ -559,7 +653,7 @@ func (l *cloudHostService) SubscribeStats(ctx context.Context, samples chan<- cl
 	// One inbound channel + forwarder goroutine per service, matching
 	// SubscribeContainersStarted: a burst on one service must not stall the others.
 	var dropWarn sync.Once
-	subscribed := make(map[container_support.ClientService]bool)
+	subscribed := make(map[container.ClientService]bool)
 	attach := func() {
 		for _, s := range l.services(false) {
 			if subscribed[s] {
@@ -604,10 +698,10 @@ func (l *cloudHostService) SubscribeStats(ctx context.Context, samples chan<- cl
 	l.watchNewServices(ctx, attach)
 }
 
-func (l *cloudHostService) SubscribeContainersStarted(ctx context.Context, containers chan<- container.Container, filter container_support.ContainerFilter) {
+func (l *cloudHostService) SubscribeContainersStarted(ctx context.Context, containers chan<- container.Container, filter container.ContainerFilter) {
 	// One inbound channel + forwarder goroutine per service so a slow consumer
 	// or a burst on one service can't cause the others to drop events.
-	subscribed := make(map[container_support.ClientService]bool)
+	subscribed := make(map[container.ClientService]bool)
 	attach := func() {
 		for _, s := range l.services(false) {
 			if subscribed[s] {
