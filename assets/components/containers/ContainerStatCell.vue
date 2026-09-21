@@ -6,7 +6,14 @@
   </div>
   <div v-else class="flex flex-row items-center gap-2">
     <template v-if="mode === 'chart'">
-      <BarChart class="h-4 flex-1" :chart-data="chartData" :bar-class="barClass" />
+      <BarChart
+        class="h-4 flex-1"
+        :chart-data="chartData"
+        :bar-class="barClass"
+        :sampled-from="sampledFrom"
+        @hover-value="(value: number) => (hovered = value)"
+        @hover-end="hovered = null"
+      />
     </template>
     <template v-else>
       <progress class="progress flex-1" :class="progressClass" :value="averageValue" max="100"></progress>
@@ -42,12 +49,24 @@ function totalCores(): number {
   return host.nCPU ?? 1;
 }
 
+// What the pointer is on, or null when it is elsewhere. The cell reads the
+// hovered bar out in place of the live average, so a row's history is legible
+// without leaving the table.
+const hovered = ref<number | null>(null);
+
+// `statsHistory` is padded at the front so the chart keeps its width while samples
+// scroll in; the padding is not data.
+const sampledFrom = computed(() => Math.max(0, container.statsHistory.length - container.sampledStats));
+
 const chartData = computed(() => {
   if (type === "cpu") {
     const cores = totalCores();
     return container.statsHistory.map((stat) => {
       const percent = Math.min(stat.cpu / cores, 100);
-      return { percent, value: stat.cpu };
+      // Normalized like the number beside it: `value` is what the hover reads
+      // out, and a readout in a different unit than the cell's own figure reads
+      // as a bug. Unclamped, because a bar can be capped while its value is not.
+      return { percent, value: stat.cpu / cores };
     });
   }
   return container.statsHistory.map((stat) => {
@@ -66,17 +85,18 @@ const averageValue = computed(() => {
 
 const displayValue = computed(() => {
   if (type === "cpu") {
-    return `${averageValue.value.toFixed(0)}%`;
+    return `${(hovered.value ?? averageValue.value).toFixed(0)}%`;
   }
-  return formatBytes(container.movingAverage.memoryUsage);
+  return formatBytes(hovered.value ?? container.movingAverage.memoryUsage);
 });
 
+// A text colour, not a background: BarChart strokes its bars in `currentColor`.
 const barClass = computed(() => {
   const value = averageValue.value;
-  if (value <= 50) return "bg-success";
-  if (value <= 70) return "bg-secondary";
-  if (value <= 90) return "bg-warning";
-  return "bg-error";
+  if (value <= 50) return "text-success";
+  if (value <= 70) return "text-secondary";
+  if (value <= 90) return "text-warning";
+  return "text-error";
 });
 
 const progressClass = computed(() => {

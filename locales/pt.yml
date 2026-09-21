@@ -170,6 +170,7 @@ error:
   copy-insecure-hint: O seu navegador só permite acesso à área de transferência por https. Copie o texto manualmente.
   logs-skipped: Mostrar {total} entradas ocultas
   container-not-found: Container não encontrado
+  container-not-found-hint: Pode ter sido removido, ou o seu host já não está acessível.
   action-failed: Ação Falhou
   update-failed: Atualização Falhou
   unable-to-complete-action: Não foi possível completar a ação
@@ -208,6 +209,7 @@ title:
   settings: Configurações
   notifications: Notificações
 button:
+  back-to-dashboard: Voltar ao painel
   live-logs: Ir para os logs ao vivo
   logout: Sair
   login: Entrar
@@ -228,11 +230,15 @@ settings:
   sidebar: Barra lateral
   behavior: Comportamento
   advanced: Avançado
-  instance: Esta instância
+  setup: "Configuração"
   about: Sobre
   reset: Restaurar padrões
   sponsor: Patrocinar
   new-version: "{version} disponível"
+  update-available: "Está disponível uma imagem mais recente"
+  auto-update-on: "O Dozzle mantém-se atualizado"
+  auto-update-daily: "Verifica diariamente às {time}, hora do servidor."
+  auto-update-weekly: "Verifica semanalmente, aos domingos às {time}, hora do servidor."
   show-image-update-alert: 'Alertas de atualização de imagem'
   show-image-update-alert-desc: 'Avisa quando existe uma tag mais recente de uma imagem em execução.'
   cloud-desc: Transmita logs para o Dozzle Cloud para investigações com IA e busca entre instâncias.
@@ -752,7 +758,10 @@ setup:
   copy: Copiar
   settings-title: Configurar o Dozzle
   settings-desc: Login, ações de contêiner, shell e Dozzle Cloud em poucos passos.
-  settings-open: Abrir configuração
+  settings-done-title: "O Dozzle está configurado"
+  settings-done-desc: "O login está ativado. Abra a configuração para rever ações de contêiner, shell e Dozzle Cloud."
+  settings-closed-title: "A configuração está fechada"
+  settings-closed-desc: "Sem login, a configuração só aceita alterações nos primeiros 15 minutos de uma nova instalação. Use variáveis de ambiente em vez disso."
   steps:
     login: Login
     login-note: Faça isto primeiro

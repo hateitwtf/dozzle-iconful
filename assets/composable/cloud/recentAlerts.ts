@@ -35,10 +35,8 @@ const { linked } = useCloudSurface();
 // is holding stop describing the instance in front of the reader. So they are
 // dropped, and refetched when there is somewhere to ask again.
 //
-// The refetch also covers boot. `cloudConfig` is fetched asynchronously, so the
-// first `fetchRecentAlerts()` of a page load usually runs while the instance
-// still looks unlinked and early-returns; without this the history sat empty
-// until the bell's poll came round a minute later.
+// Boot does not come through here: `cloudConfig` is seeded from the shell, so
+// `linked` is already settled by the time the first consumer mounts and asks.
 watch(linked, (isLinked) => {
   alerts.value = [];
   loaded.value = false;
@@ -86,6 +84,13 @@ export function useRecentAlerts() {
       loaded.value = true;
       return Promise.resolve();
     }
+    // Once per page, which is what the name on refreshRecentAlerts promises.
+    // `pending` alone only dedupes callers that overlap in flight, and the dot
+    // on a container row mounts long after the bell does — rows appear when the
+    // event stream delivers containers, by which time the bell's request has
+    // landed and cleared `pending`. So the whole history was fetched twice on
+    // every load of a page with a container table.
+    if (loaded.value && !failed.value) return Promise.resolve();
     pending ??= load(limit);
     return pending;
   }

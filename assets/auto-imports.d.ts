@@ -19,7 +19,9 @@ declare global {
   const SetupError: typeof import('./composable/setup/setup').SetupError
   const TEMPLATE_VARIABLES: typeof import('./composable/editor/templateEditor').TEMPLATE_VARIABLES
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
+  const alertTargetFor: typeof import('./composable/notifications/alertForm').alertTargetFor
   const allLevels: typeof import('./composable/logs/logContext').allLevels
+  const appendBatch: typeof import('./composable/logs/logWindow').appendBatch
   const arrayEquals: typeof import('./utils/index').arrayEquals
   const asyncComputed: typeof import('@vueuse/core').asyncComputed
   const attachEvents: typeof import('./composable/cloud/cloudAlerts').attachEvents
@@ -27,6 +29,8 @@ declare global {
   const automaticRedirect: typeof import('./stores/settings').automaticRedirect
   const buildViewContext: typeof import('./composable/logs/viewContext').buildViewContext
   const canHover: typeof import('./composable/ui/media').canHover
+  const canSelfUpdate: typeof import('./composable/setup/selfUpdate').canSelfUpdate
+  const checkSession: typeof import('./composable/app/session').checkSession
   const clearCloudWelcomePending: typeof import('./composable/cloud/cloudWelcome').clearCloudWelcomePending
   const clearSetupResume: typeof import('./composable/setup/setup').clearSetupResume
   const cloudWelcomePending: typeof import('./composable/cloud/cloudWelcome').cloudWelcomePending
@@ -105,6 +109,7 @@ declare global {
   const ignorableWatch: typeof import('@vueuse/core').ignorableWatch
   const inject: typeof import('vue').inject
   const injectLocal: typeof import('@vueuse/core').injectLocal
+  const isDataIcon: typeof import('./utils/index').isDataIcon
   const isDefined: typeof import('@vueuse/core').isDefined
   const isLogEvent: typeof import('@/composable/cloud/cloudAlerts').isLogEvent
   const isMobile: typeof import('./composable/ui/media').isMobile
@@ -192,6 +197,7 @@ declare global {
   const safeRedirect: typeof import('./composable/ui/safeRedirect').safeRedirect
   const scrollContextKey: typeof import('./composable/logs/scrollContext').scrollContextKey
   const search: typeof import('./stores/settings').search
+  const selfUpdateHeadline: typeof import('./composable/setup/selfUpdate').selfUpdateHeadline
   const sessionHost: typeof import('./composable/app/storage').sessionHost
   const setActivePinia: typeof import('pinia').setActivePinia
   const setMapStoreSuffix: typeof import('pinia').setMapStoreSuffix
@@ -355,6 +361,7 @@ declare global {
   const useKeyModifier: typeof import('@vueuse/core').useKeyModifier
   const useLastChanged: typeof import('@vueuse/core').useLastChanged
   const useLink: typeof import('vue-router/auto').useLink
+  const useLiveAnnouncer: typeof import('@vueuse/core').useLiveAnnouncer
   const useLocalStorage: typeof import('@vueuse/core').useLocalStorage
   const useLogJump: typeof import('./composable/logs/logJump').useLogJump
   const useLogLoader: typeof import('./composable/logs/logLoader').useLogLoader
@@ -414,6 +421,8 @@ declare global {
   const useScrollContext: typeof import('./composable/logs/scrollContext').useScrollContext
   const useScrollLock: typeof import('@vueuse/core').useScrollLock
   const useSearchFilter: typeof import('./composable/logs/search').useSearchFilter
+  const useSelfUpdate: typeof import('./composable/setup/selfUpdate').useSelfUpdate
+  const useSelfUpdateCheck: typeof import('./composable/setup/selfUpdate').useSelfUpdateCheck
   const useSeoMeta: typeof import('@vueuse/head').useSeoMeta
   const useServiceStream: typeof import('./composable/logs/eventStreams').useServiceStream
   const useSessionStorage: typeof import('@vueuse/core').useSessionStorage
@@ -437,6 +446,7 @@ declare global {
   const useSwipe: typeof import('@vueuse/core').useSwipe
   const useTemplateRef: typeof import('vue').useTemplateRef
   const useTemplateRefsList: typeof import('@vueuse/core').useTemplateRefsList
+  const useTemporalNow: typeof import('@vueuse/core').useTemporalNow
   const useTextDirection: typeof import('@vueuse/core').useTextDirection
   const useTextSelection: typeof import('@vueuse/core').useTextSelection
   const useTextareaAutosize: typeof import('@vueuse/core').useTextareaAutosize
@@ -466,6 +476,7 @@ declare global {
   const useVisibleFilter: typeof import('./composable/logs/visible').useVisibleFilter
   const useVisibleKeysByContainer: typeof import('./composable/logs/visible').useVisibleKeysByContainer
   const useWakeLock: typeof import('@vueuse/core').useWakeLock
+  const useWebMCP: typeof import('@vueuse/core').useWebMCP
   const useWebNotification: typeof import('@vueuse/core').useWebNotification
   const useWebSocket: typeof import('@vueuse/core').useWebSocket
   const useWebWorker: typeof import('@vueuse/core').useWebWorker
@@ -541,6 +552,9 @@ declare global {
   export type { LogMoment } from './composable/logs/logJump'
   import('./composable/logs/logJump')
   // @ts-ignore
+  export type { AppendBatchOptions } from './composable/logs/logWindow'
+  import('./composable/logs/logWindow')
+  // @ts-ignore
   export type { ViewContext, ViewLogLine } from './composable/logs/viewContext'
   import('./composable/logs/viewContext')
   // @ts-ignore
@@ -549,6 +563,9 @@ declare global {
   // @ts-ignore
   export type { AlertType, AlertPrefill, AlertFormOptions, ContainerResult, SaveBlocker } from './composable/notifications/alertForm'
   import('./composable/notifications/alertForm')
+  // @ts-ignore
+  export type { SelfUpdatePhase } from './composable/setup/selfUpdate'
+  import('./composable/setup/selfUpdate')
   // @ts-ignore
   export type { SetupError, SetupStepId, SetupStepState, AutoUpdateMode, AutoUpdateReason, SetupAutoUpdate, SetupStatus, SetupNextResult, SetupStepHandle, SetupCloudFacts } from './composable/setup/setup'
   import('./composable/setup/setup')
@@ -583,7 +600,9 @@ declare module 'vue' {
     readonly SetupError: UnwrapRef<typeof import('./composable/setup/setup')['SetupError']>
     readonly TEMPLATE_VARIABLES: UnwrapRef<typeof import('./composable/editor/templateEditor')['TEMPLATE_VARIABLES']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
+    readonly alertTargetFor: UnwrapRef<typeof import('./composable/notifications/alertForm')['alertTargetFor']>
     readonly allLevels: UnwrapRef<typeof import('./composable/logs/logContext')['allLevels']>
+    readonly appendBatch: UnwrapRef<typeof import('./composable/logs/logWindow')['appendBatch']>
     readonly arrayEquals: UnwrapRef<typeof import('./utils/index')['arrayEquals']>
     readonly asyncComputed: UnwrapRef<typeof import('@vueuse/core')['asyncComputed']>
     readonly attachEvents: UnwrapRef<typeof import('./composable/cloud/cloudAlerts')['attachEvents']>
@@ -591,6 +610,8 @@ declare module 'vue' {
     readonly automaticRedirect: UnwrapRef<typeof import('./stores/settings')['automaticRedirect']>
     readonly buildViewContext: UnwrapRef<typeof import('./composable/logs/viewContext')['buildViewContext']>
     readonly canHover: UnwrapRef<typeof import('./composable/ui/media')['canHover']>
+    readonly canSelfUpdate: UnwrapRef<typeof import('./composable/setup/selfUpdate')['canSelfUpdate']>
+    readonly checkSession: UnwrapRef<typeof import('./composable/app/session')['checkSession']>
     readonly clearCloudWelcomePending: UnwrapRef<typeof import('./composable/cloud/cloudWelcome')['clearCloudWelcomePending']>
     readonly clearSetupResume: UnwrapRef<typeof import('./composable/setup/setup')['clearSetupResume']>
     readonly cloudWelcomePending: UnwrapRef<typeof import('./composable/cloud/cloudWelcome')['cloudWelcomePending']>
@@ -668,6 +689,7 @@ declare module 'vue' {
     readonly ignorableWatch: UnwrapRef<typeof import('@vueuse/core')['ignorableWatch']>
     readonly inject: UnwrapRef<typeof import('vue')['inject']>
     readonly injectLocal: UnwrapRef<typeof import('@vueuse/core')['injectLocal']>
+    readonly isDataIcon: UnwrapRef<typeof import('./utils/index')['isDataIcon']>
     readonly isDefined: UnwrapRef<typeof import('@vueuse/core')['isDefined']>
     readonly isMobile: UnwrapRef<typeof import('./composable/ui/media')['isMobile']>
     readonly isObject: UnwrapRef<typeof import('./utils/index')['isObject']>
@@ -752,6 +774,7 @@ declare module 'vue' {
     readonly safeRedirect: UnwrapRef<typeof import('./composable/ui/safeRedirect')['safeRedirect']>
     readonly scrollContextKey: UnwrapRef<typeof import('./composable/logs/scrollContext')['scrollContextKey']>
     readonly search: UnwrapRef<typeof import('./stores/settings')['search']>
+    readonly selfUpdateHeadline: UnwrapRef<typeof import('./composable/setup/selfUpdate')['selfUpdateHeadline']>
     readonly sessionHost: UnwrapRef<typeof import('./composable/app/storage')['sessionHost']>
     readonly setActivePinia: UnwrapRef<typeof import('pinia')['setActivePinia']>
     readonly setMapStoreSuffix: UnwrapRef<typeof import('pinia')['setMapStoreSuffix']>
@@ -780,7 +803,6 @@ declare module 'vue' {
     readonly stripVersion: UnwrapRef<typeof import('./utils/index')['stripVersion']>
     readonly syncRef: UnwrapRef<typeof import('@vueuse/core')['syncRef']>
     readonly syncRefs: UnwrapRef<typeof import('@vueuse/core')['syncRefs']>
-    readonly templateRef: UnwrapRef<typeof import('@vueuse/core')['templateRef']>
     readonly terminalFontSize: UnwrapRef<typeof import('./stores/settings')['terminalFontSize']>
     readonly throttledRef: UnwrapRef<typeof import('@vueuse/core')['throttledRef']>
     readonly throttledWatch: UnwrapRef<typeof import('@vueuse/core')['throttledWatch']>
@@ -913,6 +935,7 @@ declare module 'vue' {
     readonly useKeyModifier: UnwrapRef<typeof import('@vueuse/core')['useKeyModifier']>
     readonly useLastChanged: UnwrapRef<typeof import('@vueuse/core')['useLastChanged']>
     readonly useLink: UnwrapRef<typeof import('vue-router/auto')['useLink']>
+    readonly useLiveAnnouncer: UnwrapRef<typeof import('@vueuse/core')['useLiveAnnouncer']>
     readonly useLocalStorage: UnwrapRef<typeof import('@vueuse/core')['useLocalStorage']>
     readonly useLogJump: UnwrapRef<typeof import('./composable/logs/logJump')['useLogJump']>
     readonly useLogLoader: UnwrapRef<typeof import('./composable/logs/logLoader')['useLogLoader']>
@@ -972,6 +995,8 @@ declare module 'vue' {
     readonly useScrollContext: UnwrapRef<typeof import('./composable/logs/scrollContext')['useScrollContext']>
     readonly useScrollLock: UnwrapRef<typeof import('@vueuse/core')['useScrollLock']>
     readonly useSearchFilter: UnwrapRef<typeof import('./composable/logs/search')['useSearchFilter']>
+    readonly useSelfUpdate: UnwrapRef<typeof import('./composable/setup/selfUpdate')['useSelfUpdate']>
+    readonly useSelfUpdateCheck: UnwrapRef<typeof import('./composable/setup/selfUpdate')['useSelfUpdateCheck']>
     readonly useSeoMeta: UnwrapRef<typeof import('@vueuse/head')['useSeoMeta']>
     readonly useServiceStream: UnwrapRef<typeof import('./composable/logs/eventStreams')['useServiceStream']>
     readonly useSessionStorage: UnwrapRef<typeof import('@vueuse/core')['useSessionStorage']>
@@ -995,6 +1020,7 @@ declare module 'vue' {
     readonly useSwipe: UnwrapRef<typeof import('@vueuse/core')['useSwipe']>
     readonly useTemplateRef: UnwrapRef<typeof import('vue')['useTemplateRef']>
     readonly useTemplateRefsList: UnwrapRef<typeof import('@vueuse/core')['useTemplateRefsList']>
+    readonly useTemporalNow: UnwrapRef<typeof import('@vueuse/core')['useTemporalNow']>
     readonly useTextDirection: UnwrapRef<typeof import('@vueuse/core')['useTextDirection']>
     readonly useTextSelection: UnwrapRef<typeof import('@vueuse/core')['useTextSelection']>
     readonly useTextareaAutosize: UnwrapRef<typeof import('@vueuse/core')['useTextareaAutosize']>
@@ -1024,6 +1050,7 @@ declare module 'vue' {
     readonly useVisibleFilter: UnwrapRef<typeof import('./composable/logs/visible')['useVisibleFilter']>
     readonly useVisibleKeysByContainer: UnwrapRef<typeof import('./composable/logs/visible')['useVisibleKeysByContainer']>
     readonly useWakeLock: UnwrapRef<typeof import('@vueuse/core')['useWakeLock']>
+    readonly useWebMCP: UnwrapRef<typeof import('@vueuse/core')['useWebMCP']>
     readonly useWebNotification: UnwrapRef<typeof import('@vueuse/core')['useWebNotification']>
     readonly useWebSocket: UnwrapRef<typeof import('@vueuse/core')['useWebSocket']>
     readonly useWebWorker: UnwrapRef<typeof import('@vueuse/core')['useWebWorker']>

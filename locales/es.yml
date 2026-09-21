@@ -170,6 +170,7 @@ error:
   copy-insecure-hint: Su navegador solo permite el acceso al portapapeles mediante https. Copie el texto manualmente.
   logs-skipped: Mostrar {total} entradas ocultas
   container-not-found: Contenedor no encontrado.
+  container-not-found-hint: Puede que se haya eliminado o que su host ya no esté accesible.
   action-failed: Acción Fallida
   update-failed: Actualización Fallida
   unable-to-complete-action: No se pudo completar la acción
@@ -208,6 +209,7 @@ title:
   settings: Configuración
   notifications: Notificaciones
 button:
+  back-to-dashboard: Volver al panel
   live-logs: Ir a los registros en vivo
   logout: Cerrar la sesión
   login: Iniciar sesión
@@ -329,11 +331,15 @@ settings:
   sidebar: Barra lateral
   behavior: Comportamiento
   advanced: Avanzado
-  instance: Esta instancia
+  setup: "Configuración"
   about: Acerca de
   reset: Restablecer valores predeterminados
   sponsor: Patrocinar
   new-version: "{version} disponible"
+  update-available: "Hay una imagen más reciente disponible"
+  auto-update-on: "Dozzle se mantiene actualizado"
+  auto-update-daily: "Comprueba a diario a las {time}, hora del servidor."
+  auto-update-weekly: "Comprueba cada semana, los domingos a las {time}, hora del servidor."
   show-image-update-alert: 'Alertas de actualización de imagen'
   show-image-update-alert-desc: 'Avisa cuando existe una etiqueta más nueva de una imagen en ejecución.'
   cloud-desc: Transmite logs a Dozzle Cloud para investigaciones con IA y búsqueda entre instancias.
@@ -752,7 +758,10 @@ setup:
   copy: "Copiar"
   settings-title: "Configurar Dozzle"
   settings-desc: "Inicio de sesión, acciones de contenedores, shell y Dozzle Cloud en pocos pasos."
-  settings-open: "Abrir configuración inicial"
+  settings-done-title: "Dozzle está configurado"
+  settings-done-desc: "El inicio de sesión está activado. Abre la configuración para revisar las acciones de contenedores, la shell y Dozzle Cloud."
+  settings-closed-title: "La configuración está cerrada"
+  settings-closed-desc: "Sin inicio de sesión, la configuración solo acepta cambios durante los primeros 15 minutos de una instalación nueva. Usa variables de entorno en su lugar."
   steps:
     login: "Inicio de sesión"
     login-note: "Haga esto primero"

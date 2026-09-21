@@ -9,61 +9,88 @@
         <h1 class="text-2xl font-bold">{{ $t("title.settings") }}</h1>
         <p class="text-base-content/60 text-sm">{{ $t("settings.subtitle") }}</p>
       </div>
-      <button
-        type="button"
-        class="text-base-content/40 hover:text-base-content text-xs transition-colors"
-        @click="reset"
-      >
+      <button type="button" class="btn btn-ghost btn-xs text-base-content/60" @click="reset">
         {{ $t("settings.reset") }}
       </button>
     </div>
 
     <!-- On a phone the sub-nav folds into a row of chips above the first section. -->
-    <nav class="-mx-4 flex gap-2 overflow-x-auto px-4 @3xl:hidden">
+    <nav role="tablist" class="tabs tabs-box tabs-sm flex-nowrap overflow-x-auto @3xl:hidden">
       <router-link
         v-for="item in sections"
         :key="item.id"
         :to="{ hash: `#${item.id}` }"
         replace
         @click="pin(item.id)"
-        class="flex h-9 shrink-0 items-center rounded-full border px-3.5 text-sm whitespace-nowrap transition-colors"
-        :class="
-          active === item.id
-            ? 'bg-base-content/10 border-transparent font-medium'
-            : 'border-base-content/15 text-base-content/70 hover:bg-base-300'
-        "
+        role="tab"
+        class="tab shrink-0 whitespace-nowrap"
+        :class="{ 'tab-active': active === item.id }"
+        :aria-current="active === item.id ? 'location' : false"
       >
         {{ item.label }}
       </router-link>
     </nav>
 
     <div class="flex items-start gap-10">
-      <!-- Preferences first, what is about this instance after a hairline. -->
-      <nav class="sticky top-4 hidden w-48 shrink-0 flex-col gap-0.5 @3xl:flex">
+      <!-- What this install is, then the preferences, then what is about the server
+           itself, each group after a hairline. -->
+      <ul class="menu sticky top-4 hidden w-48 shrink-0 p-0 @3xl:flex">
         <template v-for="item in sections" :key="item.id">
-          <template v-if="item.id === 'instance'">
-            <div class="bg-base-content/10 mx-2 my-2.5 h-px"></div>
-          </template>
-          <router-link
-            :to="{ hash: `#${item.id}` }"
-            replace
-            @click="pin(item.id)"
-            class="hover:bg-base-300 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors"
-            :class="active === item.id ? 'bg-base-300 font-medium' : 'text-base-content/70'"
-          >
-            <component :is="item.icon" class="size-4 opacity-60" />
-            <span class="flex-1">{{ item.label }}</span>
-            <span v-if="item.id === 'about' && hasRelease" class="bg-warning size-1.5 rounded-full"></span>
-          </router-link>
+          <li v-if="item.divider"></li>
+          <li>
+            <router-link
+              :to="{ hash: `#${item.id}` }"
+              replace
+              @click="pin(item.id)"
+              :class="{ 'menu-active': active === item.id }"
+              :aria-current="active === item.id ? 'location' : false"
+            >
+              <component :is="item.icon" class="size-4 opacity-60" />
+              <span class="flex-1">{{ item.label }}</span>
+              <span v-if="item.id === 'about' && hasRelease" class="status status-warning"></span>
+            </router-link>
+          </li>
         </template>
-      </nav>
+      </ul>
 
       <div class="flex max-w-4xl min-w-0 flex-1 flex-col gap-8">
+        <!-- ABOUT leads: what this install is, whether it is stale and what it will do
+             about that. Everything below it is a setting someone changes. -->
+        <section id="about" ref="aboutEl" class="border-base-content/10 flex scroll-mt-4 flex-col gap-4 border-b pb-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2.5">
+              <span class="text-[0.9375rem] font-semibold">Dozzle</span>
+              <span class="badge badge-soft badge-sm">{{ config.version }}</span>
+              <!-- With auto-update on, the panel below already says what happens next,
+                   so the badge would be a second, louder answer to the same question. -->
+              <a
+                v-if="hasRelease && !autoUpdate"
+                :href="latestRelease?.htmlUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="badge badge-soft badge-warning badge-sm hover:bg-warning/15"
+              >
+                <span class="status status-warning"></span>
+                {{ $t("settings.new-version", { version: latestRelease?.name }) }}
+              </a>
+            </div>
+            <div class="flex gap-2">
+              <a href="https://github.com/amir20/dozzle" target="_blank" rel="noopener noreferrer" class="btn btn-sm">
+                <mdi:github /> GitHub
+              </a>
+              <a href="https://github.com/sponsors/amir20" target="_blank" rel="noopener noreferrer" class="btn btn-sm">
+                <mdi:heart class="text-error" /> {{ $t("settings.sponsor") }}
+              </a>
+            </div>
+          </div>
+          <SelfUpdateStatus v-if="setupStatus && autoUpdate" :status="setupStatus" :auto-update="autoUpdate" />
+        </section>
+
         <!-- APPEARANCE: app-wide only. Anything that changes how a log line looks is in Logs,
              under the preview it changes. -->
         <section id="appearance" ref="appearanceEl" class="scroll-mt-4">
           <h2 class="section-heading">{{ $t("settings.appearance") }}</h2>
-          <div class="panel">
+          <div class="card card-border bg-base-200/40 divide-base-content/10 divide-y overflow-hidden">
             <SettingRow :label="$t('settings.color-scheme')" class="px-4">
               <div class="flex gap-3">
                 <button
@@ -114,7 +141,7 @@
         <!-- LOGS -->
         <section id="logs" ref="logsEl" class="scroll-mt-4">
           <h2 class="section-heading">{{ $t("settings.logs") }}</h2>
-          <div class="panel">
+          <div class="card card-border bg-base-200/40 divide-base-content/10 divide-y overflow-hidden">
             <div ref="previewEl">
               <LogList
                 :messages="fakeMessages"
@@ -124,15 +151,14 @@
               />
             </div>
             <SettingRow :label="$t('settings.font-size')" class="px-4">
-              <span class="join">
+              <span role="tablist" class="tabs tabs-box tabs-sm">
                 <button
                   v-for="opt in sizes"
                   :key="opt.value"
                   type="button"
-                  class="btn btn-sm join-item"
-                  :class="
-                    size === opt.value ? 'bg-base-content/10 border-transparent' : 'btn-ghost text-base-content/60'
-                  "
+                  role="tab"
+                  class="tab"
+                  :class="{ 'tab-active': size === opt.value }"
                   @click="size = opt.value"
                 >
                   {{ opt.label }}
@@ -189,7 +215,7 @@
         <!-- SIDEBAR -->
         <section id="sidebar" ref="sidebarEl" class="scroll-mt-4">
           <h2 class="section-heading">{{ $t("settings.sidebar") }}</h2>
-          <div class="panel">
+          <div class="card card-border bg-base-200/40 divide-base-content/10 divide-y overflow-hidden">
             <SettingRow tag="label" :label="$t('settings.show-stopped-containers')" class="px-4">
               <input type="checkbox" class="toggle toggle-primary toggle-sm" v-model="showAllContainers" />
             </SettingRow>
@@ -222,7 +248,7 @@
         <!-- BEHAVIOR -->
         <section id="behavior" ref="behaviorEl" class="scroll-mt-4">
           <h2 class="section-heading">{{ $t("settings.behavior") }}</h2>
-          <div class="panel">
+          <div class="card card-border bg-base-200/40 divide-base-content/10 divide-y overflow-hidden">
             <SettingRow
               :label="$t('settings.automatic-redirect')"
               :description="$t('settings.automatic-redirect-desc')"
@@ -260,17 +286,16 @@
         </section>
 
         <!-- ADVANCED: the two settings almost nobody changes, folded away. -->
-        <details class="panel group/advanced">
-          <summary
-            class="text-base-content/70 hover:bg-base-300 flex min-h-13 list-none items-center gap-2 px-4 text-sm font-medium transition-colors [&::-webkit-details-marker]:hidden"
-          >
-            <mdi:chevron-right class="size-4 opacity-60 transition-transform group-open/advanced:rotate-90" />
+        <details
+          class="collapse-arrow card-border bg-base-200/40 divide-base-content/10 group/advanced collapse divide-y"
+        >
+          <summary class="collapse-title text-base-content/70 flex items-center gap-2 text-sm font-medium">
             <span class="flex-1">{{ $t("settings.advanced") }}</span>
             <span class="text-base-content/40 hidden text-xs font-normal group-open/advanced:hidden @xl:inline">
               {{ $t("settings.show-std") }}, {{ $t("settings.small-scrollbars") }}
             </span>
           </summary>
-          <div class="divide-base-content/10 border-base-content/10 divide-y border-t">
+          <div class="collapse-content divide-base-content/10 divide-y p-0">
             <SettingRow
               tag="label"
               :label="$t('settings.show-std')"
@@ -290,62 +315,20 @@
           </div>
         </details>
 
-        <!-- THIS INSTANCE: setup and cloud act on the server, not on this browser. -->
-        <section v-if="hasInstance" id="instance" ref="instanceEl" class="flex scroll-mt-4 flex-col gap-4">
-          <h2 class="section-heading mb-0!">{{ $t("settings.instance") }}</h2>
-          <button
-            v-if="config.mode === 'server'"
-            type="button"
-            class="border-base-content/15 bg-base-200/40 hover:bg-base-300 flex items-center gap-3 rounded-lg border p-4 text-left transition-colors"
-            @click="openWizard"
-          >
-            <span class="bg-base-content/10 text-base-content/70 shrink-0 rounded-full p-2">
-              <mdi:rocket-launch-outline class="size-5" />
-            </span>
-            <span class="min-w-0 flex-1">
-              <span class="block text-sm font-medium">{{ $t("setup.settings-title") }}</span>
-              <span class="text-base-content/60 block text-xs">{{ $t("setup.settings-desc") }}</span>
-            </span>
-            <mdi:chevron-right class="size-4 shrink-0 opacity-40" />
-          </button>
-          <div v-if="showCloud" id="cloud" class="flex scroll-mt-4 flex-col gap-2">
-            <div>
-              <div class="text-sm font-medium">{{ $t("cloud.title") }}</div>
-              <div class="text-base-content/60 text-xs">{{ $t("settings.cloud-desc") }}</div>
-            </div>
-            <CloudSettingsCard />
-          </div>
+        <!-- SETUP and CLOUD act on the server, not on this browser, so they sit below
+             the preferences with their own headings rather than under one vague one. -->
+        <section v-if="showSetup" id="setup" ref="setupEl" class="flex scroll-mt-4 flex-col gap-4">
+          <h2 class="section-heading mb-0!">{{ $t("settings.setup") }}</h2>
+          <SetupSettingsCard :status="setupStatus" />
         </section>
 
-        <!-- ABOUT: the version, whether it is stale, and the ways to support the project. -->
-        <footer
-          id="about"
-          ref="aboutEl"
-          class="border-base-content/10 flex scroll-mt-4 flex-wrap items-center justify-between gap-3 border-t pt-5"
-        >
-          <div class="flex flex-wrap items-center gap-2.5">
-            <span class="text-[0.9375rem] font-semibold">Dozzle</span>
-            <span class="status-pill status-pill-neutral">{{ config.version }}</span>
-            <a
-              v-if="hasRelease"
-              :href="latestRelease?.htmlUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="status-pill status-pill-warning hover:bg-warning/15"
-            >
-              <span class="size-1.5 rounded-full bg-current"></span>
-              {{ $t("settings.new-version", { version: latestRelease?.name }) }}
-            </a>
+        <section v-if="showCloud" id="cloud" ref="cloudEl" class="flex scroll-mt-4 flex-col gap-4">
+          <div>
+            <h2 class="section-heading mb-1!">{{ $t("cloud.title") }}</h2>
+            <p class="text-base-content/60 text-xs">{{ $t("settings.cloud-desc") }}</p>
           </div>
-          <div class="flex gap-2">
-            <a href="https://github.com/amir20/dozzle" target="_blank" rel="noopener noreferrer" class="btn btn-sm">
-              <mdi:github /> GitHub
-            </a>
-            <a href="https://github.com/sponsors/amir20" target="_blank" rel="noopener noreferrer" class="btn btn-sm">
-              <mdi:heart class="text-error" /> {{ $t("settings.sponsor") }}
-            </a>
-          </div>
-        </footer>
+          <CloudSettingsCard />
+        </section>
       </div>
     </div>
   </div>
@@ -357,7 +340,8 @@ import IconPalette from "~icons/mdi/palette-outline";
 import IconLogs from "~icons/mdi/format-list-text";
 import IconSidebar from "~icons/mdi/dock-left";
 import IconBehavior from "~icons/mdi/lightning-bolt-outline";
-import IconInstance from "~icons/mdi/server-outline";
+import IconSetup from "~icons/mdi/rocket-launch-outline";
+import IconCloud from "~icons/mdi/cloud-outline";
 import IconAbout from "~icons/mdi/information-outline";
 
 import {
@@ -395,10 +379,21 @@ const { t } = useI18n();
 
 setTitle(t("title.settings"));
 const { latestRelease, hasRelease } = useAnnouncements();
-const { openWizard } = useSetup();
+// The setup card reports what is already configured and About shows the update
+// schedule, so this page reads the status itself instead of waiting for someone
+// to open the wizard. The API only exists in server mode.
+const { status: setupStatus, fetchStatus } = useSetup();
+const showSetup = computed(() => config.mode === "server");
+if (showSetup.value && !setupStatus.value) fetchStatus();
 
 const showCloud = computed(() => config.enableCloud && config.canLinkCloud);
-const hasInstance = computed(() => config.mode === "server" || showCloud.value);
+
+// Auto-update belongs in About: someone reading the version there is asking exactly
+// the question the schedule answers.
+const autoUpdate = computed(() => {
+  const update = setupStatus.value?.autoUpdate;
+  return update && update.mode !== "off" ? update : undefined;
+});
 
 const themes = computed(() => [
   { label: t("settings.theme.light"), value: "light" as const, swatches: ["light"] },
@@ -412,16 +407,20 @@ const sizes = computed(() => [
   { label: t("settings.size.large"), value: "large" as const },
 ]);
 
-const sections = computed(() =>
-  [
+const sections = computed(() => {
+  const items = [
+    { id: "about", label: t("settings.about"), icon: IconAbout },
     { id: "appearance", label: t("settings.appearance"), icon: IconPalette },
     { id: "logs", label: t("settings.logs"), icon: IconLogs },
     { id: "sidebar", label: t("settings.sidebar"), icon: IconSidebar },
     { id: "behavior", label: t("settings.behavior"), icon: IconBehavior },
-    hasInstance.value ? { id: "instance", label: t("settings.instance"), icon: IconInstance } : undefined,
-    { id: "about", label: t("settings.about"), icon: IconAbout },
-  ].filter((s) => s !== undefined),
-);
+    showSetup.value ? { id: "setup", label: t("settings.setup"), icon: IconSetup } : undefined,
+    showCloud.value ? { id: "cloud", label: t("cloud.title"), icon: IconCloud } : undefined,
+  ].filter((s) => s !== undefined);
+  // A hairline opening each group: the preferences, then what is about the server.
+  const server = items.find((s) => s.id === "setup" || s.id === "cloud");
+  return items.map((s) => ({ ...s, divider: s.id === "appearance" || s === server }));
+});
 
 // The preview sits above the controls that resize it, so every change would push
 // the control out from under the pointer. Scroll by however much the preview's
@@ -447,12 +446,13 @@ const appearanceEl = useTemplateRef("appearanceEl");
 const logsEl = useTemplateRef("logsEl");
 const sidebarEl = useTemplateRef("sidebarEl");
 const behaviorEl = useTemplateRef("behaviorEl");
-const instanceEl = useTemplateRef("instanceEl");
+const setupEl = useTemplateRef("setupEl");
+const cloudEl = useTemplateRef("cloudEl");
 const aboutEl = useTemplateRef("aboutEl");
-const active = ref("appearance");
+const active = ref("about");
 
 const updateActive = () => {
-  const els = [appearanceEl, logsEl, sidebarEl, behaviorEl, instanceEl, aboutEl]
+  const els = [aboutEl, appearanceEl, logsEl, sidebarEl, behaviorEl, setupEl, cloudEl]
     .map((r) => r.value)
     .filter((el): el is HTMLElement => el != null);
   if (els.length === 0) return;
@@ -554,9 +554,6 @@ const fakeMessages = computedWithControl(
 <style scoped>
 @reference "@/main.css";
 
-.panel {
-  @apply border-base-content/15 bg-base-200/40 divide-base-content/10 divide-y overflow-hidden rounded-lg border;
-}
 .section-heading {
   @apply text-base-content/60 mb-2 text-xs font-semibold tracking-wide uppercase;
 }

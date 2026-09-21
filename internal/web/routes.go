@@ -239,6 +239,12 @@ func createRouter(h *handler) *chi.Mux {
 				// air-gapped operator needs to be able to verify.
 				if h.config.ImageCheckMode != imagecheck.ModeOff {
 					r.Get("/hosts/{host}/containers/{id}/image/check", h.checkImageUpdate)
+					// Dozzle's own image, which the container route cannot answer
+					// for: label filters may well hide Dozzle from itself. Not
+					// behind actions, for the same reason as above.
+					if h.config.Mode == "server" {
+						r.Get("/update/self/check", h.checkSelfUpdate)
+					}
 				}
 
 				// Action
@@ -353,6 +359,10 @@ func createRouter(h *handler) *chi.Mux {
 		r.Get("/healthcheck", h.healthcheck)
 		r.Get("/manifest.webmanifest", h.manifest)
 		r.Get("/sw.js", h.serviceWorker)
+		// Unauthenticated on purpose: it holds nothing, and the service worker has
+		// to be able to cache it while the session is expired, which is one of the
+		// times it is most needed.
+		r.Get("/offline.html", h.offlinePage)
 
 		defaultHandler := http.StripPrefix(strings.Replace(base+"/", "//", "/", 1), http.HandlerFunc(h.index))
 		r.Get("/*", func(w http.ResponseWriter, req *http.Request) {

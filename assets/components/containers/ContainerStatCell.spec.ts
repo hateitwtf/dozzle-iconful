@@ -82,10 +82,10 @@ describe("<ContainerStatCell /> memory", () => {
 
 describe("<ContainerStatCell /> color thresholds", () => {
   test.each([
-    [50, "bg-success"],
-    [70, "bg-secondary"],
-    [90, "bg-warning"],
-    [95, "bg-error"],
+    [50, "text-success"],
+    [70, "text-secondary"],
+    [90, "text-warning"],
+    [95, "text-error"],
   ])("memory %i%% -> %s", (memory, expected) => {
     const wrapper = mountCell({ container: makeContainer({ memory }), type: "mem", host: host(4) });
     expect((wrapper.vm as unknown as { barClass: string }).barClass).toBe(expected);
@@ -97,7 +97,7 @@ describe("<ContainerStatCell /> chart data", () => {
     const wrapper = mountCell({ container: makeContainer({ cpu: 100 }, 4), type: "cpu", host: host(8) });
     const chartData = (wrapper.vm as unknown as { chartData: { percent: number; value: number }[] }).chartData;
     expect(chartData).toHaveLength(300);
-    expect(chartData.at(-1)).toEqual({ percent: 25, value: 100 });
+    expect(chartData.at(-1)).toEqual({ percent: 25, value: 25 });
   });
 
   test("memory series uses percent and absolute usage", () => {

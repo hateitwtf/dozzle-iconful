@@ -207,7 +207,8 @@ func (h *handler) cloudStatus(w http.ResponseWriter, r *http.Request) {
 			Name string `json:"name"`
 		} `json:"plan"`
 	}
-	if json.Unmarshal(body, &statusResp) == nil && statusResp.Plan.Name == "pro" {
+	// Re-establish the connection after an upgrade to any paid plan, not just Pro.
+	if json.Unmarshal(body, &statusResp) == nil && (statusResp.Plan.Name == "pro" || statusResp.Plan.Name == "team") {
 		if h.config.Cloud.OnSetup != nil {
 			h.config.Cloud.OnSetup()
 		}
@@ -225,14 +226,16 @@ type cloudConfigResponse struct {
 	StreamLogs bool    `json:"streamLogs"`
 }
 
-func (h *handler) cloudConfig(w http.ResponseWriter, r *http.Request) {
+// cloudConfigPayload is what /api/cloud/config answers with, and what the shell
+// inlines so the page does not have to ask. It reads straight out of memory, so
+// serving it with the HTML costs nothing. nil means this instance is not linked.
+func (h *handler) cloudConfigPayload() *cloudConfigResponse {
 	cc := h.hostService.CloudConfig()
 	if cc == nil {
-		writeError(w, http.StatusNotFound, "no cloud configuration")
-		return
+		return nil
 	}
 
-	resp := cloudConfigResponse{
+	resp := &cloudConfigResponse{
 		Prefix:     cc.Prefix,
 		Linked:     true,
 		StreamLogs: cc.StreamLogsEnabled(),
@@ -240,6 +243,15 @@ func (h *handler) cloudConfig(w http.ResponseWriter, r *http.Request) {
 	if cc.ExpiresAt != nil {
 		s := cc.ExpiresAt.Format(time.RFC3339)
 		resp.ExpiresAt = &s
+	}
+	return resp
+}
+
+func (h *handler) cloudConfig(w http.ResponseWriter, r *http.Request) {
+	resp := h.cloudConfigPayload()
+	if resp == nil {
+		writeError(w, http.StatusNotFound, "no cloud configuration")
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

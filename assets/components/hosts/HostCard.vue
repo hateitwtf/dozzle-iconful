@@ -89,25 +89,31 @@
 
     <div class="grid grid-cols-2 gap-3" v-else-if="stats">
       <MetricCard
+        ref="cpuCard"
         :icon="PhCpu"
         label="CPU"
         :capacity="$t('label.core', host.nCPU ?? 0)"
         :value="stats.weighted.movingAverage.totalCPU"
         :chartData="cpuHistory"
+        :sample-interval="SAMPLE_INTERVAL"
+        :sampled-from="sampledFrom"
         text-class="text-primary"
-        bar-class="bg-primary"
+        bar-class="text-primary"
         :formatValue="(value) => `${value.toFixed(1)}%`"
       />
 
       <MetricCard
+        ref="memCard"
         :icon="PhMemory"
         label="Memory"
         :capacity="formatBytes(host.memTotal, { decimals: 1 })"
         :value="stats.weighted.movingAverage.totalMemUsage"
         :chartData="memHistory"
+        :sample-interval="SAMPLE_INTERVAL"
+        :sampled-from="sampledFrom"
         :chart-max="100"
         text-class="text-secondary"
-        bar-class="bg-secondary"
+        bar-class="text-secondary"
         :formatValue="(value) => formatBytes(value, { decimals: 1 })"
       />
     </div>
@@ -124,6 +130,11 @@ import PhMemory from "~icons/ph/memory";
 const props = defineProps<{
   host: Host;
 }>();
+
+// How often the totals below are sampled, and therefore how far apart two points
+// of the history are. The backfill from `statsHistory` assumes the same cadence,
+// which is what lets a hovered bar name a time.
+const SAMPLE_INTERVAL = 1000;
 
 const { t } = useI18n();
 const containerStore = useContainerStore();
@@ -158,8 +169,19 @@ type TotalStat = {
   totalMemUsage: number;
 };
 
-const totalStat = ref<TotalStat>({ totalCPU: 0, totalMem: 0, totalMemUsage: 0 });
+// shallow: replaced wholesale each tick and never edited in place, so the deep
+// proxy a plain `ref` would build over it is pure cost. See useSimpleRefHistory.
+const totalStat = shallowRef<TotalStat>({ totalCPU: 0, totalMem: 0, totalMemUsage: 0 });
 const { history, reset } = useSimpleRefHistory(totalStat, { capacity: 300 });
+
+// How many entries at the end of `history` are real totals. The backfill below
+// seeds it from the containers' own sample counts and each tick adds one, so the
+// padded head shrinks as the series scrolls in.
+const sampledCount = ref(0);
+const sampledFrom = computed(() => Math.max(0, history.value.length - sampledCount.value));
+
+const cpuCard = useTemplateRef("cpuCard");
+const memCard = useTemplateRef("memCard");
 
 const cpuHistory = computed(() =>
   history.value.map((stat) => ({
@@ -223,7 +245,21 @@ watch(
       initial.push(stat);
     }
     reset({ initial: initial.reverse() });
+    // `max`, not `min`: the two only differ when one container's history is
+    // shorter than another's, which means that container did not exist yet, and
+    // zero is its honest contribution to a total. Taking the min would let one
+    // newly created container blank the sampled region for everything else.
+    sampledCount.value = Math.min(300, Math.max(0, ...hostContainers.value.map((c) => c.sampledStats)));
     stats.weighted.reset(initial.at(-1)!);
+    // The backfill replaces the series outright, but its length is still 300, so
+    // nothing in the chart notices: it would keep the old bars, and the old sampled
+    // flags with them, until the next scheduled recalculation. Hovering in between
+    // reported padding as a measurement, which is the thing these flags exist to
+    // prevent. MultiContainerStat does the same for the same reason.
+    nextTick(() => {
+      cpuCard.value?.recalculate();
+      memCard.value?.recalculate();
+    });
   },
   { immediate: true },
 );
@@ -240,5 +276,6 @@ useIntervalFn(() => {
     },
     { totalCPU: 0, totalMem: 0, totalMemUsage: 0 },
   );
-}, 1000);
+  sampledCount.value = Math.min(300, sampledCount.value + 1);
+}, SAMPLE_INTERVAL);
 </script>

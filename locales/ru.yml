@@ -170,6 +170,7 @@ error:
   copy-insecure-hint: Браузер разрешает доступ к буферу обмена только по https. Скопируйте текст вручную.
   logs-skipped: Показать {total} скрытых записей
   container-not-found: Контейнер не найден.
+  container-not-found-hint: Возможно, он был удалён или его хост больше недоступен.
   action-failed: Действие не выполнено
   update-failed: Обновление не выполнено
   unable-to-complete-action: Не удалось выполнить действие
@@ -208,6 +209,7 @@ title:
   settings: Настройки
   notifications: Уведомления
 button:
+  back-to-dashboard: Вернуться на панель
   live-logs: Перейти к живым логам
   logout: Выйти
   login: Войти
@@ -228,11 +230,15 @@ settings:
   sidebar: Боковая панель
   behavior: Поведение
   advanced: Дополнительно
-  instance: Этот экземпляр
+  setup: "Настройка"
   about: О программе
   reset: Сбросить настройки
   sponsor: Поддержать
   new-version: "Доступна версия {version}"
+  update-available: "Доступен более новый образ"
+  auto-update-on: "Dozzle обновляется сам"
+  auto-update-daily: "Проверяет ежедневно в {time} по времени сервера."
+  auto-update-weekly: "Проверяет еженедельно по воскресеньям в {time} по времени сервера."
   show-image-update-alert: 'Уведомления об обновлениях образов'
   show-image-update-alert-desc: 'Сообщать, когда у запущенного образа есть более новый тег.'
   cloud-desc: Передавайте логи в Dozzle Cloud для аналитики с использованием ИИ и поиска по экземплярам.
@@ -752,7 +758,10 @@ setup:
   copy: Копировать
   settings-title: Настройка Dozzle
   settings-desc: Вход, действия с контейнерами, оболочка и Dozzle Cloud за несколько шагов.
-  settings-open: Открыть настройку
+  settings-done-title: "Dozzle настроен"
+  settings-done-desc: "Вход включён. Откройте настройку, чтобы проверить действия с контейнерами, оболочку и Dozzle Cloud."
+  settings-closed-title: "Настройка закрыта"
+  settings-closed-desc: "Без входа настройка принимает изменения только в первые 15 минут новой установки. Используйте переменные окружения."
   steps:
     login: Вход
     login-note: Сделайте это первым

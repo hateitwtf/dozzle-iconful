@@ -170,6 +170,7 @@ error:
   copy-insecure-hint: Twoja przeglądarka zezwala na dostęp do schowka tylko przez https. Skopiuj tekst ręcznie.
   logs-skipped: Pokaż {total} ukrytych wpisów
   container-not-found: Kontener nie został znaleziony
+  container-not-found-hint: Mógł zostać usunięty lub jego host nie jest już osiągalny.
   action-failed: Akcja Nieudana
   update-failed: Aktualizacja Nieudana
   unable-to-complete-action: Nie można ukończyć akcji
@@ -210,6 +211,7 @@ title:
   settings: Ustawienia
   notifications: Powiadomienia
 button:
+  back-to-dashboard: Wróć do pulpitu
   live-logs: Przejdź do logów na żywo
   logout: Wyloguj się
   login: Zaloguj się
@@ -230,11 +232,15 @@ settings:
   sidebar: Pasek boczny
   behavior: Zachowanie
   advanced: Zaawansowane
-  instance: Ta instancja
+  setup: "Konfiguracja"
   about: O programie
   reset: Przywróć domyślne
   sponsor: Wesprzyj
   new-version: "{version} jest dostępna"
+  update-available: "Dostępny jest nowszy obraz"
+  auto-update-on: "Dozzle sam się aktualizuje"
+  auto-update-daily: "Sprawdza codziennie o {time} czasu serwera."
+  auto-update-weekly: "Sprawdza co tydzień w niedzielę o {time} czasu serwera."
   show-image-update-alert: 'Alerty aktualizacji obrazu'
   show-image-update-alert-desc: 'Powiadamiaj, gdy istnieje nowszy tag uruchomionego obrazu.'
   cloud-desc: Przesyłaj logi do Dozzle Cloud w celu analiz wspomaganych przez AI i wyszukiwania między instancjami.
@@ -754,7 +760,10 @@ setup:
   copy: Kopiuj
   settings-title: Skonfiguruj Dozzle
   settings-desc: Logowanie, akcje kontenerów, powłoka i Dozzle Cloud w kilku krokach.
-  settings-open: Otwórz konfigurację
+  settings-done-title: "Dozzle jest skonfigurowany"
+  settings-done-desc: "Logowanie jest włączone. Otwórz konfigurację, aby przejrzeć akcje kontenerów, powłokę i Dozzle Cloud."
+  settings-closed-title: "Konfiguracja jest zamknięta"
+  settings-closed-desc: "Bez logowania konfiguracja przyjmuje zmiany tylko przez pierwsze 15 minut nowej instalacji. Zamiast tego użyj zmiennych środowiskowych."
   steps:
     login: Logowanie
     login-note: Zrób to najpierw
