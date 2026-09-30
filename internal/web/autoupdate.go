@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/amir20/dozzle/internal/analytics"
 	"github.com/amir20/dozzle/internal/config"
 	"github.com/amir20/dozzle/internal/container"
 	"github.com/amir20/dozzle/internal/imagecheck"
@@ -113,6 +114,11 @@ type autoUpdateSettings struct {
 // Anything invalid falls back to the default rather than failing.
 func effectiveAutoUpdate(setup SetupConfig) (autoUpdateSettings, error) {
 	file, err := config.Load(setupConfigPath)
+	return autoUpdateFrom(setup, file), err
+}
+
+// autoUpdateFrom is effectiveAutoUpdate for a dozzle.yml the caller already read.
+func autoUpdateFrom(setup SetupConfig, file config.File) autoUpdateSettings {
 	s := autoUpdateSettings{Mode: config.AutoUpdateOff, Time: config.DefaultAutoUpdateTime}
 	if file.AutoUpdate != nil {
 		s.Mode = *file.AutoUpdate
@@ -132,7 +138,7 @@ func effectiveAutoUpdate(setup SetupConfig) (autoUpdateSettings, error) {
 	if !config.ValidAutoUpdateTime(s.Time) {
 		s.Time = config.DefaultAutoUpdateTime
 	}
-	return s, err
+	return s
 }
 
 type autoUpdateSupport struct {
@@ -181,16 +187,19 @@ type autoUpdateScheduler struct {
 	now         func() time.Time
 	after       func(time.Duration) <-chan time.Time
 	lastRun     string
+	// flushUsage sends the day's usage before an update replaces the process.
+	flushUsage func()
 }
 
 // RunAutoUpdateScheduler blocks until ctx is done. It does nothing outside
 // server mode or without actions, both of which are fixed for the process.
-func RunAutoUpdateScheduler(ctx context.Context, hostService HostService, cfg Config) {
+// flushUsage is Server.FlushUsage.
+func RunAutoUpdateScheduler(ctx context.Context, hostService HostService, cfg Config, flushUsage func()) {
 	if cfg.Mode != "server" || !cfg.EnableActions {
 		log.Debug().Str("mode", cfg.Mode).Bool("actions", cfg.EnableActions).Msg("auto update: scheduler not started")
 		return
 	}
-	s := &autoUpdateScheduler{config: &cfg, hostService: hostService, now: time.Now, after: time.After}
+	s := &autoUpdateScheduler{config: &cfg, hostService: hostService, now: time.Now, after: time.After, flushUsage: flushUsage}
 	s.run(ctx)
 }
 
@@ -234,6 +243,9 @@ func (s *autoUpdateScheduler) tick(ctx context.Context, now time.Time) {
 	}
 	s.lastRun = day
 
+	// Labelled containers first: updating Dozzle ends this process.
+	s.updateLabelledContainers(ctx)
+
 	support := checkAutoUpdateSupport(ctx, s.config, s.hostService)
 	if !support.Supported {
 		log.Debug().Str("reason", support.Reason).Msg("auto update: skipped, not supported")
@@ -274,7 +286,7 @@ func (s *autoUpdateScheduler) tick(ctx context.Context, now time.Time) {
 	}
 
 	log.Info().Str("image", support.self.Ref).Str("remote", result.RemoteDigest).Msg("auto update: newer image available, updating dozzle")
-	updated, err := runSelfUpdate(ctx, support.selfID, func(p container.UpdateProgress) {
+	updated, err := runSelfUpdate(ctx, support.selfID, s.flushUsage, func(p container.UpdateProgress) {
 		if p.Status == "error" {
 			log.Error().Str("error", p.Error).Msg("auto update: progress")
 		} else if p.Status != "pulling" {
@@ -295,6 +307,96 @@ func (s *autoUpdateScheduler) tick(ctx context.Context, now time.Time) {
 	}
 }
 
+// AutoUpdateLabel opts a container into the auto-update schedule. It is opt in
+// on purpose: a database on a floating tag should never move on its own.
+const AutoUpdateLabel = "dev.dozzle.auto-update"
+
+func autoUpdateEnabled(labels map[string]string) bool {
+	switch strings.ToLower(strings.TrimSpace(labels[AutoUpdateLabel])) {
+	case "true", "on", "yes", "1":
+		return true
+	default:
+		return false
+	}
+}
+
+// updateLabelledContainers updates every labelled container whose registry
+// serves a newer image, and waits for them to finish. Nothing is pulled for a
+// container that is up to date: the check is a HEAD request that does not count
+// against Docker Hub's rate limit, and a pull does.
+func (s *autoUpdateScheduler) updateLabelledContainers(ctx context.Context) {
+	if s.hostService == nil {
+		return
+	}
+	// A manual update that is running is waited out rather than costing the
+	// labelled containers a whole day. The list is only taken afterwards: that
+	// job may have recreated some of them under new ids. One can still start
+	// between the wait and Start, so a busy updater means wait again.
+	for range 5 {
+		select {
+		case <-bulkUpdates.idle():
+		case <-ctx.Done():
+			return
+		}
+		outdated, selfService := s.outdatedLabelledContainers(ctx)
+		if len(outdated) == 0 {
+			return
+		}
+		done, err := bulkUpdates.Start(outdated, "schedule", selfService, "", s.flushUsage)
+		if errors.Is(err, errBulkUpdateBusy) {
+			continue
+		}
+		if err != nil {
+			log.Warn().Err(err).Msg("auto update: skipped containers")
+			return
+		}
+		log.Info().Int("count", len(outdated)).Msg("auto update: updating labelled containers")
+		select {
+		case <-done:
+		case <-ctx.Done():
+		}
+		return
+	}
+	log.Warn().Msg("auto update: skipped containers, other updates kept running")
+}
+
+// outdatedLabelledContainers returns the labelled containers with a newer
+// image, and Dozzle's own swarm service for Start.
+func (s *autoUpdateScheduler) outdatedLabelledContainers(ctx context.Context) ([]*container.ContainerService, string) {
+	containers, errs := s.hostService.ListAllContainers(s.config.Labels)
+	for _, err := range errs {
+		log.Warn().Err(err).Msg("auto update: host unavailable, its containers are skipped")
+	}
+
+	selfService := selfSwarmService(containers)
+	var outdated []*container.ContainerService
+	for _, c := range containers {
+		if c.State == "deleted" || !autoUpdateEnabled(c.Labels) {
+			continue
+		}
+		// Dozzle's own container follows the schedule by itself, with the
+		// rollback guard below. A labelled replica of its swarm service would
+		// roll this one too, in the middle of everything else.
+		if isSelfContainer(c, selfService) {
+			continue
+		}
+		service, err := s.hostService.FindContainer(c.Host, c.ID, s.config.Labels)
+		if err != nil {
+			continue
+		}
+		checkCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		// Forced, for the same reason as Dozzle's own check below.
+		result, err := service.CheckImageUpdate(checkCtx, true)
+		cancel()
+		if err != nil || !result.UpdateAvailable() {
+			log.Debug().Err(err).Str("container", c.Name).Str("status", string(result.Status)).Msg("auto update: container not updated")
+			continue
+		}
+		outdated = append(outdated, service)
+	}
+	return outdated, selfService
+}
+
 // autoUpdateAttemptPath holds the remote digest of the last scheduled update
 // that launched a helper, next to dozzle.yml.
 func autoUpdateAttemptPath() string {
@@ -303,13 +405,28 @@ func autoUpdateAttemptPath() string {
 
 var errSelfUpdateBusy = errors.New("an update of dozzle is already in progress")
 
-// runSelfUpdate serializes calls to selfupdate.Start.
-func runSelfUpdate(ctx context.Context, id string, progress func(container.UpdateProgress)) (bool, error) {
+// runSelfUpdate serializes calls to selfupdate.Start. flushUsage, when set, sends
+// the counted usage before the container is replaced.
+func runSelfUpdate(ctx context.Context, id string, flushUsage func(), progress func(container.UpdateProgress)) (bool, error) {
 	if !selfUpdateMu.TryLock() {
 		return false, errSelfUpdateBusy
 	}
 	defer selfUpdateMu.Unlock()
-	updated, err := selfUpdateStart(ctx, id, progress)
+	updated, err := selfUpdateStart(ctx, id, func(p container.UpdateProgress) {
+		// "recreating" is the point where a newer image was pulled and the helper is
+		// about to replace this container, usually without a clean shutdown, so it is
+		// the last chance for the day's counters, this update included. An image that
+		// is already current or a failed pull never gets here.
+		if p.Status == "recreating" {
+			analytics.Count("image.update")
+			if flushUsage != nil {
+				flushUsage()
+			}
+		}
+		if progress != nil {
+			progress(p)
+		}
+	})
 	if err != nil {
 		return updated, fmt.Errorf("self update: %w", err)
 	}

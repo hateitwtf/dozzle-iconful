@@ -1,11 +1,14 @@
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@/stores/config", () => ({
   default: { base: "" },
   withBase: (path: string) => path,
 }));
 
+import { parse } from "yaml";
 import {
+  agentComposeSnippet,
+  agentImage,
   setupEnvSnippet,
   setupHasPending,
   setupLoginConfigured,
@@ -14,6 +17,8 @@ import {
   setupStepConfigured,
   setupSteps,
   setupToggles,
+  SetupError,
+  useSetup,
   type SetupStatus,
 } from "./setup";
 
@@ -54,6 +59,17 @@ describe("setupSteps", () => {
   test("both toggles locked drops the actions step", () => {
     const s = status({ locked: { authProvider: false, enableActions: true, enableShell: true } });
     expect(setupSteps(s, unlinked)).toEqual(["login", "cloud", "restart"]);
+  });
+
+  test("hosts shows only when agents can be added live", () => {
+    expect(setupSteps(status({ canAddAgents: true }), unlinked)).toEqual([
+      "login",
+      "actions",
+      "hosts",
+      "cloud",
+      "restart",
+    ]);
+    expect(setupSteps(status({ canAddAgents: false }), unlinked)).not.toContain("hosts");
   });
 
   test("cloud is skipped when already linked", () => {
@@ -165,6 +181,16 @@ describe("setupStepConfigured", () => {
     expect(setupStepConfigured("update", status({ autoUpdate: { ...autoUpdate, mode: "weekly" } }))).toBe(true);
     expect(setupStepConfigured("update", status())).toBe(false);
   });
+  test("hosts count once an agent is listed", () => {
+    expect(setupStepConfigured("hosts", status())).toBe(false);
+    expect(setupStepConfigured("hosts", status({ agents: [] }))).toBe(false);
+    const agent = { endpoint: "10.0.0.5:7007", address: "10.0.0.5:7007", locked: true };
+    expect(setupStepConfigured("hosts", status({ agents: [agent] }))).toBe(true);
+  });
+  test("an added host is never pending, so it never asks for a restart", () => {
+    const agent = { endpoint: "10.0.0.5:7007", address: "10.0.0.5:7007", locked: false };
+    expect(setupHasPending(status({ agents: [agent] }))).toBe(false);
+  });
   test("cloud and restart are never pre-marked", () => {
     expect(setupStepConfigured("cloud", status({ enableActions: true }))).toBe(false);
     expect(setupStepConfigured("restart", status({ authProvider: "simple" }))).toBe(false);
@@ -223,5 +249,111 @@ describe("setupShouldAutoOpen", () => {
     expect(setupShouldAutoOpen({ ...base, mode: "swarm", resume: "actions" })).toBe(false);
     expect(setupShouldAutoOpen({ ...base, mode: "k8s" })).toBe(false);
     expect(setupShouldAutoOpen({ ...base, hideMenu: true, resume: "actions" })).toBe(false);
+  });
+});
+
+describe("agentComposeSnippet", () => {
+  const cert = "-----BEGIN CERTIFICATE-----\nMIIB\nabcd\n-----END CERTIFICATE-----\n";
+  const key = "-----BEGIN PRIVATE KEY-----\r\nMIIE\r\n-----END PRIVATE KEY-----";
+
+  test("plain snippet has no environment", () => {
+    const doc = parse(agentComposeSnippet("amir20/dozzle:latest"));
+    expect(doc.services["dozzle-agent"].environment).toBeUndefined();
+    expect(doc.services["dozzle-agent"].ports).toEqual(["7007:7007"]);
+  });
+
+  test("private snippet is valid YAML that carries both PEMs intact", () => {
+    const env = parse(agentComposeSnippet("amir20/dozzle:latest", { cert, key })).services["dozzle-agent"].environment;
+    expect(env.DOZZLE_CERT_PEM).toBe("-----BEGIN CERTIFICATE-----\nMIIB\nabcd\n-----END CERTIFICATE-----\n");
+    expect(env.DOZZLE_KEY_PEM).toBe("-----BEGIN PRIVATE KEY-----\nMIIE\n-----END PRIVATE KEY-----\n");
+  });
+});
+
+describe("agentImage", () => {
+  test("follows the image the hub runs", () => {
+    expect(agentImage("ghcr.io/amir20/dozzle:v12.0.0", "v12.0.0")).toBe("ghcr.io/amir20/dozzle:v12.0.0");
+    expect(agentImage("amir20/dozzle:pr-5258", "pr-5258")).toBe("amir20/dozzle:pr-5258");
+  });
+
+  test("falls back to the hub's version, then latest", () => {
+    expect(agentImage(undefined, "v12.0.0")).toBe("amir20/dozzle:v12.0.0");
+    expect(agentImage("", "pr-5258")).toBe("amir20/dozzle:pr-5258");
+    expect(agentImage(undefined, "pr-5258-75b67f0")).toBe("amir20/dozzle:pr-5258");
+    expect(agentImage(undefined, "head")).toBe("amir20/dozzle:latest");
+    expect(agentImage(undefined, "v12.0.0-beta.1")).toBe("amir20/dozzle:v12.0.0-beta.1");
+  });
+
+  test("never hands out an image another machine cannot pull", () => {
+    expect(agentImage("sha256:3f2a9c1d4e5b6a7f8091a2b3c4d5e6f7", "v12.0.0")).toBe("amir20/dozzle:v12.0.0");
+    expect(agentImage("3f2a9c1d4e5b", "v12.0.0")).toBe("amir20/dozzle:v12.0.0");
+    expect(agentImage("dozzle:dev", "head")).toBe("amir20/dozzle:latest");
+  });
+
+  test("never hands out an image from the hub's own loopback registry", () => {
+    expect(agentImage("localhost:5000/dozzle:dev", "v12.0.0")).toBe("amir20/dozzle:v12.0.0");
+    expect(agentImage("localhost/dozzle:dev", "head")).toBe("amir20/dozzle:latest");
+    expect(agentImage("127.0.0.1:5000/amir20/dozzle:dev", "v12.0.0")).toBe("amir20/dozzle:v12.0.0");
+    expect(agentImage("[::1]:5000/dozzle:dev", "v12.0.0")).toBe("amir20/dozzle:v12.0.0");
+    // A registry that merely starts with the word is still a real one.
+    expect(agentImage("localhost.example.com/dozzle:v12.0.0", "v12.0.0")).toBe("localhost.example.com/dozzle:v12.0.0");
+  });
+});
+
+describe("requests", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  test("an error carries the server's X-Dozzle-Error code", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response("could not connect to agent: refused", {
+            status: 502,
+            headers: { "X-Dozzle-Error": "unreachable" },
+          }),
+      ),
+    );
+    const err = await useSetup()
+      .addAgent({ address: "a:7007" })
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(SetupError);
+    expect(err.status).toBe(502);
+    expect(err.code).toBe("unreachable");
+    expect(err.message).toBe("could not connect to agent: refused");
+  });
+
+  test("an error without the header has no code", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("Forbidden", { status: 403 })),
+    );
+    const err = await useSetup()
+      .removeAgent("a:7007")
+      .catch((e) => e);
+    expect(err.status).toBe(403);
+    expect(err.code).toBeUndefined();
+  });
+
+  // Opening the hosts dialog and adding a host each fire their own fetch; the older
+  // one answering last must not put back the stale list.
+  test("fetchStatus keeps only the newest answer", async () => {
+    const resolvers: ((r: Response) => void)[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>((resolve) => resolvers.push(resolve))),
+    );
+    const { fetchStatus, status: current, loading } = useSetup();
+    const older = fetchStatus();
+    const newer = fetchStatus();
+    resolvers[1](new Response(JSON.stringify(status({ agents: [] }))));
+    await newer;
+    expect(current.value?.agents).toEqual([]);
+    expect(loading.value).toBe(false);
+
+    resolvers[0](
+      new Response(JSON.stringify(status({ agents: [{ endpoint: "old:7007", address: "old:7007", locked: false }] }))),
+    );
+    await older;
+    expect(current.value?.agents).toEqual([]);
   });
 });

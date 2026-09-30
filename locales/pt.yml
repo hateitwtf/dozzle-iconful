@@ -64,7 +64,9 @@ log-details:
   field: Campo
   value: Valor
   fields-hint: Arraste para reordenar. Alterne para mostrar ou ocultar no fluxo de logs.
+  chart-field: "Mostrar {field} em gráfico na Análise SQL"
   toggle-all: Alternar todos os campos
+  toggle-field: Mostrar ou ocultar no fluxo de logs
 label:
   hide-sidebar: "Ocultar a barra lateral"
   show-sidebar: "Mostrar a barra lateral"
@@ -237,6 +239,7 @@ settings:
   new-version: "{version} disponível"
   update-available: "Está disponível uma imagem mais recente"
   auto-update-on: "O Dozzle mantém-se atualizado"
+  auto-update-containers: "Os contêineres com a label mantêm-se atualizados"
   auto-update-daily: "Verifica diariamente às {time}, hora do servidor."
   auto-update-weekly: "Verifica semanalmente, aos domingos às {time}, hora do servidor."
   show-image-update-alert: 'Alertas de atualização de imagem'
@@ -310,7 +313,8 @@ toasts:
     message: Log copiado para a área de transferência
 analytics:
   creating_table: Criando tabela temporária...
-  downloading: Buscando logs dos containers... ({size})
+  fetching_logs: Buscando logs dos containers
+  loading_engine: Carregando mecanismo SQL
   evaluating_query: Avaliando consulta...
   total_records: Total de {count} registros.
   showing_first: Mostrando os primeiros {count}.
@@ -327,6 +331,37 @@ analytics:
   query: Consulta
   run: Executar
   results: Resultados
+  min: Mín
+  avg: Média
+  max: Máx
+  p50: P50
+  p95: P95
+  rows: 1 linha | {count} linhas
+updates:
+  title: Atualizações
+  count: 1 atualização | {count} atualizações
+  running: Atualizando…
+  subtitle: Estes contêineres usam uma imagem mais antiga do que a do seu registro.
+  subtitle-running: Cada host atualiza um contêiner por vez.
+  none: Todos os contêineres usam a imagem mais recente da sua tag.
+  update-selected: Atualizar | Atualizar 1 | Atualizar {count}
+  self-last: O Dozzle é atualizado por último e depois reinicia.
+  auto: Auto
+  auto-hint: Também atualizado pelo agendamento de atualização automática
+  auto-footnote: Adicione a label {label} a um contêiner para atualizá-lo pelo agendamento de atualização automática.
+  scheduled-running: A atualização automática agendada está em execução.
+  progress: "{done} de {total} concluídos"
+  back: Voltar
+  busy: Já existe outra atualização em andamento.
+  summary: "{updated} atualizados"
+  summary-failed: "{updated} atualizados, {failed} com falha"
+  status:
+    queued: Na fila
+    pulling: Baixando
+    recreating: Recriando
+    done: Atualizado
+    up-to-date: Em dia
+    error: Falhou
 drawer:
   maximize: Maximizar
   restore: Restaurar
@@ -757,9 +792,9 @@ setup:
   close: Fechar
   copy: Copiar
   settings-title: Configurar o Dozzle
-  settings-desc: Login, ações de contêiner, shell e Dozzle Cloud em poucos passos.
+  settings-desc: "Login, ações de contêiner, shell, outros hosts e Dozzle Cloud em poucos passos."
   settings-done-title: "O Dozzle está configurado"
-  settings-done-desc: "O login está ativado. Abra a configuração para rever ações de contêiner, shell e Dozzle Cloud."
+  settings-done-desc: "O login está ativado. Abra a configuração para rever ações de contêiner, shell, outros hosts e Dozzle Cloud."
   settings-closed-title: "A configuração está fechada"
   settings-closed-desc: "Sem login, a configuração só aceita alterações nos primeiros 15 minutos de uma nova instalação. Use variáveis de ambiente em vez disso."
   steps:
@@ -768,6 +803,8 @@ setup:
     actions: Ações e shell
     cloud: Dozzle Cloud
     cloud-note: Opcional
+    hosts: "Hosts"
+    hosts-note: "Opcional"
     update: "Atualização automática"
     update-note: "Requer ações"
     restart: Reiniciar
@@ -786,6 +823,7 @@ setup:
     password: Senha
     confirm: Confirmar senha
     password-hint: Pelo menos 8 caracteres. Letras, números, pontos, hífens e sublinhados no nome de usuário.
+    mismatch: As senhas não coincidem.
     saved-volume: Salvo em um volume montado
     after-restart: O login é ativado após reiniciar
     on: O login está ativado
@@ -816,6 +854,42 @@ setup:
     window-closed: "Sem login, a configuração só aceita alterações nos primeiros 15 minutos de uma instalação nova. Defina isto com variáveis de ambiente ou ative o login primeiro."
     no-access: Sua conta não pode alterar estas configurações.
     restart-note: Estas alterações entram em vigor depois que o Dozzle reiniciar.
+  hosts:
+    title: "Adicionar outro host"
+    subtitle: "Veja os contêineres das suas outras máquinas neste Dozzle. Execute um agente em cada uma e adicione aqui o endereço dele."
+    run-title: "Executar o agente"
+    run-body: "Na outra máquina, adicione isto a um arquivo compose e inicie-o. Mantenha a porta 7007 numa rede privada."
+    custom-cert: "Este Dozzle usa um certificado próprio, então o agente precisa do mesmo par ou recusará a conexão."
+    cert-docs: "Guia de certificados"
+    connect-title: "Conectar"
+    address: "Endereço"
+    name: "Nome"
+    optional: "(opcional)"
+    add: "Adicionar host"
+    connect-note: "O Dozzle conecta antes de salvar. O host aparece na hora, sem reiniciar."
+    added: "{name} está conectado."
+    list-title: "Agentes"
+    connected: "Conectado"
+    offline: "Não conectado"
+    remove: "Remover"
+    skip: "Agora não"
+    error-exists: "Esse agente já foi adicionado."
+    error-duplicate: "Essa máquina já está conectada como outro host. Se este agente compartilha o mesmo Docker engine, dê a ele um DOZZLE_HOST_ID próprio."
+    error-connect: "Não foi possível conectar ao agente: {reason}"
+    error-cert: "O agente tem um certificado diferente deste Dozzle. Copie o trecho de novo, atualize o agente e recrie-o."
+    error-cert-custom: "O agente não tem o certificado personalizado deste Dozzle. Dê ao agente os mesmos arquivos de certificado e chave e recrie-o."
+    error-unsupported-mode: "Neste modo não é possível adicionar ou remover hosts aqui."
+    error-invalid: "Esse endereço ou nome não é válido."
+    error-rate-limited: "Tentativas demais. Aguarde um minuto e tente de novo."
+    error-env-agent: "Este agente está definido com DOZZLE_REMOTE_AGENT, então só pode ser removido lá."
+    error-not-found: "Esse agente não está mais na lista."
+    error-custom-cert: "Este Dozzle já usa um certificado personalizado, então não há certificado privado para criar."
+    private-label: "Certificado privado"
+    private-desc: "Só este Dozzle pode se conectar ao agente. Os outros agentes não mudam."
+    private-warning: "Este trecho contém uma chave privada. Trate-a como uma senha."
+    private-pill: "privado"
+    private-error: "Não foi possível criar um certificado privado, então o compartilhado é usado. {reason}"
+    private-missing: "Este Dozzle ainda não tem certificado privado. Ative Certificado privado de novo e tente outra vez."
   cloud:
     title: Conectar o Dozzle Cloud
     subtitle: Saiba quando algo quebrar sem precisar manter uma aba aberta.
@@ -835,6 +909,7 @@ setup:
     subtitle: "O Dozzle baixa a nova imagem e substitui o próprio contêiner em um horário tranquilo. Configurações, usuários e alertas são mantidos."
     auto-label: "Atualizar automaticamente"
     auto-desc: "Verifica se há uma imagem mais nova e substitui o Dozzle somente quando houver."
+    auto-containers: Contêineres com a label {label} são atualizados no mesmo horário.
     when-label: "Quando"
     time-label: "Horário"
     server-time: "Usa o fuso horário do servidor."
@@ -850,6 +925,7 @@ setup:
     reason-pinned-tag: "Você usa uma tag de versão fixa, então não há nada mais novo para baixar. Use uma tag como latest para receber atualizações."
     reason-unsupported: "O Dozzle não encontra o próprio contêiner aqui, então não consegue se substituir."
     reason-swarm-worker: "O Dozzle está rodando como serviço do Swarm em um nó worker. Só um manager pode atualizar o serviço, então rode o Dozzle em um manager ou atualize-o com docker service update."
+    containers-still: Contêineres com a label {label} continuam sendo atualizados neste horário.
     pull-denied: "Não foi possível baixar {image}. Talvez exista apenas nesta máquina ou o registro exija docker login."
   restart:
     title: Reiniciar o Dozzle

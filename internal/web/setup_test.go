@@ -17,6 +17,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 )
 
 const testSelfID = "4f1c9b2e8d7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c"
@@ -42,7 +43,11 @@ func setupTestEnv(t *testing.T, persisted bool) (string, chan string) {
 		restarts <- id
 		return nil
 	}
+	// Unlimited here; the one test about rationing installs its own.
+	oldLimiter := agentDialLimiter
+	agentDialLimiter = rate.NewLimiter(rate.Inf, 0)
 	t.Cleanup(func() {
+		agentDialLimiter = oldLimiter
 		selfUpdateInspect, selfUpdateSwarmManager = oldInspect, oldManager
 		setupConfigPath, setupPersisted, setupSelfID, setupRestartDelay, setupRestarter = oldPath, oldPersisted, oldSelf, oldDelay, oldRestarter
 	})
@@ -415,4 +420,26 @@ func TestSetup_AutoUpdatePatch(t *testing.T) {
 	assert.True(t, state.Locked.AutoUpdate)
 	assert.Equal(t, "daily", state.AutoUpdate.Mode, "flag wins over the file")
 	assert.Equal(t, "04:15", state.AutoUpdate.Time, "unlocked time still comes from the file")
+}
+
+// A cross-site form can post text/plain without a preflight, so every setup
+// write takes only JSON.
+func TestSetup_RefusesNonJSONBodies(t *testing.T) {
+	setupTestEnv(t, true)
+	h := setupNoneHandler(time.Now(), SetupConfig{})
+
+	for _, route := range [][2]string{
+		{"POST", "/api/setup/account"},
+		{"POST", "/api/setup/auth"},
+		{"PATCH", "/api/setup/config"},
+		{"POST", "/api/setup/agents"},
+		{"DELETE", "/api/setup/agents"},
+	} {
+		for _, ct := range []string{"text/plain", "application/x-www-form-urlencoded", ""} {
+			rr := doSetup(h, route[0], route[1], `{"enableShell":true}`, "Content-Type", ct)
+			assert.Equal(t, http.StatusUnsupportedMediaType, rr.Code, route[1]+" "+ct)
+		}
+	}
+	rr := doSetup(h, "PATCH", "/api/setup/config", `{"enableShell":true}`, "Content-Type", "application/json; charset=utf-8")
+	assert.Equal(t, http.StatusNoContent, rr.Code)
 }

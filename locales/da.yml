@@ -64,7 +64,9 @@ log-details:
   field: Felt
   value: Værdi
   fields-hint: Træk for at ændre rækkefølgen. Slå til eller fra for at vise eller skjule i logstrømmen.
+  chart-field: "Vis {field} som diagram i SQL-analyse"
   toggle-all: Slå alle felter til eller fra
+  toggle-field: Vis eller skjul i logstrømmen
 label:
   hide-sidebar: "Skjul sidepanelet"
   show-sidebar: "Vis sidepanelet"
@@ -237,6 +239,7 @@ settings:
   new-version: "{version} tilgængelig"
   update-available: "Et nyere image er tilgængeligt"
   auto-update-on: "Dozzle holder sig selv opdateret"
+  auto-update-containers: "Containere med label holdes opdateret"
   auto-update-daily: "Tjekker dagligt kl. {time}, servertid."
   auto-update-weekly: "Tjekker ugentligt om søndagen kl. {time}, servertid."
   show-image-update-alert: 'Image-opdateringer'
@@ -310,7 +313,8 @@ toasts:
     message: Log kopieret til clipboard
 analytics:
   creating_table: Opretter midlertidig tabel...
-  downloading: Henter containerlogfiler... ({size})
+  fetching_logs: Henter containerlogfiler
+  loading_engine: Indlæser SQL-motor
   evaluating_query: Evaluerer forespørgsel...
   total_records: I alt {count} poster.
   showing_first: Viser de første {count}.
@@ -327,6 +331,37 @@ analytics:
   query: Forespørgsel
   run: Kør
   results: Resultater
+  min: Min
+  avg: Gns
+  max: Maks
+  p50: P50
+  p95: P95
+  rows: 1 række | {count} rækker
+updates:
+  title: Opdateringer
+  count: 1 opdatering | {count} opdateringer
+  running: Opdaterer…
+  subtitle: Disse containere kører et ældre image end det, deres registry udleverer.
+  subtitle-running: Hver vært opdaterer én container ad gangen.
+  none: Alle containere kører det nyeste image, som deres tag peger på.
+  update-selected: Opdater | Opdater 1 | Opdater {count}
+  self-last: Dozzle opdateres sidst og genstarter derefter.
+  auto: Auto
+  auto-hint: Opdateres også efter den automatiske opdateringsplan
+  auto-footnote: Giv en container labelen {label} for at opdatere den efter den automatiske opdateringsplan.
+  scheduled-running: Den automatiske opdateringsplan kører nu.
+  progress: "{done} af {total} færdige"
+  back: Tilbage
+  busy: En anden opdatering kører allerede.
+  summary: "{updated} opdateret"
+  summary-failed: "{updated} opdateret, {failed} fejlede"
+  status:
+    queued: I kø
+    pulling: Henter
+    recreating: Genopretter
+    done: Opdateret
+    up-to-date: Aktuel
+    error: Fejlet
 drawer:
   maximize: Maksimer
   restore: Gendan
@@ -757,9 +792,9 @@ setup:
   close: "Luk"
   copy: "Kopiér"
   settings-title: "Opsæt Dozzle"
-  settings-desc: "Login, containerhandlinger, shell og Dozzle Cloud i få trin."
+  settings-desc: "Login, containerhandlinger, shell, andre værter og Dozzle Cloud i få trin."
   settings-done-title: "Dozzle er sat op"
-  settings-done-desc: "Login er slået til. Åbn opsætningen for at gennemgå containerhandlinger, shell og Dozzle Cloud."
+  settings-done-desc: "Login er slået til. Åbn opsætningen for at gennemgå containerhandlinger, shell, andre værter og Dozzle Cloud."
   settings-closed-title: "Opsætningen er lukket"
   settings-closed-desc: "Uden login tager opsætningen kun imod ændringer i de første 15 minutter af en ny installation. Brug miljøvariabler i stedet."
   steps:
@@ -768,6 +803,8 @@ setup:
     actions: "Handlinger og shell"
     cloud: "Dozzle Cloud"
     cloud-note: "Valgfrit"
+    hosts: "Værter"
+    hosts-note: "Valgfrit"
     update: "Auto-opdatering"
     update-note: "Kræver handlinger"
     restart: "Genstart"
@@ -786,6 +823,7 @@ setup:
     password: "Adgangskode"
     confirm: "Bekræft adgangskode"
     password-hint: "Mindst 8 tegn. Bogstaver, tal, punktummer, bindestreger og understregninger i brugernavnet."
+    mismatch: "Adgangskoderne er ikke ens."
     saved-volume: "Gemt på et monteret volume"
     after-restart: "Login slås til efter genstarten"
     "on": "Login er slået til"
@@ -816,6 +854,42 @@ setup:
     window-closed: "Uden login tager opsætningen kun imod ændringer i de første 15 minutter af en ny installation. Sæt disse med miljøvariabler, eller slå login til først."
     no-access: "Din konto kan ikke ændre disse indstillinger."
     restart-note: "Disse træder i kraft, når Dozzle genstarter."
+  hosts:
+    title: "Tilføj en anden vært"
+    subtitle: "Se containere på dine andre maskiner fra denne Dozzle. Kør en agent på hver af dem, og tilføj så dens adresse her."
+    run-title: "Kør agenten"
+    run-body: "Tilføj dette til en compose-fil på den anden maskine, og start den. Hold port 7007 på et privat netværk."
+    custom-cert: "Denne Dozzle bruger sit eget certifikat, så agenten skal have det samme par, ellers afviser den forbindelsen."
+    cert-docs: "Guide til certifikater"
+    connect-title: "Forbind til den"
+    address: "Adresse"
+    name: "Navn"
+    optional: "(valgfrit)"
+    add: "Tilføj vært"
+    connect-note: "Dozzle forbinder, før den gemmer. Værten dukker op med det samme, uden genstart."
+    added: "{name} er forbundet."
+    list-title: "Agenter"
+    connected: "Forbundet"
+    offline: "Ikke forbundet"
+    remove: "Fjern"
+    skip: "Ikke nu"
+    error-exists: "Den agent er allerede tilføjet."
+    error-duplicate: "Den maskine er allerede forbundet som en anden vært. Hvis agenten deler Docker-engine med den, så giv agenten sit eget DOZZLE_HOST_ID."
+    error-connect: "Kunne ikke forbinde til agenten: {reason}"
+    error-cert: "Agenten har et andet certifikat end denne Dozzle. Kopiér udsnittet igen, opdater agenten og genskab den."
+    error-cert-custom: "Agenten har ikke denne Dozzles eget certifikat. Giv agenten de samme certifikat- og nøglefiler, og genskab den."
+    error-unsupported-mode: "Værter kan ikke tilføjes eller fjernes her i denne tilstand."
+    error-invalid: "Den adresse eller det navn er ikke gyldigt."
+    error-rate-limited: "For mange forsøg. Vent et minut, og prøv igen."
+    error-env-agent: "Denne agent er sat med DOZZLE_REMOTE_AGENT, så den kan kun fjernes der."
+    error-not-found: "Den agent er ikke længere på listen."
+    error-custom-cert: "Denne Dozzle bruger allerede sit eget certifikat, så der er intet privat certifikat at oprette."
+    private-label: "Privat certifikat"
+    private-desc: "Kun denne Dozzle kan forbinde til agenten. Andre agenter påvirkes ikke."
+    private-warning: "Dette uddrag indeholder en privat nøgle. Behandl den som en adgangskode."
+    private-pill: "privat"
+    private-error: "Kunne ikke oprette et privat certifikat, så det delte bruges. {reason}"
+    private-missing: "Denne Dozzle har endnu ikke et privat certifikat. Slå Privat certifikat til igen, og prøv så igen."
   cloud:
     title: "Forbind Dozzle Cloud"
     subtitle: "Få besked, når noget går i stykker, uden at holde en fane åben."
@@ -835,6 +909,7 @@ setup:
     subtitle: "Dozzle henter det nye image og erstatter sin egen container på et roligt tidspunkt. Indstillinger, brugere og alarmer bevares."
     auto-label: "Opdater automatisk"
     auto-desc: "Tjekker efter et nyere image og erstatter kun Dozzle, når der er et."
+    auto-containers: Containere med labelen {label} opdateres på samme tid.
     when-label: "Hvornår"
     time-label: "Tidspunkt"
     server-time: "Bruger serverens tidszone."
@@ -850,6 +925,7 @@ setup:
     reason-pinned-tag: "Du kører et fastlåst versionstag, så der er intet nyere at hente. Brug et tag som latest for at få opdateringer."
     reason-unsupported: "Dozzle kan ikke finde sin egen container her, så den kan ikke udskifte sig selv."
     reason-swarm-worker: "Dozzle kører som en Swarm-tjeneste på en worker-node. Kun en manager kan opdatere tjenesten, så kør Dozzle på en manager, eller opdater den med docker service update."
+    containers-still: Containere med labelen {label} opdateres stadig efter denne plan.
     pull-denied: "Kunne ikke hente {image}. Det findes måske kun på denne maskine, eller registret kræver docker login."
   restart:
     title: "Genstart Dozzle"

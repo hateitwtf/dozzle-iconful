@@ -5,9 +5,10 @@ import { Container } from "@/models/Container";
 import i18n from "@/modules/i18n";
 import { parseEventData } from "@/utils/events";
 import { Host } from "./hosts";
+import { sessionHost } from "@/composable/app/storage";
 
 const { showToast, removeToast } = useToast();
-const { updateHost } = useHosts();
+const { updateHost, removeHost } = useHosts();
 const { markStale } = useStaleUI();
 // @ts-ignore
 const { t } = i18n.global;
@@ -48,6 +49,9 @@ export const useContainerStore = defineStore("container", () => {
     onClosed: checkSession,
   });
 
+  // Counted on open rather than in connect(): the browser reconnects an EventSource on
+  // its own too, and those never go through connect().
+  let openedBefore = false;
   function connect() {
     es?.close();
     ready.value = false;
@@ -135,6 +139,13 @@ export const useContainerStore = defineStore("container", () => {
 
     es.addEventListener("update-host", (e) => {
       const host = parseEventData<Host>(e);
+      if (host.removed) {
+        removeHost(host.id, host.endpoint);
+        // The sidebar would stay on a host that no longer exists, with no way back.
+        if (sessionHost.value === host.id || sessionHost.value === host.endpoint) sessionHost.value = null;
+        containers.value = containers.value.filter((c) => c.host !== host.id);
+        return;
+      }
       updateHost(host);
     });
 
@@ -147,6 +158,8 @@ export const useContainerStore = defineStore("container", () => {
     });
 
     es.onopen = () => {
+      if (openedBefore) trackUsage("stream.reconnect");
+      openedBefore = true;
       reconnect.onOpen();
       if (errorTimer !== null) {
         clearTimeout(errorTimer);

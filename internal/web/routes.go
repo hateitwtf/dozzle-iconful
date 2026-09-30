@@ -46,11 +46,14 @@ const (
 
 // Config is a struct for configuring the web service
 type Config struct {
-	Base               string
-	Addr               string
-	Version            string
-	Hostname           string
-	NoAnalytics        bool
+	Base        string
+	Addr        string
+	Version     string
+	Hostname    string
+	NoAnalytics bool
+	// Beacon holds the install facts known at startup (mode, agents, shell...)
+	// that every beacon this process sends repeats.
+	Beacon             types.BeaconEvent
 	Dev                bool
 	Mode               string
 	Authorization      Authorization
@@ -80,6 +83,11 @@ type SetupConfig struct {
 	AutoUpdateMode   *string
 	AutoUpdateTime   *string
 	StartedAt        time.Time
+	// EnvAgents are the agents from DOZZLE_REMOTE_AGENT, which the UI lists but
+	// cannot remove.
+	EnvAgents []string
+	// CustomCert is true when a cert pair was loaded from disk.
+	CustomCert bool
 }
 
 // CloudHooks bundles cloud-side callbacks the web layer invokes. Grouping
@@ -188,14 +196,28 @@ type handler struct {
 	reconciledAt time.Time
 }
 
-func CreateServer(hostService HostService, content fs.FS, config Config) *http.Server {
+// Server is the HTTP server plus the usage beacon hooks main runs around it.
+type Server struct {
+	*http.Server
+	// RunUsageBeacon sends the daily usage beacon until ctx ends.
+	RunUsageBeacon func(ctx context.Context)
+	// FlushUsage sends the usage counted since the last beacon, if any, waiting
+	// a few seconds at most. Counters otherwise only leave on the 24h tick, so
+	// without this every restart would drop up to a day of them.
+	FlushUsage func()
+}
+
+func CreateServer(hostService HostService, content fs.FS, config Config) *Server {
 	handler := &handler{
 		content:     content,
 		config:      &config,
 		hostService: hostService,
 	}
-
-	return &http.Server{Addr: config.Addr, Handler: createRouter(handler)}
+	return &Server{
+		Server:         &http.Server{Addr: config.Addr, Handler: createRouter(handler)},
+		RunUsageBeacon: handler.runUsageBeacon,
+		FlushUsage:     handler.flushUsage,
+	}
 }
 
 var fileServer http.Handler
@@ -265,6 +287,7 @@ func createRouter(h *handler) *chi.Mux {
 				// air-gapped operator needs to be able to verify.
 				if h.config.ImageCheckMode != imagecheck.ModeOff {
 					r.Get("/hosts/{host}/containers/{id}/image/check", h.checkImageUpdate)
+					r.Get("/image/check", h.checkAllImageUpdates)
 					// Dozzle's own image, which the container route cannot answer
 					// for: label filters may well hide Dozzle from itself. Not
 					// behind actions, for the same reason as above.
@@ -277,6 +300,8 @@ func createRouter(h *handler) *chi.Mux {
 				if h.config.EnableActions {
 					r.Post("/hosts/{host}/containers/{id}/actions/update", h.containerUpdate)
 					r.Post("/hosts/{host}/containers/{id}/actions/{action}", h.containerActions)
+					r.Post("/updates", h.startBulkUpdate)
+					r.Get("/updates/stream", h.streamBulkUpdate)
 					if h.config.Mode == "server" {
 						r.Post("/update/self", h.updateSelf)
 					}
@@ -290,6 +315,7 @@ func createRouter(h *handler) *chi.Mux {
 					r.Get("/profile/avatar", h.avatar)
 				}
 				r.Patch("/profile", h.updateProfile)
+				r.Post("/usage", h.reportUsage)
 				r.Get("/version", h.version)
 				if log.Debug().Enabled() {
 					r.Get("/debug/store", h.debugStore)
@@ -320,6 +346,9 @@ func createRouter(h *handler) *chi.Mux {
 					r.Get("/setup", h.getSetup)
 					r.Patch("/setup/config", h.updateSetupConfig)
 					r.Post("/setup/restart", h.restartSetup)
+					r.Post("/setup/agents", h.addSetupAgent)
+					r.Delete("/setup/agents", h.removeSetupAgent)
+					r.Post("/setup/agent-cert", h.agentCert)
 					// Choosing a login only exists while there is none.
 					if h.config.Authorization.Provider == NONE {
 						r.Post("/setup/account", h.createSetupAccount)

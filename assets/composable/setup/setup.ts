@@ -3,7 +3,7 @@
 // The step list is a pure function of GET /api/setup plus two cloud facts, so the
 // rules for "which steps does this install see" are testable without a browser.
 
-export type SetupStepId = "login" | "actions" | "cloud" | "update" | "restart";
+export type SetupStepId = "login" | "actions" | "hosts" | "cloud" | "update" | "restart";
 export type SetupStepState = "done" | "current" | "todo" | "skipped" | "disabled";
 
 export type AutoUpdateMode = "off" | "daily" | "weekly";
@@ -17,6 +17,65 @@ export interface SetupAutoUpdate {
   reason?: AutoUpdateReason;
   image: string;
   currentVersion: string;
+}
+
+// An agent this hub connects to. A locked one came from DOZZLE_REMOTE_AGENT and can
+// only be removed where it was set; the rest live in dozzle.yml.
+export interface SetupAgent {
+  endpoint: string;
+  address: string;
+  name?: string;
+  // Empty while the agent is not connected.
+  hostId?: string;
+  locked: boolean;
+  // Authenticates with the hub's own pair instead of the one it started with.
+  private?: boolean;
+}
+
+// The hub's private pair for agents added from the UI. It holds a private key, so
+// it only ever lives in the state of the component that asked for it.
+export interface SetupAgentCert {
+  cert: string;
+  key: string;
+  notAfter: string;
+}
+
+// The image the agent should run: the one this hub follows, so an agent never lacks
+// what the hub's snippet asks of it (DOZZLE_CERT_PEM is newer than most agents).
+// Outside a container the hub cannot see its image, so its version names the tag.
+export function agentImage(hubImage: string | undefined, version: string): string {
+  // An image id, a tag with no repository like dozzle:dev, or one from a registry on
+  // the hub's own loopback only exists on that machine, so another cannot pull it.
+  if (
+    hubImage &&
+    hubImage.includes("/") &&
+    !/^(sha256:)?[0-9a-f]{12,64}$/.test(hubImage) &&
+    !/^(localhost|127\.\d+\.\d+\.\d+|\[::1\])(:\d+)?\//i.test(hubImage)
+  )
+    return hubImage;
+  if (/^v\d+\.\d+\.\d+(-[\w.]+)?$/.test(version)) return `amir20/dozzle:${version}`;
+  // A PR build reports pr-<number>-<commit>, but only pr-<number> is published.
+  const pr = version.match(/^pr-\d+/);
+  if (pr) return `amir20/dozzle:${pr[0]}`;
+  return "amir20/dozzle:latest";
+}
+
+// The agent compose file. With a pair, the PEMs go in as YAML literal blocks, each
+// line indented under its key so the file stays valid YAML.
+export function agentComposeSnippet(image: string, cert?: Pick<SetupAgentCert, "cert" | "key">): string {
+  const lines = ["services:", "  dozzle-agent:", `    image: ${image}`, "    command: agent"];
+  if (cert) {
+    const block = (name: string, pem: string) => [
+      `      ${name}: |`,
+      ...pem
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => `        ${line.trim()}`),
+    ];
+    lines.push("    environment:", ...block("DOZZLE_CERT_PEM", cert.cert), ...block("DOZZLE_KEY_PEM", cert.key));
+  }
+  lines.push("    volumes:", "      - /var/run/docker.sock:/var/run/docker.sock:ro", "    ports:", "      - 7007:7007");
+  return lines.join("\n");
 }
 
 export interface SetupStatus {
@@ -33,6 +92,11 @@ export interface SetupStatus {
   canWrite: boolean;
   // Applies live, so it never shows up in pending. Absent on servers without self-update.
   autoUpdate?: SetupAutoUpdate;
+  // Absent on servers that predate adding hosts from the UI.
+  agents?: SetupAgent[];
+  canAddAgents?: boolean;
+  // The hub runs its own certificate pair, which every agent has to be given too.
+  customCert?: boolean;
 }
 
 // What a step tells the wizard's footer. The step owns what "Next" means on it
@@ -71,6 +135,8 @@ export function setupSteps(status: SetupStatus, cloud: SetupCloudFacts): SetupSt
   if (!status.locked.authProvider) steps.push("login");
   // Nothing to toggle when both are pinned.
   if (!(status.locked.enableActions && status.locked.enableShell)) steps.push("actions");
+  // Adding a host applies live, so the step never feeds the restart at the end.
+  if (status.canAddAgents) steps.push("hosts");
   if (!cloud.linked && cloud.canLink) steps.push("cloud");
   // Always listed so people see what actions would unlock. The wizard greys it out
   // while actions are off, since self-update is an action.
@@ -121,6 +187,7 @@ export function setupStepConfigured(id: SetupStepId, status: SetupStatus): boole
     const toggles = setupToggles(status);
     return toggles.enableActions || toggles.enableShell;
   }
+  if (id === "hosts") return (status.agents?.length ?? 0) > 0;
   if (id === "update") return !!status.autoUpdate && status.autoUpdate.mode !== "off";
   return false;
 }
@@ -173,10 +240,27 @@ export function clearSetupResume() {
   }
 }
 
+// What the server's X-Dozzle-Error header says went wrong, so messages never hang
+// on the wording of the English body. Absent on 403s and 500s.
+export type SetupErrorCode =
+  | "unsupported-mode"
+  | "not-persisted"
+  | "invalid"
+  | "exists"
+  | "duplicate-host"
+  | "no-private-cert"
+  | "rate-limited"
+  | "cert-mismatch"
+  | "unreachable"
+  | "env-agent"
+  | "not-found"
+  | "custom-cert";
+
 export class SetupError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code?: SetupErrorCode,
   ) {
     super(message);
   }
@@ -189,7 +273,8 @@ async function request(path: string, init?: RequestInit) {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new SetupError(res.status, text.trim() || res.statusText);
+    const code = (res.headers.get("X-Dozzle-Error") || undefined) as SetupErrorCode | undefined;
+    throw new SetupError(res.status, text.trim() || res.statusText, code);
   }
   return res;
 }
@@ -199,17 +284,25 @@ const status = ref<SetupStatus | null>(null);
 const loading = ref(false);
 const loadError = ref(false);
 const wizardOpen = ref(false);
+// Several callers fire fetchStatus without waiting (opening the hosts dialog, then
+// adding one), so only the newest request may write: an older, slower answer would
+// otherwise put back a list that is already stale.
+let fetchSeq = 0;
 
 async function fetchStatus() {
+  const seq = ++fetchSeq;
   loading.value = true;
   try {
     const res = await request("/api/setup");
-    status.value = await res.json();
-    loadError.value = false;
+    const next: SetupStatus = await res.json();
+    if (seq === fetchSeq) {
+      status.value = next;
+      loadError.value = false;
+    }
   } catch {
-    loadError.value = true;
+    if (seq === fetchSeq) loadError.value = true;
   } finally {
-    loading.value = false;
+    if (seq === fetchSeq) loading.value = false;
   }
   return status.value;
 }
@@ -232,6 +325,26 @@ export function useSetup() {
   }) {
     if (Object.keys(patch).length === 0) return;
     await request("/api/setup/config", { method: "PATCH", body: JSON.stringify(patch) });
+    await fetchStatus();
+  }
+
+  // Dozzle dials the agent before saving, so a resolved promise means the host is
+  // connected and already on its way to the sidebar over the events stream.
+  async function addAgent(body: { address: string; name?: string; private?: boolean }) {
+    const res = await request("/api/setup/agents", { method: "POST", body: JSON.stringify(body) });
+    const host: { id: string; name: string; endpoint: string } = await res.json();
+    await fetchStatus();
+    return host;
+  }
+
+  // Not cached anywhere on purpose: the response carries a private key.
+  async function agentCert(): Promise<SetupAgentCert> {
+    const res = await request("/api/setup/agent-cert", { method: "POST" });
+    return res.json();
+  }
+
+  async function removeAgent(endpoint: string) {
+    await request("/api/setup/agents", { method: "DELETE", body: JSON.stringify({ endpoint }) });
     await fetchStatus();
   }
 
@@ -289,6 +402,9 @@ export function useSetup() {
     createAccount,
     useProxy,
     saveConfig,
+    addAgent,
+    agentCert,
+    removeAgent,
     restart,
     updateSelf,
     waitForRestart,

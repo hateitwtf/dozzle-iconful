@@ -64,7 +64,9 @@ log-details:
   field: Polje
   value: Vrednost
   fields-hint: Povlecite za spremembo vrstnega reda. Preklopite za prikaz ali skritje v toku dnevnikov.
+  chart-field: "Prikaži {field} v grafu v analitiki SQL"
   toggle-all: Preklopi vsa polja
+  toggle-field: Prikaži ali skrij v toku dnevnikov
 label:
   hide-sidebar: "Skrij stransko vrstico"
   show-sidebar: "Prikaži stransko vrstico"
@@ -239,6 +241,7 @@ settings:
   new-version: "Na voljo je {version}"
   update-available: "Na voljo je novejša slika"
   auto-update-on: "Dozzle se posodablja sam"
+  auto-update-containers: "Vsebniki z oznako ostajajo posodobljeni"
   auto-update-daily: "Preveri vsak dan ob {time} po času strežnika."
   auto-update-weekly: "Preveri vsak teden v nedeljo ob {time} po času strežnika."
   show-image-update-alert: 'Opozorila o posodobitvah slik'
@@ -314,7 +317,8 @@ toasts:
     title: Kopirano
     message: Kopirano v odložišče
 analytics:
-  downloading: Pridobivanje dnevnikov zabojnika... ({size})
+  fetching_logs: Pridobivanje dnevnikov zabojnika
+  loading_engine: Nalaganje mehanizma SQL
   evaluating_query: Ocenjevanje poizvedbe...
   total_records: Skupaj zapisov {count}.
   showing_first: Prikaz prvih {count}.
@@ -332,6 +336,37 @@ analytics:
   query: Poizvedba
   run: Zaženi
   results: Rezultati
+  min: Min
+  avg: Povp
+  max: Maks
+  p50: P50
+  p95: P95
+  rows: 1 vrstica | {count} vrstic
+updates:
+  title: Posodobitve
+  count: 1 posodobitev | {count} posodobitev
+  running: Posodabljanje…
+  subtitle: Ti vsebniki uporabljajo starejšo sliko, kot jo ponuja njihov register.
+  subtitle-running: Vsak gostitelj posodablja po en vsebnik naenkrat.
+  none: Vsi vsebniki uporabljajo najnovejšo sliko svoje oznake.
+  update-selected: Posodobi | Posodobi 1 | Posodobi {count}
+  self-last: Dozzle se posodobi zadnji in se nato znova zažene.
+  auto: Samodejno
+  auto-hint: Posodablja se tudi po urniku samodejnih posodobitev
+  auto-footnote: Vsebniku dodajte oznako {label}, da se posodablja po urniku samodejnih posodobitev.
+  scheduled-running: Urnik samodejnih posodobitev se pravkar izvaja.
+  progress: Končano {done} od {total}
+  back: Nazaj
+  busy: Druga posodobitev že poteka.
+  summary: "Posodobljeno: {updated}"
+  summary-failed: "Posodobljeno: {updated}, neuspešno: {failed}"
+  status:
+    queued: V vrsti
+    pulling: Prenašanje
+    recreating: Ponovno ustvarjanje
+    done: Posodobljeno
+    up-to-date: Ažurno
+    error: Napaka
 drawer:
   maximize: Maksimiraj
   restore: Obnovi
@@ -762,9 +797,9 @@ setup:
   close: Zapri
   copy: Kopiraj
   settings-title: Nastavitev Dozzle
-  settings-desc: Prijava, dejanja na vsebnikih, lupina in Dozzle Cloud v nekaj korakih.
+  settings-desc: "Prijava, dejanja na vsebnikih, lupina, drugi gostitelji in Dozzle Cloud v nekaj korakih."
   settings-done-title: "Dozzle je nastavljen"
-  settings-done-desc: "Prijava je vklopljena. Odprite nastavitev za pregled dejanj na vsebnikih, lupine in Dozzle Cloud."
+  settings-done-desc: "Prijava je vklopljena. Odprite nastavitev za pregled dejanj na vsebnikih, lupine, drugih gostiteljev in Dozzle Cloud."
   settings-closed-title: "Nastavitev je zaprta"
   settings-closed-desc: "Brez prijave nastavitev sprejema spremembe le v prvih 15 minutah nove namestitve. Namesto tega uporabite okoljske spremenljivke."
   steps:
@@ -773,6 +808,8 @@ setup:
     actions: Dejanja in lupina
     cloud: Dozzle Cloud
     cloud-note: Neobvezno
+    hosts: "Gostitelji"
+    hosts-note: "Neobvezno"
     update: "Samodejna posodobitev"
     update-note: "Potrebuje dejanja"
     restart: Ponovni zagon
@@ -791,6 +828,7 @@ setup:
     password: Geslo
     confirm: Potrdi geslo
     password-hint: Vsaj 8 znakov. V uporabniškem imenu so dovoljene črke, številke, pike, vezaji in podčrtaji.
+    mismatch: Gesli se ne ujemata.
     saved-volume: Shranjeno na priklopljen nosilec
     after-restart: Prijava se vklopi po ponovnem zagonu
     on: Prijava je vklopljena
@@ -821,6 +859,42 @@ setup:
     window-closed: "Brez prijave nastavitev sprejema spremembe samo v prvih 15 minutah nove namestitve. To nastavite z okoljskimi spremenljivkami ali najprej vklopite prijavo."
     no-access: Vaš račun ne more spreminjati teh nastavitev.
     restart-note: Spremembe začnejo veljati po ponovnem zagonu Dozzle.
+  hosts:
+    title: "Dodaj drugega gostitelja"
+    subtitle: "Oglejte si vsebnike na drugih računalnikih iz tega Dozzla. Na vsakem zaženite agenta in tukaj dodajte njegov naslov."
+    run-title: "Zaženite agenta"
+    run-body: "Na drugem računalniku to dodajte v datoteko compose in jo zaženite. Vrata 7007 naj ostanejo v zasebnem omrežju."
+    custom-cert: "Ta Dozzle uporablja lastno potrdilo, zato agent potrebuje enak par, sicer bo povezavo zavrnil."
+    cert-docs: "Vodnik po potrdilih"
+    connect-title: "Povežite se"
+    address: "Naslov"
+    name: "Ime"
+    optional: "(neobvezno)"
+    add: "Dodaj gostitelja"
+    connect-note: "Dozzle se poveže, preden shrani. Gostitelj se prikaže takoj, brez ponovnega zagona."
+    added: "{name} je povezan."
+    list-title: "Agenti"
+    connected: "Povezan"
+    offline: "Ni povezan"
+    remove: "Odstrani"
+    skip: "Ne zdaj"
+    error-exists: "Ta agent je že dodan."
+    error-duplicate: "Ta naprava je že povezana kot drug gostitelj. Če ta agent uporablja isti Docker engine, mu nastavi lasten DOZZLE_HOST_ID."
+    error-connect: "Povezava z agentom ni uspela: {reason}"
+    error-cert: "Agent ima drugačno potrdilo kot ta Dozzle. Znova kopiraj izsek, posodobi agenta in ga ustvari na novo."
+    error-cert-custom: "Agent nima lastnega potrdila tega Dozzla. Agentu daj iste datoteke potrdila in ključa ter ga ustvari na novo."
+    error-unsupported-mode: "V tem načinu tukaj ni mogoče dodajati ali odstranjevati gostiteljev."
+    error-invalid: "Ta naslov ali ime ni veljavno."
+    error-rate-limited: "Preveč poskusov. Počakaj minuto in poskusi znova."
+    error-env-agent: "Ta agent je nastavljen z DOZZLE_REMOTE_AGENT, zato ga je mogoče odstraniti samo tam."
+    error-not-found: "Tega agenta ni več na seznamu."
+    error-custom-cert: "Ta Dozzle že uporablja lastno potrdilo, zato zasebnega potrdila ni treba ustvariti."
+    private-label: "Zasebno potrdilo"
+    private-desc: "Z agentom se lahko poveže samo ta Dozzle. Drugi agenti ostanejo nespremenjeni."
+    private-warning: "Ta izrezek vsebuje zasebni ključ. Z njim ravnajte kot z geslom."
+    private-pill: "zasebno"
+    private-error: "Zasebnega potrdila ni bilo mogoče ustvariti, zato se uporablja skupno. {reason}"
+    private-missing: "Ta Dozzle še nima zasebnega potrdila. Znova vklopite Zasebno potrdilo in poskusite znova."
   cloud:
     title: Poveži Dozzle Cloud
     subtitle: Izvedite, ko se kaj pokvari, ne da bi imeli odprt zavihek.
@@ -840,6 +914,7 @@ setup:
     subtitle: "Dozzle ob mirni uri prenese novo sliko in zamenja svoj vsebnik. Nastavitve, uporabniki in opozorila ostanejo."
     auto-label: "Posodabljaj samodejno"
     auto-desc: "Preveri, ali obstaja novejša slika, in zamenja Dozzle le, če ta obstaja."
+    auto-containers: Vsebniki z oznako {label} se posodobijo ob istem času.
     when-label: "Kdaj"
     time-label: "Čas"
     server-time: "Uporablja časovni pas strežnika."
@@ -855,6 +930,7 @@ setup:
     reason-pinned-tag: "Uporabljaš pripeto oznako različice, zato ni ničesar novejšega za prenos. Za posodobitve uporabi oznako, kot je latest."
     reason-unsupported: "Dozzle tukaj ne najde svojega vsebnika, zato se ne more zamenjati sam."
     reason-swarm-worker: "Dozzle teče kot storitev Swarm na delovnem vozlišču. Storitev lahko posodobi samo upravitelj, zato Dozzle zaženite na upravitelju ali ga posodobite z docker service update."
+    containers-still: Vsebniki z oznako {label} se še vedno posodabljajo po tem urniku.
     pull-denied: "{image} ni bilo mogoče prenesti. Morda obstaja samo na tem računalniku ali register zahteva docker login."
   restart:
     title: Znova zaženi Dozzle

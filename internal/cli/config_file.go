@@ -3,9 +3,11 @@ package cli
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/amir20/dozzle/internal/config"
+	"github.com/amir20/dozzle/internal/container/agent"
 	"github.com/rs/zerolog/log"
 )
 
@@ -71,6 +73,38 @@ func applyConfigFile(args *Args, file config.File, argv []string, lookupEnv func
 	}
 	if !args.Locked.AutoUpdateTime && file.AutoUpdateTime != nil {
 		args.AutoUpdateTime = *file.AutoUpdateTime
+	}
+
+	// Agents from the file join the ones from the flag or env var. One listed in
+	// both is the operator's, so it stays out of FileAgents and the UI cannot
+	// remove it.
+	args.EnvAgents = slices.Clone(args.RemoteAgent)
+	args.FileAgents = nil
+	for _, endpoint := range file.RemoteAgents {
+		endpoint = strings.TrimSpace(endpoint)
+		address, _, _, err := agent.ParseEndpoint(endpoint)
+		if endpoint == "" || err != nil {
+			continue
+		}
+		// Compared by address: "nas:7007" and "nas:7007|nas" are one agent, and
+		// dialing it twice only ends in a duplicate host warning.
+		sameAgent := func(existing string) bool {
+			a, _, _, _ := agent.ParseEndpoint(strings.TrimSpace(existing))
+			return a == address
+		}
+		if slices.ContainsFunc(args.RemoteAgent, sameAgent) || slices.ContainsFunc(args.FileAgents, sameAgent) {
+			continue
+		}
+		args.FileAgents = append(args.FileAgents, endpoint)
+	}
+	args.RemoteAgent = append(args.RemoteAgent, args.FileAgents...)
+
+	args.PrivateAgents = nil
+	for _, endpoint := range file.PrivateAgents {
+		endpoint = strings.TrimSpace(endpoint)
+		if slices.Contains(args.FileAgents, endpoint) {
+			args.PrivateAgents = append(args.PrivateAgents, endpoint)
+		}
 	}
 }
 

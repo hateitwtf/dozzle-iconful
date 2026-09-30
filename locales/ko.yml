@@ -64,7 +64,9 @@ log-details:
   field: 필드
   value: 값
   fields-hint: 드래그하여 순서를 바꾸세요. 토글하여 로그 스트림에서 표시하거나 숨깁니다.
+  chart-field: "SQL 분석에서 {field} 차트 보기"
   toggle-all: 모든 필드 토글
+  toggle-field: 로그 스트림에서 표시 또는 숨기기
 label:
   hide-sidebar: "사이드바 숨기기"
   show-sidebar: "사이드바 표시"
@@ -239,6 +241,7 @@ settings:
   new-version: "{version} 사용 가능"
   update-available: "더 새로운 이미지를 사용할 수 있습니다"
   auto-update-on: "Dozzle가 스스로 최신 상태를 유지합니다"
+  auto-update-containers: "레이블이 있는 컨테이너가 최신 상태로 유지됩니다"
   auto-update-daily: "매일 {time}(서버 시간)에 확인합니다."
   auto-update-weekly: "매주 일요일 {time}(서버 시간)에 확인합니다."
   show-image-update-alert: '이미지 업데이트 알림'
@@ -312,7 +315,8 @@ toasts:
     message: 로그가 클립보드에 복사되었습니다
 analytics:
   creating_table: 임시 테이블을 생성하고 있습니다...
-  downloading: 컨테이너 로그를 가져오고 있습니다... ({size})
+  fetching_logs: 컨테이너 로그를 가져오는 중
+  loading_engine: SQL 엔진을 불러오는 중
   evaluating_query: 쿼리를 실행하고 있습니다...
   total_records: 총 {count}개 기록
   showing_first: 처음 {count}개 표시
@@ -329,6 +333,37 @@ analytics:
   query: 쿼리
   run: 실행
   results: 결과
+  min: 최소
+  avg: 평균
+  max: 최대
+  p50: P50
+  p95: P95
+  rows: 1개 행 | {count}개 행
+updates:
+  title: 업데이트
+  count: 업데이트 1개 | 업데이트 {count}개
+  running: 업데이트 중…
+  subtitle: 이 컨테이너들은 레지스트리보다 오래된 이미지를 실행 중입니다.
+  subtitle-running: 각 호스트는 컨테이너를 한 번에 하나씩 업데이트합니다.
+  none: 모든 컨테이너가 태그의 최신 이미지를 실행 중입니다.
+  update-selected: 업데이트 | 1개 업데이트 | {count}개 업데이트
+  self-last: Dozzle은 마지막에 업데이트된 후 다시 시작됩니다.
+  auto: 자동
+  auto-hint: 자동 업데이트 일정에 따라서도 업데이트됨
+  auto-footnote: 컨테이너에 {label} 레이블을 추가하면 자동 업데이트 일정에 따라 업데이트됩니다.
+  scheduled-running: 자동 업데이트 일정이 지금 실행 중입니다.
+  progress: "{total}개 중 {done}개 완료"
+  back: 뒤로
+  busy: 다른 업데이트가 이미 실행 중입니다.
+  summary: "{updated}개 업데이트됨"
+  summary-failed: "{updated}개 업데이트됨, {failed}개 실패"
+  status:
+    queued: 대기 중
+    pulling: 가져오는 중
+    recreating: 재생성 중
+    done: 업데이트됨
+    up-to-date: 최신
+    error: 실패
 drawer:
   maximize: 최대화
   restore: 복원
@@ -759,9 +794,9 @@ setup:
   close: 닫기
   copy: 복사
   settings-title: Dozzle 설정
-  settings-desc: 로그인, 컨테이너 작업, 셸, Dozzle Cloud를 몇 단계로 설정합니다.
+  settings-desc: "로그인, 컨테이너 작업, 셸, 다른 호스트, Dozzle Cloud를 몇 단계로 설정합니다."
   settings-done-title: "Dozzle 설정 완료"
-  settings-done-desc: "로그인이 켜져 있습니다. 설정을 열어 컨테이너 작업, 셸, Dozzle Cloud를 확인하세요."
+  settings-done-desc: "로그인이 켜져 있습니다. 설정을 열어 컨테이너 작업, 셸, 다른 호스트, Dozzle Cloud를 확인하세요."
   settings-closed-title: "설정이 닫혔습니다"
   settings-closed-desc: "로그인이 없으면 새 설치 후 첫 15분 동안만 설정 변경을 받습니다. 대신 환경 변수를 사용하세요."
   steps:
@@ -770,6 +805,8 @@ setup:
     actions: 작업 및 셸
     cloud: Dozzle Cloud
     cloud-note: 선택 사항
+    hosts: "호스트"
+    hosts-note: "선택 사항"
     update: "자동 업데이트"
     update-note: "작업 필요"
     restart: 재시작
@@ -788,6 +825,7 @@ setup:
     password: 비밀번호
     confirm: 비밀번호 확인
     password-hint: 8자 이상. 사용자 이름에는 문자, 숫자, 점, 대시, 밑줄을 사용할 수 있습니다.
+    mismatch: 비밀번호가 일치하지 않습니다.
     saved-volume: 마운트된 볼륨에 저장됨
     after-restart: 재시작 후 로그인이 켜집니다
     on: 로그인이 켜져 있습니다
@@ -818,6 +856,42 @@ setup:
     window-closed: "로그인이 없으면 설정은 새로 설치한 뒤 처음 15분 동안만 변경을 받습니다. 환경 변수로 설정하거나 먼저 로그인을 켜세요."
     no-access: 이 계정은 이 설정을 변경할 수 없습니다.
     restart-note: Dozzle을 재시작한 후 적용됩니다.
+  hosts:
+    title: "다른 호스트 추가"
+    subtitle: "다른 머신의 컨테이너를 이 Dozzle에서 확인하세요. 각 머신에서 에이전트를 실행한 뒤 여기에 주소를 추가합니다."
+    run-title: "에이전트 실행"
+    run-body: "다른 머신의 compose 파일에 이 내용을 추가하고 시작하세요. 7007 포트는 사설 네트워크에만 두세요."
+    custom-cert: "이 Dozzle은 자체 인증서를 사용하므로 에이전트에도 같은 인증서 쌍이 필요합니다. 없으면 연결을 거부합니다."
+    cert-docs: "인증서 가이드"
+    connect-title: "연결"
+    address: "주소"
+    name: "이름"
+    optional: "(선택)"
+    add: "호스트 추가"
+    connect-note: "Dozzle은 저장하기 전에 먼저 연결합니다. 재시작 없이 호스트가 바로 나타납니다."
+    added: "{name}에 연결되었습니다."
+    list-title: "에이전트"
+    connected: "연결됨"
+    offline: "연결 안 됨"
+    remove: "제거"
+    skip: "나중에"
+    error-exists: "이미 추가된 에이전트입니다."
+    error-duplicate: "이 머신은 이미 다른 호스트로 연결되어 있습니다. 같은 Docker 엔진을 쓰는 에이전트라면 고유한 DOZZLE_HOST_ID를 지정하세요."
+    error-connect: "에이전트에 연결할 수 없습니다: {reason}"
+    error-cert: "에이전트의 인증서가 이 Dozzle과 다릅니다. 스니펫을 다시 복사해 에이전트에 적용한 뒤 다시 생성하세요."
+    error-cert-custom: "에이전트에 이 Dozzle의 사용자 지정 인증서가 없습니다. 같은 인증서와 키 파일을 에이전트에 넣은 뒤 다시 생성하세요."
+    error-unsupported-mode: "이 모드에서는 여기서 호스트를 추가하거나 제거할 수 없습니다."
+    error-invalid: "주소 또는 이름이 올바르지 않습니다."
+    error-rate-limited: "시도 횟수가 너무 많습니다. 1분 후에 다시 시도하세요."
+    error-env-agent: "이 에이전트는 DOZZLE_REMOTE_AGENT로 설정되어 있어 그곳에서만 제거할 수 있습니다."
+    error-not-found: "이 에이전트는 더 이상 목록에 없습니다."
+    error-custom-cert: "이 Dozzle은 이미 사용자 지정 인증서를 사용하므로 만들 개인 인증서가 없습니다."
+    private-label: "비공개 인증서"
+    private-desc: "이 Dozzle만 에이전트에 연결할 수 있습니다. 다른 에이전트에는 영향이 없습니다."
+    private-warning: "이 스니펫에는 개인 키가 들어 있습니다. 비밀번호처럼 다루세요."
+    private-pill: "비공개"
+    private-error: "비공개 인증서를 만들 수 없어 공유 인증서를 사용합니다. {reason}"
+    private-missing: "이 Dozzle에는 아직 비공개 인증서가 없습니다. 비공개 인증서를 다시 켠 뒤 다시 시도하세요."
   cloud:
     title: Dozzle Cloud 연결
     subtitle: 탭을 열어 두지 않아도 문제가 생기면 알 수 있습니다.
@@ -837,6 +911,7 @@ setup:
     subtitle: "Dozzle이 한가한 시간에 새 이미지를 받아 자신의 컨테이너를 교체합니다. 설정, 사용자, 알림은 유지됩니다."
     auto-label: "자동으로 업데이트"
     auto-desc: "더 새로운 이미지가 있는지 확인하고, 있을 때만 Dozzle을 교체합니다."
+    auto-containers: "{label} 레이블이 있는 컨테이너도 같은 시간에 업데이트됩니다."
     when-label: "주기"
     time-label: "시간"
     server-time: "서버의 시간대를 사용합니다."
@@ -852,6 +927,7 @@ setup:
     reason-pinned-tag: "고정된 버전 태그를 사용 중이라 받을 새 버전이 없습니다. 업데이트를 받으려면 latest 같은 태그를 사용하세요."
     reason-unsupported: "여기서는 Dozzle이 자신의 컨테이너를 찾을 수 없어 스스로 교체할 수 없습니다."
     reason-swarm-worker: "Dozzle이 워커 노드에서 Swarm 서비스로 실행 중입니다. 서비스는 매니저만 업데이트할 수 있으므로 Dozzle을 매니저에서 실행하거나 docker service update로 업데이트하세요."
+    containers-still: "{label} 레이블이 있는 컨테이너는 이 일정에 따라 계속 업데이트됩니다."
     pull-denied: "{image}을(를) 가져올 수 없습니다. 이 머신에만 있는 이미지이거나 레지스트리에 docker login이 필요할 수 있습니다."
   restart:
     title: Dozzle 재시작

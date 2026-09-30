@@ -64,7 +64,9 @@ log-details:
   field: Champ
   value: Valeur
   fields-hint: Faites glisser pour réordonner. Activez ou désactivez pour les afficher ou les masquer dans le flux de logs.
+  chart-field: "Afficher {field} en graphique dans l’analyse SQL"
   toggle-all: Basculer tous les champs
+  toggle-field: Afficher ou masquer dans le flux de logs
 label:
   hide-sidebar: "Masquer la barre latérale"
   show-sidebar: "Afficher la barre latérale"
@@ -237,6 +239,7 @@ settings:
   new-version: "{version} disponible"
   update-available: "Une image plus récente est disponible"
   auto-update-on: "Dozzle se met à jour tout seul"
+  auto-update-containers: "Les conteneurs avec le label restent à jour"
   auto-update-daily: "Vérifie chaque jour à {time}, heure du serveur."
   auto-update-weekly: "Vérifie chaque semaine, le dimanche à {time}, heure du serveur."
   show-image-update-alert: 'Alertes de mise à jour d''image'
@@ -310,7 +313,8 @@ toasts:
     message: Journal copié dans le presse-papiers
 analytics:
   creating_table: Création d'une table temporaire...
-  downloading: Récupération des journaux des conteneurs... ({size})
+  fetching_logs: Récupération des journaux des conteneurs
+  loading_engine: Chargement du moteur SQL
   evaluating_query: Évaluation de la requête...
   total_records: Total de {count} enregistrements.
   showing_first: Affichage des {count} premiers.
@@ -327,6 +331,37 @@ analytics:
   query: Requête
   run: Exécuter
   results: Résultats
+  min: Min
+  avg: Moy
+  max: Max
+  p50: P50
+  p95: P95
+  rows: 1 ligne | {count} lignes
+updates:
+  title: Mises à jour
+  count: 1 mise à jour | {count} mises à jour
+  running: Mise à jour…
+  subtitle: Ces conteneurs utilisent une image plus ancienne que celle de leur registre.
+  subtitle-running: Chaque hôte met à jour un conteneur à la fois.
+  none: Tous les conteneurs utilisent la dernière image de leur tag.
+  update-selected: Mettre à jour | Mettre à jour 1 | Mettre à jour {count}
+  self-last: Dozzle se met à jour en dernier, puis redémarre.
+  auto: Auto
+  auto-hint: Aussi mis à jour selon la planification automatique
+  auto-footnote: Ajoutez le label {label} à un conteneur pour le mettre à jour selon la planification automatique.
+  scheduled-running: La mise à jour automatique planifiée est en cours.
+  progress: "{done} sur {total} terminés"
+  back: Retour
+  busy: Une autre mise à jour est déjà en cours.
+  summary: "{updated} mis à jour"
+  summary-failed: "{updated} mis à jour, {failed} en échec"
+  status:
+    queued: En attente
+    pulling: Téléchargement
+    recreating: Recréation
+    done: Mis à jour
+    up-to-date: À jour
+    error: Échec
 drawer:
   maximize: Agrandir
   restore: Restaurer
@@ -757,9 +792,9 @@ setup:
   close: "Fermer"
   copy: "Copier"
   settings-title: "Configurer Dozzle"
-  settings-desc: "Connexion, actions sur les conteneurs, shell et Dozzle Cloud en quelques étapes."
+  settings-desc: "Connexion, actions sur les conteneurs, shell, autres hôtes et Dozzle Cloud en quelques étapes."
   settings-done-title: "Dozzle est configuré"
-  settings-done-desc: "La connexion est activée. Ouvrez la configuration pour revoir les actions sur les conteneurs, le shell et Dozzle Cloud."
+  settings-done-desc: "La connexion est activée. Ouvrez la configuration pour revoir les actions sur les conteneurs, le shell, les autres hôtes et Dozzle Cloud."
   settings-closed-title: "La configuration est fermée"
   settings-closed-desc: "Sans connexion, la configuration n'accepte de modifications que pendant les 15 premières minutes d'une nouvelle installation. Utilisez plutôt des variables d'environnement."
   steps:
@@ -768,6 +803,8 @@ setup:
     actions: "Actions et shell"
     cloud: "Dozzle Cloud"
     cloud-note: "Facultatif"
+    hosts: "Hôtes"
+    hosts-note: "Facultatif"
     update: "Mise à jour auto"
     update-note: "Nécessite les actions"
     restart: "Redémarrage"
@@ -786,6 +823,7 @@ setup:
     password: "Mot de passe"
     confirm: "Confirmer le mot de passe"
     password-hint: "Au moins 8 caractères. Lettres, chiffres, points, tirets et tirets bas dans le nom d'utilisateur."
+    mismatch: "Les mots de passe ne correspondent pas."
     saved-volume: "Enregistré sur un volume monté"
     after-restart: "La connexion sera activée après le redémarrage"
     "on": "La connexion est activée"
@@ -816,6 +854,42 @@ setup:
     window-closed: "Sans connexion, la configuration n'accepte des modifications que pendant les 15 premières minutes d'une nouvelle installation. Définissez ces valeurs avec des variables d'environnement, ou activez d'abord la connexion."
     no-access: "Votre compte ne peut pas modifier ces paramètres."
     restart-note: "Ces changements prennent effet après le redémarrage de Dozzle."
+  hosts:
+    title: "Ajouter un autre hôte"
+    subtitle: "Voyez les conteneurs de vos autres machines depuis ce Dozzle. Lancez un agent sur chacune, puis ajoutez son adresse ici."
+    run-title: "Lancer l'agent"
+    run-body: "Sur l'autre machine, ajoutez ceci à un fichier compose et démarrez-le. Gardez le port 7007 sur un réseau privé."
+    custom-cert: "Ce Dozzle utilise son propre certificat : l'agent a besoin de la même paire, sinon il refuse la connexion."
+    cert-docs: "Guide des certificats"
+    connect-title: "S'y connecter"
+    address: "Adresse"
+    name: "Nom"
+    optional: "(facultatif)"
+    add: "Ajouter l'hôte"
+    connect-note: "Dozzle se connecte avant d'enregistrer. L'hôte apparaît tout de suite, sans redémarrage."
+    added: "{name} est connecté."
+    list-title: "Agents"
+    connected: "Connecté"
+    offline: "Non connecté"
+    remove: "Retirer"
+    skip: "Plus tard"
+    error-exists: "Cet agent est déjà ajouté."
+    error-duplicate: "Cette machine est déjà connectée comme un autre hôte. Si cet agent partage le même moteur Docker, donnez-lui son propre DOZZLE_HOST_ID."
+    error-connect: "Impossible de se connecter à l'agent : {reason}"
+    error-cert: "L'agent a un certificat différent de ce Dozzle. Copiez à nouveau l'extrait, mettez l'agent à jour et recréez-le."
+    error-cert-custom: "L'agent n'a pas le certificat personnalisé de ce Dozzle. Donnez-lui les mêmes fichiers de certificat et de clé, puis recréez-le."
+    error-unsupported-mode: "Dans ce mode, les hôtes ne peuvent pas être ajoutés ou supprimés ici."
+    error-invalid: "Cette adresse ou ce nom n'est pas valide."
+    error-rate-limited: "Trop de tentatives. Patientez une minute puis réessayez."
+    error-env-agent: "Cet agent est défini par DOZZLE_REMOTE_AGENT, il ne peut donc être supprimé que là."
+    error-not-found: "Cet agent n'est plus dans la liste."
+    error-custom-cert: "Ce Dozzle utilise déjà un certificat personnalisé, il n'y a donc aucun certificat privé à créer."
+    private-label: "Certificat privé"
+    private-desc: "Seul ce Dozzle peut se connecter à l'agent. Les autres agents ne sont pas concernés."
+    private-warning: "Cet extrait contient une clé privée. Traitez-la comme un mot de passe."
+    private-pill: "privé"
+    private-error: "Impossible de créer un certificat privé, le certificat partagé est donc utilisé. {reason}"
+    private-missing: "Ce Dozzle n'a pas encore de certificat privé. Réactivez Certificat privé, puis réessayez."
   cloud:
     title: "Connecter Dozzle Cloud"
     subtitle: "Soyez prévenu quand quelque chose casse, sans garder un onglet ouvert."
@@ -835,6 +909,7 @@ setup:
     subtitle: "Dozzle télécharge la nouvelle image et remplace son propre conteneur à une heure creuse. Les paramètres, utilisateurs et alertes sont conservés."
     auto-label: "Mettre à jour automatiquement"
     auto-desc: "Vérifie s'il existe une image plus récente et ne remplace Dozzle que s'il y en a une."
+    auto-containers: Les conteneurs avec le label {label} sont mis à jour à la même heure.
     when-label: "Quand"
     time-label: "Heure"
     server-time: "Utilise le fuseau horaire du serveur."
@@ -850,6 +925,7 @@ setup:
     reason-pinned-tag: "Vous utilisez un tag de version figé, il n'y a donc rien de plus récent à télécharger. Utilisez un tag comme latest pour recevoir les mises à jour."
     reason-unsupported: "Dozzle ne trouve pas son propre conteneur ici, il ne peut donc pas se remplacer lui-même."
     reason-swarm-worker: "Dozzle tourne comme service Swarm sur un nœud worker. Seul un manager peut mettre à jour le service : exécutez Dozzle sur un manager ou mettez-le à jour avec docker service update."
+    containers-still: Les conteneurs avec le label {label} sont toujours mis à jour selon ce calendrier.
     pull-denied: "Impossible de récupérer {image}. Elle n'existe peut-être que sur cette machine, ou le registre demande docker login."
   restart:
     title: "Redémarrer Dozzle"

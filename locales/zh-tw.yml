@@ -64,7 +64,9 @@ log-details:
   field: 欄位
   value: 值
   fields-hint: 拖曳可重新排序。切換可在日誌串流中顯示或隱藏。
+  chart-field: "在 SQL 分析中以圖表顯示 {field}"
   toggle-all: 切換所有欄位
+  toggle-field: 在日誌串流中顯示或隱藏
 label:
   hide-sidebar: "隱藏側邊欄"
   show-sidebar: "顯示側邊欄"
@@ -239,6 +241,7 @@ settings:
   new-version: "{version} 已推出"
   update-available: "有更新的映像檔可用"
   auto-update-on: "Dozzle 會自行保持最新版本"
+  auto-update-containers: "帶有標籤的容器會保持最新版本"
   auto-update-daily: "每天 {time} 檢查（伺服器時間）。"
   auto-update-weekly: "每週日 {time} 檢查（伺服器時間）。"
   show-image-update-alert: '映像更新提醒'
@@ -312,7 +315,8 @@ toasts:
     message: 日誌已複製到剪貼簿
 analytics:
   creating_table: 正在建立臨時資料表...
-  downloading: 正在取得容器日誌... ({size})
+  fetching_logs: 正在取得容器日誌
+  loading_engine: 正在載入 SQL 引擎
   evaluating_query: 正在評估查詢...
   total_records: 共計 {count} 筆記錄。
   showing_first: 顯示前 {count} 筆。
@@ -329,6 +333,37 @@ analytics:
   query: 查詢
   run: 執行
   results: 結果
+  min: 最小
+  avg: 平均
+  max: 最大
+  p50: P50
+  p95: P95
+  rows: 1 列 | {count} 列
+updates:
+  title: 更新
+  count: 1 個更新 | {count} 個更新
+  running: 正在更新…
+  subtitle: 這些容器執行的映像檔比其映像檔倉庫提供的舊。
+  subtitle-running: 每台主機一次更新一個容器。
+  none: 所有容器都在執行其標籤指向的最新映像檔。
+  update-selected: 更新 | 更新 1 個 | 更新 {count} 個
+  self-last: Dozzle 最後更新，然後重新啟動。
+  auto: 自動
+  auto-hint: 也會依自動更新排程更新
+  auto-footnote: 為容器加上標籤 {label}，即可依自動更新排程更新它。
+  scheduled-running: 自動更新排程正在執行。
+  progress: 已完成 {done}/{total}
+  back: 返回
+  busy: 已有另一個更新正在執行。
+  summary: 已更新 {updated} 個
+  summary-failed: 已更新 {updated} 個，失敗 {failed} 個
+  status:
+    queued: 排隊中
+    pulling: 拉取中
+    recreating: 重建中
+    done: 已更新
+    up-to-date: 最新
+    error: 失敗
 drawer:
   maximize: 最大化
   restore: 還原
@@ -759,9 +794,9 @@ setup:
   close: 關閉
   copy: 複製
   settings-title: 設定 Dozzle
-  settings-desc: 幾個步驟完成登入、容器操作、Shell 與 Dozzle Cloud 的設定。
+  settings-desc: "幾個步驟完成登入、容器操作、Shell、其他主機與 Dozzle Cloud 的設定。"
   settings-done-title: "Dozzle 已設定完成"
-  settings-done-desc: "登入已啟用。開啟設定精靈可檢視容器操作、Shell 與 Dozzle Cloud。"
+  settings-done-desc: "登入已啟用。開啟設定精靈可檢視容器操作、Shell、其他主機與 Dozzle Cloud。"
   settings-closed-title: "設定已關閉"
   settings-closed-desc: "未啟用登入時，設定只在新安裝的前 15 分鐘內接受變更。請改用環境變數。"
   steps:
@@ -770,6 +805,8 @@ setup:
     actions: 操作與 Shell
     cloud: Dozzle Cloud
     cloud-note: 選用
+    hosts: "主機"
+    hosts-note: "選用"
     update: "自動更新"
     update-note: "需要操作功能"
     restart: 重新啟動
@@ -788,6 +825,7 @@ setup:
     password: 密碼
     confirm: 確認密碼
     password-hint: 至少 8 個字元。使用者名稱可包含字母、數字、點、連字號與底線。
+    mismatch: 兩次輸入的密碼不一致。
     saved-volume: 已儲存到掛載的磁碟區
     after-restart: 重新啟動後啟用登入
     on: 登入已啟用
@@ -818,6 +856,42 @@ setup:
     window-closed: "未開啟登入時，設定只在全新安裝後的前 15 分鐘內接受變更。請使用環境變數設定，或先開啟登入。"
     no-access: 你的帳戶無權變更這些設定。
     restart-note: 這些設定會在 Dozzle 重新啟動後生效。
+  hosts:
+    title: "新增其他主機"
+    subtitle: "在這個 Dozzle 中查看其他機器上的容器。在每台機器上執行代理程式，然後在這裡新增它的位址。"
+    run-title: "執行代理程式"
+    run-body: "在另一台機器上，將以下內容加入 compose 檔案並啟動。請讓 7007 連接埠只留在私人網路中。"
+    custom-cert: "這個 Dozzle 使用自己的憑證，因此代理程式需要同一組憑證，否則會拒絕連線。"
+    cert-docs: "憑證指南"
+    connect-title: "連線"
+    address: "位址"
+    name: "名稱"
+    optional: "（選用）"
+    add: "新增主機"
+    connect-note: "Dozzle 會先連線再儲存。主機會立即出現，不需要重新啟動。"
+    added: "已連線至 {name}。"
+    list-title: "代理程式"
+    connected: "已連線"
+    offline: "未連線"
+    remove: "移除"
+    skip: "稍後再說"
+    error-exists: "這個代理程式已經新增過了。"
+    error-duplicate: "這台機器已經以另一個主機的身分連線。如果這個代理程式使用相同的 Docker 引擎，請為它設定專屬的 DOZZLE_HOST_ID。"
+    error-connect: "無法連線至代理程式：{reason}"
+    error-cert: "代理程式的憑證與這個 Dozzle 不同。請重新複製程式碼片段，更新代理程式後重新建立。"
+    error-cert-custom: "代理程式沒有這個 Dozzle 的自訂憑證。請把相同的憑證和金鑰檔案提供給代理程式，然後重新建立。"
+    error-unsupported-mode: "在此模式下無法在這裡新增或移除主機。"
+    error-invalid: "這個位址或名稱無效。"
+    error-rate-limited: "嘗試次數過多。請稍候一分鐘再試。"
+    error-env-agent: "這個代理程式是透過 DOZZLE_REMOTE_AGENT 設定的，只能在那裡移除。"
+    error-not-found: "這個代理程式已不在清單中。"
+    error-custom-cert: "這個 Dozzle 已經使用自訂憑證，因此不需要建立私有憑證。"
+    private-label: "私人憑證"
+    private-desc: "只有這個 Dozzle 能連線到代理程式。其他代理程式不受影響。"
+    private-warning: "這段內容包含私密金鑰，請像密碼一樣保管。"
+    private-pill: "私人"
+    private-error: "無法建立私人憑證，因此改用共用憑證。{reason}"
+    private-missing: "這個 Dozzle 還沒有私人憑證。請重新開啟「私人憑證」後重試。"
   cloud:
     title: 連接 Dozzle Cloud
     subtitle: 不必一直開著分頁，也能在出問題時馬上知道。
@@ -837,6 +911,7 @@ setup:
     subtitle: "Dozzle 會在閒置時段拉取新映像檔並替換自身容器。設定、使用者與警示都會保留。"
     auto-label: "自動更新"
     auto-desc: "檢查是否有更新的映像檔，只有在有新映像檔時才替換 Dozzle。"
+    auto-containers: 帶有 {label} 標籤的容器也會在同一時間更新。
     when-label: "時間"
     time-label: "時刻"
     server-time: "使用伺服器的時區。"
@@ -852,6 +927,7 @@ setup:
     reason-pinned-tag: "你使用的是固定的版本標籤，因此沒有更新的映像檔可拉取。請使用 latest 之類的標籤來取得更新。"
     reason-unsupported: "Dozzle 在這裡找不到自己的容器，因此無法替換自身。"
     reason-swarm-worker: "Dozzle 以 Swarm 服務的形式執行在工作節點上。只有管理節點才能更新服務，請在管理節點上執行 Dozzle，或使用 docker service update 更新。"
+    containers-still: 帶有 {label} 標籤的容器仍會依此排程更新。
     pull-denied: "無法拉取 {image}。它可能只存在於這台機器上，或者映像倉庫需要 docker login。"
   restart:
     title: 重新啟動 Dozzle

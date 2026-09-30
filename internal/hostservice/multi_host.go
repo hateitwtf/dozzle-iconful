@@ -2,6 +2,8 @@ package hostservice
 
 import (
 	"context"
+	"crypto/tls"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -41,6 +43,12 @@ type MultiHostService struct {
 	notificationManager *notification.Manager
 	persister           *notification.Persister
 	cloudNotifyFn       atomic.Pointer[func()]
+	// agents is the manager when it can take agents while running, else nil.
+	agents agentAdder
+	// configMu orders config pushes against RemoveAgent, so a broadcast that
+	// listed an agent before it was removed cannot land after its config was
+	// cleared and hand the removed agent the rules and cloud key back.
+	configMu sync.Mutex
 }
 
 func NewMultiHostService(manager ClientManager, timeout time.Duration) *MultiHostService {
@@ -48,6 +56,7 @@ func NewMultiHostService(manager ClientManager, timeout time.Duration) *MultiHos
 		manager: manager,
 		timeout: timeout,
 	}
+	m.agents, _ = manager.(agentAdder)
 
 	return m
 }
@@ -125,17 +134,39 @@ func (m *MultiHostService) ListAllContainersFiltered(userLabels container.Contai
 }
 
 func (m *MultiHostService) SubscribeEventsAndStats(ctx context.Context, events chan<- container.ContainerEvent, stats chan<- container.ContainerStat) {
-	for _, client := range m.manager.List() {
+	m.followClients(ctx, func(client container.ClientService, _ bool) {
 		client.SubscribeEvents(ctx, events)
 		client.SubscribeStats(ctx, stats)
-	}
+	})
 }
 
 func (m *MultiHostService) SubscribeContainersStarted(ctx context.Context, containers chan<- container.Container, filter container.ContainerFilter) {
 	newContainers := make(chan container.Container)
-	for _, client := range m.manager.List() {
+	m.followClients(ctx, func(client container.ClientService, late bool) {
 		client.SubscribeContainersStarted(ctx, newContainers)
-	}
+		if !late {
+			return
+		}
+		// A host that joins later is new to this subscriber along with everything
+		// already running on it, so those count as started too.
+		go func() {
+			running, err := m.listLate(ctx, client)
+			if err != nil {
+				log.Debug().Err(err).Msg("could not list containers of a newly added host")
+				return
+			}
+			for _, c := range running {
+				if c.State != "running" {
+					continue
+				}
+				select {
+				case newContainers <- c:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	})
 	// newContainers is never closed: the stores sending into it drop their
 	// subscription only after ctx ends, so a close would race their sends and panic.
 	go func() {
@@ -154,6 +185,124 @@ func (m *MultiHostService) SubscribeContainersStarted(ctx context.Context, conta
 			}
 		}
 	}()
+}
+
+// listLate lists a newly joined host for one subscriber, bounded by the timeout
+// and by that subscriber's lifetime.
+func (m *MultiHostService) listLate(ctx context.Context, client container.ClientService) ([]container.Container, error) {
+	ctx, cancel := context.WithTimeout(ctx, m.timeout)
+	defer cancel()
+	return client.ListContainers(ctx, nil)
+}
+
+// followClients calls subscribe for every client now, then again for each client
+// that becomes available later (an agent added from the UI, or one that was down
+// at startup), with late set. Without it, a subscriber only ever sees the hosts
+// that existed when it subscribed. Each client is handed over once, except after
+// a re-key (see below).
+func (m *MultiHostService) followClients(ctx context.Context, subscribe func(client container.ClientService, late bool)) {
+	// Subscribe before listing, so a host added in between is not missed.
+	hosts := make(chan container.Host, 8)
+	m.manager.Subscribe(ctx, hosts)
+
+	seen := map[container.ClientService]bool{}
+	for _, client := range m.manager.List() {
+		seen[client] = true
+		subscribe(client, false)
+	}
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case host := <-hosts:
+				if !host.Available || host.Removed {
+					continue
+				}
+				client, ok := m.manager.Find(host.ID)
+				if !ok {
+					continue
+				}
+				if seen[client] {
+					// A re-key means the agent process restarted, which ended every
+					// stream this subscriber had open to it, so subscribe again. Not
+					// as late: its running containers are ones the subscriber has.
+					if host.ReplacesID != "" {
+						subscribe(client, false)
+					}
+					continue
+				}
+				seen[client] = true
+				subscribe(client, true)
+			}
+		}
+	}()
+}
+
+// agentAdder is a ClientManager that can take agents while running. Only the
+// server-mode manager is one; swarm discovers its nodes itself.
+type agentAdder interface {
+	AddAgent(ctx context.Context, endpoint string, cert *tls.Certificate) (container.Host, error)
+	RemoveAgent(endpoint string) error
+	AgentHostID(endpoint string) string
+}
+
+var ErrAgentsUnsupported = errors.New("agents cannot be added in this mode")
+
+// CanAddAgents reports whether AddAgent works in this mode.
+func (m *MultiHostService) CanAddAgents() bool {
+	return m.agents != nil
+}
+
+func (m *MultiHostService) AddAgent(ctx context.Context, endpoint string, cert *tls.Certificate) (container.Host, error) {
+	if m.agents == nil {
+		return container.Host{}, ErrAgentsUnsupported
+	}
+	return m.agents.AddAgent(ctx, endpoint, cert)
+}
+
+func (m *MultiHostService) RemoveAgent(endpoint string) error {
+	if m.agents == nil {
+		return ErrAgentsUnsupported
+	}
+	m.configMu.Lock()
+	defer m.configMu.Unlock()
+	m.clearAgentConfig(endpoint)
+	return m.agents.RemoveAgent(endpoint)
+}
+
+// clearAgentConfig takes back the notification and cloud config the hub pushed
+// to an agent, so it stops alerting and streaming to cloud once it is no longer
+// served. Best effort: an agent that is down keeps what it had until restarted.
+func (m *MultiHostService) clearAgentConfig(endpoint string) {
+	id := m.agents.AgentHostID(endpoint)
+	if id == "" {
+		return
+	}
+	client, ok := m.manager.Find(id)
+	if !ok {
+		return
+	}
+	updater, ok := client.(NotificationConfigUpdater)
+	if !ok {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), min(m.timeout, 3*time.Second))
+	defer cancel()
+	if err := updater.UpdateNotificationConfig(ctx, nil, nil); err != nil {
+		log.Debug().Err(err).Str("endpoint", endpoint).Msg("could not clear notification config on removed agent")
+	}
+	if err := updater.UpdateCloudConfig(ctx, nil); err != nil {
+		log.Debug().Err(err).Str("endpoint", endpoint).Msg("could not clear cloud config on removed agent")
+	}
+}
+
+func (m *MultiHostService) AgentHostID(endpoint string) string {
+	if m.agents == nil {
+		return ""
+	}
+	return m.agents.AgentHostID(endpoint)
 }
 
 func (m *MultiHostService) Hosts() []container.Host {
@@ -312,6 +461,9 @@ type NotificationConfigUpdater interface {
 
 // broadcastNotificationConfig sends current notification config to all agent clients
 func (m *MultiHostService) broadcastNotificationConfig() {
+	// Held across read and send, so an older snapshot can never go out last.
+	m.configMu.Lock()
+	defer m.configMu.Unlock()
 	notifSubs := m.notificationManager.Subscriptions()
 	notifDispatchers := m.notificationManager.Dispatchers()
 
@@ -364,6 +516,8 @@ func (m *MultiHostService) broadcastNotificationConfig() {
 
 // broadcastCloudConfig sends current cloud config to all agent clients
 func (m *MultiHostService) broadcastCloudConfig() {
+	m.configMu.Lock()
+	defer m.configMu.Unlock()
 	ncc := m.persister.CloudConfig()
 
 	var cc *types.CloudConfig
@@ -525,11 +679,17 @@ func (m *MultiHostService) UpdateSubscription(id int, updates map[string]any) er
 
 // Subscriptions returns all subscriptions
 func (m *MultiHostService) Subscriptions() []*notification.Subscription {
+	if m.notificationManager == nil {
+		return nil
+	}
 	return m.notificationManager.Subscriptions()
 }
 
 // Dispatchers returns all dispatchers
 func (m *MultiHostService) Dispatchers() []notification.DispatcherConfig {
+	if m.notificationManager == nil {
+		return nil
+	}
 	return m.notificationManager.Dispatchers()
 }
 

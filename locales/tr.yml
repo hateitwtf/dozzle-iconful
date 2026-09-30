@@ -64,7 +64,9 @@ log-details:
   field: Alan
   value: Değer
   fields-hint: Yeniden sıralamak için sürükleyin. Günlük akışında göstermek veya gizlemek için değiştirin.
+  chart-field: "{field} alanını SQL Analitiği'nde grafikle göster"
   toggle-all: Tüm alanları değiştir
+  toggle-field: Günlük akışında göster veya gizle
 label:
   hide-sidebar: "Kenar çubuğunu gizle"
   show-sidebar: "Kenar çubuğunu göster"
@@ -240,6 +242,7 @@ settings:
   new-version: "{version} mevcut"
   update-available: "Daha yeni bir imaj mevcut"
   auto-update-on: "Dozzle kendini güncel tutar"
+  auto-update-containers: "Etiketli container'lar güncel kalır"
   auto-update-daily: "Her gün {time} saatinde kontrol eder (sunucu saati)."
   auto-update-weekly: "Her hafta pazar günü {time} saatinde kontrol eder (sunucu saati)."
   show-image-update-alert: 'İmaj güncelleme uyarıları'
@@ -313,7 +316,8 @@ toasts:
     message: Günlük panoya kopyalandı
 analytics:
   creating_table: Geçici tablo oluşturuluyor...
-  downloading: Konteyner günlükleri alınıyor... ({size})
+  fetching_logs: Konteyner günlükleri alınıyor
+  loading_engine: SQL motoru yükleniyor
   evaluating_query: Sorgu değerlendiriliyor...
   total_records: Toplam {count} kayıt.
   showing_first: İlk {count} gösteriliyor.
@@ -330,6 +334,37 @@ analytics:
   query: Sorgu
   run: Çalıştır
   results: Sonuçlar
+  min: Min
+  avg: Ort
+  max: Maks
+  p50: P50
+  p95: P95
+  rows: 1 satır | {count} satır
+updates:
+  title: Güncellemeler
+  count: 1 güncelleme | {count} güncelleme
+  running: Güncelleniyor…
+  subtitle: Bu container'lar, registry'lerinin sunduğundan daha eski bir image çalıştırıyor.
+  subtitle-running: Her host aynı anda bir container günceller.
+  none: Tüm container'lar tag'lerinin en güncel image'ını çalıştırıyor.
+  update-selected: Güncelle | 1 güncelle | {count} güncelle
+  self-last: Dozzle en son güncellenir, ardından yeniden başlar.
+  auto: Otomatik
+  auto-hint: Otomatik güncelleme zamanlamasıyla da güncellenir
+  auto-footnote: Bir container'ı otomatik güncelleme zamanlamasıyla güncellemek için ona {label} etiketini ekleyin.
+  scheduled-running: Otomatik güncelleme zamanlaması şu anda çalışıyor.
+  progress: "{total} içinden {done} tamamlandı"
+  back: Geri
+  busy: Zaten başka bir güncelleme çalışıyor.
+  summary: "{updated} güncellendi"
+  summary-failed: "{updated} güncellendi, {failed} başarısız"
+  status:
+    queued: Sırada
+    pulling: İndiriliyor
+    recreating: Yeniden oluşturuluyor
+    done: Güncellendi
+    up-to-date: Güncel
+    error: Başarısız
 drawer:
   maximize: Büyüt
   restore: Geri yükle
@@ -760,9 +795,9 @@ setup:
   close: Kapat
   copy: Kopyala
   settings-title: Dozzle kurulumu
-  settings-desc: Giriş, konteyner işlemleri, kabuk ve Dozzle Cloud birkaç adımda.
+  settings-desc: "Giriş, konteyner işlemleri, kabuk, diğer sunucular ve Dozzle Cloud birkaç adımda."
   settings-done-title: "Dozzle kuruldu"
-  settings-done-desc: "Giriş açık. Konteyner işlemlerini, kabuğu ve Dozzle Cloud'u gözden geçirmek için kurulumu açın."
+  settings-done-desc: "Giriş açık. Konteyner işlemlerini, kabuğu, diğer sunucuları ve Dozzle Cloud'u gözden geçirmek için kurulumu açın."
   settings-closed-title: "Kurulum kapandı"
   settings-closed-desc: "Giriş olmadan kurulum, yalnızca yeni bir kurulumun ilk 15 dakikasında değişiklik kabul eder. Bunun yerine ortam değişkenlerini kullanın."
   steps:
@@ -771,6 +806,8 @@ setup:
     actions: İşlemler ve kabuk
     cloud: Dozzle Cloud
     cloud-note: İsteğe bağlı
+    hosts: "Sunucular"
+    hosts-note: "İsteğe bağlı"
     update: "Otomatik güncelleme"
     update-note: "Eylemler gerekli"
     restart: Yeniden başlat
@@ -789,6 +826,7 @@ setup:
     password: Parola
     confirm: Parolayı onayla
     password-hint: En az 8 karakter. Kullanıcı adında harf, rakam, nokta, tire ve alt çizgi kullanılabilir.
+    mismatch: Parolalar eşleşmiyor.
     saved-volume: Bağlı bir birime kaydedildi
     after-restart: Giriş yeniden başlatmadan sonra açılır
     on: Giriş açık
@@ -819,6 +857,42 @@ setup:
     window-closed: "Giriş olmadan kurulum, yeni bir kurulumun yalnızca ilk 15 dakikasında değişiklik kabul eder. Bunları ortam değişkenleriyle ayarlayın veya önce girişi açın."
     no-access: Hesabınız bu ayarları değiştiremez.
     restart-note: Bunlar Dozzle yeniden başladıktan sonra geçerli olur.
+  hosts:
+    title: "Başka bir sunucu ekle"
+    subtitle: "Diğer makinelerinizdeki konteynerleri bu Dozzle'dan görün. Her birinde bir ajan çalıştırın, ardından adresini buraya ekleyin."
+    run-title: "Ajanı çalıştırın"
+    run-body: "Diğer makinede bunu bir compose dosyasına ekleyip başlatın. 7007 portunu özel bir ağda tutun."
+    custom-cert: "Bu Dozzle kendi sertifikasını kullanıyor, bu yüzden ajanın da aynı çifte ihtiyacı var, yoksa bağlantıyı reddeder."
+    cert-docs: "Sertifika rehberi"
+    connect-title: "Bağlanın"
+    address: "Adres"
+    name: "Ad"
+    optional: "(isteğe bağlı)"
+    add: "Sunucu ekle"
+    connect-note: "Dozzle kaydetmeden önce bağlanır. Sunucu yeniden başlatma olmadan hemen görünür."
+    added: "{name} bağlandı."
+    list-title: "Ajanlar"
+    connected: "Bağlı"
+    offline: "Bağlı değil"
+    remove: "Kaldır"
+    skip: "Şimdi değil"
+    error-exists: "Bu ajan zaten eklenmiş."
+    error-duplicate: "Bu makine zaten başka bir ana bilgisayar olarak bağlı. Bu ajan aynı Docker motorunu kullanıyorsa ona kendi DOZZLE_HOST_ID değerini verin."
+    error-connect: "Ajana bağlanılamadı: {reason}"
+    error-cert: "Ajanın sertifikası bu Dozzle'dan farklı. Parçacığı yeniden kopyalayın, ajanı güncelleyin ve yeniden oluşturun."
+    error-cert-custom: "Ajanda bu Dozzle'ın özel sertifikası yok. Ajana aynı sertifika ve anahtar dosyalarını verin, ardından yeniden oluşturun."
+    error-unsupported-mode: "Bu modda buradan ana bilgisayar eklenemez veya kaldırılamaz."
+    error-invalid: "Bu adres veya ad geçerli değil."
+    error-rate-limited: "Çok fazla deneme. Bir dakika bekleyip yeniden deneyin."
+    error-env-agent: "Bu ajan DOZZLE_REMOTE_AGENT ile ayarlanmış, bu yüzden yalnızca orada kaldırılabilir."
+    error-not-found: "Bu ajan artık listede değil."
+    error-custom-cert: "Bu Dozzle zaten özel bir sertifika kullanıyor, bu yüzden oluşturulacak gizli bir sertifika yok."
+    private-label: "Özel sertifika"
+    private-desc: "Ajana yalnızca bu Dozzle bağlanabilir. Diğer ajanlar etkilenmez."
+    private-warning: "Bu parça özel bir anahtar içeriyor. Onu bir parola gibi saklayın."
+    private-pill: "özel"
+    private-error: "Özel sertifika oluşturulamadı, bu yüzden ortak sertifika kullanılıyor. {reason}"
+    private-missing: "Bu Dozzle'ın henüz özel sertifikası yok. Özel sertifikayı yeniden açıp tekrar deneyin."
   cloud:
     title: Dozzle Cloud'a bağlan
     subtitle: Bir sekmeyi açık tutmadan bir şeyler bozulduğunda haberdar olun.
@@ -838,6 +912,7 @@ setup:
     subtitle: "Dozzle sakin bir saatte yeni imajı çeker ve kendi konteynerini değiştirir. Ayarlar, kullanıcılar ve uyarılar korunur."
     auto-label: "Otomatik güncelle"
     auto-desc: "Daha yeni bir imaj olup olmadığını kontrol eder ve yalnızca varsa Dozzle'ı değiştirir."
+    auto-containers: "{label} etiketli container'lar da aynı saatte güncellenir."
     when-label: "Ne zaman"
     time-label: "Saat"
     server-time: "Sunucunun saat dilimini kullanır."
@@ -853,6 +928,7 @@ setup:
     reason-pinned-tag: "Sabitlenmiş bir sürüm etiketi kullanıyorsunuz, bu yüzden çekilecek daha yeni bir şey yok. Güncelleme almak için latest gibi bir etiket kullanın."
     reason-unsupported: "Dozzle burada kendi konteynerini bulamıyor, bu yüzden kendini değiştiremez."
     reason-swarm-worker: "Dozzle bir worker düğümünde Swarm servisi olarak çalışıyor. Servisi yalnızca bir manager güncelleyebilir; Dozzle'ı bir manager üzerinde çalıştırın veya docker service update ile güncelleyin."
+    containers-still: "{label} etiketli container'lar yine de bu zamanlamaya göre güncellenir."
     pull-denied: "{image} çekilemedi. Yalnızca bu makinede bulunuyor olabilir ya da kayıt defteri docker login gerektiriyor."
   restart:
     title: Dozzle'ı yeniden başlat

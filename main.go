@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"embed"
 	"fmt"
 	"io/fs"
@@ -18,6 +19,8 @@ import (
 	// auto-update time silently means UTC.
 	_ "time/tzdata"
 
+	dozzlecerts "github.com/amir20/dozzle/internal/agentcerts"
+	"github.com/amir20/dozzle/internal/analytics"
 	"github.com/amir20/dozzle/internal/auth"
 	"github.com/amir20/dozzle/internal/cli"
 	"github.com/amir20/dozzle/internal/cloud"
@@ -30,6 +33,7 @@ import (
 	"github.com/amir20/dozzle/internal/imagecheck"
 	"github.com/amir20/dozzle/internal/notification/dispatcher"
 	"github.com/amir20/dozzle/internal/web"
+	"github.com/amir20/dozzle/types"
 	"github.com/rs/zerolog/log"
 )
 
@@ -79,6 +83,9 @@ func main() {
 	}
 
 	log.Info().Msgf("Dozzle version %s", args.Version())
+	if args.NoAnalytics {
+		analytics.Default.Disable()
+	}
 	dispatcher.UserAgent = fmt.Sprintf("Dozzle/%s", args.Version())
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -109,7 +116,9 @@ func main() {
 		if err != nil {
 			log.Fatal().Err(err).Msg("Could not read certificates")
 		}
-		agentManager := hostservice.NewRetriableClientManager(args.RemoteAgent, args.Timeout, certs)
+		// Only the operator's agents: dozzle.yml agents come from the server-mode UI,
+		// and the private ones among them need a pair swarm mode never loads.
+		agentManager := hostservice.NewRetriableClientManager(args.EnvAgents, nil, args.Timeout, certs)
 		manager := hostservice.NewSwarmClientManager(localClient, certs, args.Timeout, agentManager, args.Filter)
 		multiHostService := hostservice.NewMultiHostService(manager, args.Timeout)
 		if err := multiHostService.StartNotificationManager(ctx); err != nil {
@@ -212,6 +221,7 @@ func main() {
 			return cloudClient.Chat(ctx, message, view, userRef, principal, apiKeyFunc, emit)
 		},
 	})
+	go srv.RunUsageBeacon(ctx)
 
 	if args.Mode == "server" {
 		go web.RunAutoUpdateScheduler(ctx, hostService, web.Config{
@@ -222,7 +232,7 @@ func main() {
 				AutoUpdateMode: lockedValue(args.Locked.AutoUpdate, args.AutoUpdate),
 				AutoUpdateTime: lockedValue(args.Locked.AutoUpdateTime, args.AutoUpdateTime),
 			},
-		})
+		}, srv.FlushUsage)
 	}
 
 	go func() {
@@ -240,7 +250,27 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Error().Err(err).Msg("failed to shut down")
 	}
+	// Usage is only sent once a day, so a restart would otherwise lose it.
+	srv.FlushUsage()
 	log.Debug().Msg("shut down complete")
+}
+
+// beaconBase is what every beacon from the web server repeats about how this
+// process was started.
+func beaconBase(args cli.Args, simpleUsers int) types.BeaconEvent {
+	b := cli.BeaconBase(args, args.Mode)
+	b.Users = analytics.BucketUsers(simpleUsers)
+	return b
+}
+
+// customCert mirrors cli.ReadCertificates: a pair from the env or on disk wins
+// over the one built into the image.
+func customCert(args cli.Args) bool {
+	if _, ok, err := dozzlecerts.FromEnv(os.LookupEnv); ok && err == nil {
+		return true
+	}
+	_, err := tls.LoadX509KeyPair(args.CertPath, args.KeyPath)
+	return err == nil
 }
 
 // lockedValue is value when a flag or env var set it, nil when dozzle.yml decides.
@@ -341,7 +371,7 @@ func fileExists(filename string) bool {
 	return err == nil
 }
 
-func createServer(args cli.Args, hostService web.HostService, cloudHooks web.CloudHooks) *http.Server {
+func createServer(args cli.Args, hostService web.HostService, cloudHooks web.CloudHooks) *web.Server {
 	_, dev := os.LookupEnv("DEV")
 
 	var releaseCheckMode web.ReleaseCheckMode = web.Automatic
@@ -357,6 +387,7 @@ func createServer(args cli.Args, hostService web.HostService, cloudHooks web.Clo
 
 	var provider web.AuthProvider = web.NONE
 	var authorizer web.Authorizer
+	simpleUsers := 0
 	if args.AuthProvider == "forward-proxy" {
 		log.Debug().Msg("Using forward proxy authentication")
 		provider = web.FORWARD_PROXY
@@ -381,6 +412,7 @@ func createServer(args cli.Args, hostService web.HostService, cloudHooks web.Clo
 		}
 
 		log.Debug().Int("users", len(db.Users)).Msg("Loaded users")
+		simpleUsers = len(db.Users)
 		ttl := time.Duration(0)
 		if args.AuthTTL != "session" {
 			ttl, err = time.ParseDuration(args.AuthTTL)
@@ -424,6 +456,7 @@ func createServer(args cli.Args, hostService web.HostService, cloudHooks web.Clo
 		Version:     args.Version(),
 		Hostname:    args.Hostname,
 		NoAnalytics: args.NoAnalytics,
+		Beacon:      beaconBase(args, simpleUsers),
 		Dev:         dev,
 		Mode:        args.Mode,
 		Authorization: web.Authorization{
@@ -449,6 +482,8 @@ func createServer(args cli.Args, hostService web.HostService, cloudHooks web.Clo
 			AutoUpdateMode:      lockedValue(args.Locked.AutoUpdate, args.AutoUpdate),
 			AutoUpdateTime:      lockedValue(args.Locked.AutoUpdateTime, args.AutoUpdateTime),
 			StartedAt:           web.SetupWindowStart(time.Now(), freshInstall),
+			EnvAgents:           args.EnvAgents,
+			CustomCert:          customCert(args),
 		},
 	}
 
@@ -655,20 +690,16 @@ func (l *cloudHostService) SubscribeStats(ctx context.Context, samples chan<- cl
 	// One inbound channel + forwarder goroutine per service, matching
 	// SubscribeContainersStarted: a burst on one service must not stall the others.
 	var dropWarn sync.Once
-	subscribed := make(map[container.ClientService]bool)
+	subs := serviceSubscriptions{}
 	attach := func() {
-		for _, s := range l.services(false) {
-			if subscribed[s] {
-				continue
-			}
+		subs.sync(ctx, l.services(false), func(ctx context.Context, s container.ClientService) bool {
 			hostID := l.hostID(s)
 			if hostID == "" {
 				// Unstamped samples can't be told apart on the cloud side.
 				// Leave the service unsubscribed; watchNewServices re-attaches
 				// on a timer, so this resolves itself once the host answers.
-				continue
+				return false
 			}
-			subscribed[s] = true
 			ch := make(chan container.ContainerStat, 64)
 			s.SubscribeStats(ctx, ch)
 			go func() {
@@ -693,7 +724,8 @@ func (l *cloudHostService) SubscribeStats(ctx context.Context, samples chan<- cl
 					}
 				}
 			}()
-		}
+			return true
+		})
 	}
 
 	attach()
@@ -703,13 +735,9 @@ func (l *cloudHostService) SubscribeStats(ctx context.Context, samples chan<- cl
 func (l *cloudHostService) SubscribeContainersStarted(ctx context.Context, containers chan<- container.Container, filter container.ContainerFilter) {
 	// One inbound channel + forwarder goroutine per service so a slow consumer
 	// or a burst on one service can't cause the others to drop events.
-	subscribed := make(map[container.ClientService]bool)
+	subs := serviceSubscriptions{}
 	attach := func() {
-		for _, s := range l.services(false) {
-			if subscribed[s] {
-				continue
-			}
-			subscribed[s] = true
+		subs.sync(ctx, l.services(false), func(ctx context.Context, s container.ClientService) bool {
 			ch := make(chan container.Container, 64)
 			s.SubscribeContainersStarted(ctx, ch)
 			go func() {
@@ -728,9 +756,40 @@ func (l *cloudHostService) SubscribeContainersStarted(ctx context.Context, conta
 					}
 				}
 			}()
-		}
+			return true
+		})
 	}
 
 	attach()
 	l.watchNewServices(ctx, attach)
+}
+
+// serviceSubscriptions is one cloud subscription per client service, each under
+// its own context so it can end on its own.
+type serviceSubscriptions map[container.ClientService]context.CancelFunc
+
+// sync subscribes the services not yet subscribed, and ends the subscriptions of
+// services no longer listed: an agent removed from the UI would otherwise keep
+// its forwarder goroutine and channel until the cloud connection ends. start
+// returns false to leave a service for the next sync.
+func (subs serviceSubscriptions) sync(ctx context.Context, services []container.ClientService, start func(context.Context, container.ClientService) bool) {
+	listed := make(map[container.ClientService]bool, len(services))
+	for _, s := range services {
+		listed[s] = true
+		if _, ok := subs[s]; ok {
+			continue
+		}
+		subCtx, cancel := context.WithCancel(ctx)
+		if !start(subCtx, s) {
+			cancel()
+			continue
+		}
+		subs[s] = cancel
+	}
+	for s, cancel := range subs {
+		if !listed[s] {
+			cancel()
+			delete(subs, s)
+		}
+	}
 }

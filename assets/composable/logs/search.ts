@@ -44,6 +44,12 @@ watchEffect(() => {
   }
 });
 
+// Counted when a search starts. Refining it applies each debounced prefix ("e", "err",
+// "error"), so counting every applied pattern would count one query several times.
+watch(appliedSearchFilter, (value, previous) => {
+  if (value && !previous) trackUsage("logs.search");
+});
+
 const isSearching = computed(() => showSearch.value && appliedSearchFilter.value !== "");
 
 // The warning on the box tracks what is in the box, not what the stream is running, so it

@@ -64,7 +64,9 @@ log-details:
   field: Veld
   value: Waarde
   fields-hint: Sleep om te herordenen. Schakel in of uit om ze in de logstroom te tonen of te verbergen.
+  chart-field: "{field} als grafiek tonen in SQL-analyse"
   toggle-all: Alle velden omschakelen
+  toggle-field: Tonen of verbergen in de logstroom
 label:
   hide-sidebar: "Zijbalk verbergen"
   show-sidebar: "Zijbalk tonen"
@@ -238,6 +240,7 @@ settings:
   new-version: "{version} beschikbaar"
   update-available: "Er is een nieuwere image beschikbaar"
   auto-update-on: "Dozzle houdt zichzelf up-to-date"
+  auto-update-containers: "Containers met het label blijven up-to-date"
   auto-update-daily: "Controleert dagelijks om {time}, servertijd."
   auto-update-weekly: "Controleert wekelijks op zondag om {time}, servertijd."
   show-image-update-alert: 'Image-updatemeldingen'
@@ -311,7 +314,8 @@ toasts:
     message: Log gekopieerd naar klembord
 analytics:
   creating_table: Tijdelijke tabel wordt aangemaakt...
-  downloading: Containerlogs worden opgehaald... ({size})
+  fetching_logs: Containerlogs worden opgehaald
+  loading_engine: SQL-engine wordt geladen
   evaluating_query: Query wordt geëvalueerd...
   total_records: In totaal {count} resultaten.
   showing_first: Eerste {count} worden weergegeven.
@@ -328,6 +332,37 @@ analytics:
   query: Query
   run: Uitvoeren
   results: Resultaten
+  min: Min
+  avg: Gem
+  max: Max
+  p50: P50
+  p95: P95
+  rows: 1 rij | {count} rijen
+updates:
+  title: Updates
+  count: 1 update | {count} updates
+  running: Bijwerken…
+  subtitle: Deze containers draaien een ouder image dan hun registry aanbiedt.
+  subtitle-running: Elke host werkt één container tegelijk bij.
+  none: Alle containers draaien het nieuwste image van hun tag.
+  update-selected: Bijwerken | 1 bijwerken | {count} bijwerken
+  self-last: Dozzle wordt als laatste bijgewerkt en herstart daarna.
+  auto: Auto
+  auto-hint: Wordt ook bijgewerkt volgens het schema voor automatische updates
+  auto-footnote: Geef een container het label {label} om hem volgens het schema voor automatische updates bij te werken.
+  scheduled-running: Het schema voor automatische updates draait nu.
+  progress: "{done} van {total} klaar"
+  back: Terug
+  busy: Er loopt al een andere update.
+  summary: "{updated} bijgewerkt"
+  summary-failed: "{updated} bijgewerkt, {failed} mislukt"
+  status:
+    queued: Wachtrij
+    pulling: Ophalen
+    recreating: Opnieuw maken
+    done: Bijgewerkt
+    up-to-date: Actueel
+    error: Mislukt
 drawer:
   maximize: Maximaliseren
   restore: Herstellen
@@ -758,9 +793,9 @@ setup:
   close: Sluiten
   copy: Kopiëren
   settings-title: Dozzle instellen
-  settings-desc: Inloggen, containeracties, shell en Dozzle Cloud in een paar stappen.
+  settings-desc: "Inloggen, containeracties, shell, andere hosts en Dozzle Cloud in een paar stappen."
   settings-done-title: "Dozzle is ingesteld"
-  settings-done-desc: "Inloggen staat aan. Open de installatie om containeracties, shell en Dozzle Cloud te bekijken."
+  settings-done-desc: "Inloggen staat aan. Open de installatie om containeracties, shell, andere hosts en Dozzle Cloud te bekijken."
   settings-closed-title: "De installatie is gesloten"
   settings-closed-desc: "Zonder login accepteert de installatie alleen wijzigingen in de eerste 15 minuten van een nieuwe installatie. Gebruik in plaats daarvan omgevingsvariabelen."
   steps:
@@ -769,6 +804,8 @@ setup:
     actions: Acties en shell
     cloud: Dozzle Cloud
     cloud-note: Optioneel
+    hosts: "Hosts"
+    hosts-note: "Optioneel"
     update: "Automatisch bijwerken"
     update-note: "Vereist acties"
     restart: Herstarten
@@ -787,6 +824,7 @@ setup:
     password: Wachtwoord
     confirm: Wachtwoord bevestigen
     password-hint: Minstens 8 tekens. Letters, cijfers, punten, streepjes en underscores in de gebruikersnaam.
+    mismatch: De wachtwoorden komen niet overeen.
     saved-volume: Opgeslagen op een gekoppeld volume
     after-restart: Inloggen wordt ingeschakeld na de herstart
     on: Inloggen is ingeschakeld
@@ -817,6 +855,42 @@ setup:
     window-closed: "Zonder inloggen accepteert de installatie alleen wijzigingen in de eerste 15 minuten van een nieuwe installatie. Stel dit in met omgevingsvariabelen, of zet eerst inloggen aan."
     no-access: Je account kan deze instellingen niet wijzigen.
     restart-note: Deze worden actief nadat Dozzle is herstart.
+  hosts:
+    title: "Nog een host toevoegen"
+    subtitle: "Zie de containers op je andere machines vanuit deze Dozzle. Start op elke machine een agent en voeg hier het adres toe."
+    run-title: "Start de agent"
+    run-body: "Zet dit op de andere machine in een compose-bestand en start het. Houd poort 7007 op een privénetwerk."
+    custom-cert: "Deze Dozzle gebruikt een eigen certificaat, dus de agent heeft hetzelfde paar nodig, anders weigert hij de verbinding."
+    cert-docs: "Handleiding certificaten"
+    connect-title: "Maak verbinding"
+    address: "Adres"
+    name: "Naam"
+    optional: "(optioneel)"
+    add: "Host toevoegen"
+    connect-note: "Dozzle maakt eerst verbinding en slaat daarna op. De host verschijnt meteen, zonder herstart."
+    added: "{name} is verbonden."
+    list-title: "Agents"
+    connected: "Verbonden"
+    offline: "Niet verbonden"
+    remove: "Verwijderen"
+    skip: "Niet nu"
+    error-exists: "Die agent is al toegevoegd."
+    error-duplicate: "Die machine is al verbonden als een andere host. Deelt deze agent dezelfde Docker-engine, geef de agent dan een eigen DOZZLE_HOST_ID."
+    error-connect: "Kan geen verbinding maken met de agent: {reason}"
+    error-cert: "De agent heeft een ander certificaat dan deze Dozzle. Kopieer het fragment opnieuw, werk de agent bij en maak hem opnieuw aan."
+    error-cert-custom: "De agent heeft het eigen certificaat van deze Dozzle niet. Geef de agent dezelfde certificaat- en sleutelbestanden en maak hem opnieuw aan."
+    error-unsupported-mode: "In deze modus kunnen hier geen hosts worden toegevoegd of verwijderd."
+    error-invalid: "Dat adres of die naam is ongeldig."
+    error-rate-limited: "Te veel pogingen. Wacht een minuut en probeer het opnieuw."
+    error-env-agent: "Deze agent is ingesteld met DOZZLE_REMOTE_AGENT en kan alleen daar worden verwijderd."
+    error-not-found: "Die agent staat niet meer in de lijst."
+    error-custom-cert: "Deze Dozzle gebruikt al een eigen certificaat, dus er is geen privécertificaat om aan te maken."
+    private-label: "Privécertificaat"
+    private-desc: "Alleen deze Dozzle kan verbinding maken met de agent. Andere agents veranderen niet."
+    private-warning: "Dit fragment bevat een privésleutel. Behandel het als een wachtwoord."
+    private-pill: "privé"
+    private-error: "Kan geen privécertificaat maken, dus het gedeelde wordt gebruikt. {reason}"
+    private-missing: "Deze Dozzle heeft nog geen privécertificaat. Zet Privécertificaat weer aan en probeer het opnieuw."
   cloud:
     title: Dozzle Cloud koppelen
     subtitle: Weet wanneer er iets stukgaat zonder een tabblad open te houden.
@@ -836,6 +910,7 @@ setup:
     subtitle: "Dozzle haalt de nieuwe image op en vervangt zijn eigen container op een rustig uur. Instellingen, gebruikers en meldingen blijven behouden."
     auto-label: "Automatisch bijwerken"
     auto-desc: "Controleert op een nieuwere image en vervangt Dozzle alleen als die er is."
+    auto-containers: Containers met het label {label} worden op hetzelfde moment bijgewerkt.
     when-label: "Wanneer"
     time-label: "Tijd"
     server-time: "Gebruikt de tijdzone van de server."
@@ -851,6 +926,7 @@ setup:
     reason-pinned-tag: "Je gebruikt een vaste versietag, dus er is niets nieuwers om op te halen. Gebruik een tag zoals latest om updates te krijgen."
     reason-unsupported: "Dozzle kan hier zijn eigen container niet vinden en kan zichzelf dus niet vervangen."
     reason-swarm-worker: "Dozzle draait als Swarm-service op een worker-node. Alleen een manager kan de service bijwerken, dus draai Dozzle op een manager of werk het bij met docker service update."
+    containers-still: Containers met het label {label} worden nog steeds volgens dit schema bijgewerkt.
     pull-denied: "{image} kon niet worden opgehaald. Misschien bestaat het alleen op deze machine, of vraagt de registry om docker login."
   restart:
     title: Dozzle herstarten

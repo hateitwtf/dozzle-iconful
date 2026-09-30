@@ -65,7 +65,9 @@ log-details:
   field: Bidang
   value: Nilai
   fields-hint: Seret untuk mengurutkan ulang. Alihkan untuk menampilkan atau menyembunyikan di aliran log.
+  chart-field: "Buat grafik {field} di Analitik SQL"
   toggle-all: Alihkan semua bidang
+  toggle-field: Tampilkan atau sembunyikan di aliran log
 label:
   hide-sidebar: "Sembunyikan bilah sisi"
   show-sidebar: "Tampilkan bilah sisi"
@@ -245,6 +247,7 @@ settings:
   new-version: "{version} tersedia"
   update-available: "Image yang lebih baru tersedia"
   auto-update-on: "Dozzle memperbarui dirinya sendiri"
+  auto-update-containers: "Container berlabel tetap diperbarui"
   auto-update-daily: "Memeriksa setiap hari pukul {time}, waktu server."
   auto-update-weekly: "Memeriksa setiap minggu pada hari Minggu pukul {time}, waktu server."
   show-image-update-alert: 'Peringatan pembaruan image'
@@ -322,7 +325,8 @@ toasts:
 
 analytics:
   creating_table: Membuat tabel sementara...
-  downloading: Mengambil log kontainer... ({size})
+  fetching_logs: Mengambil log kontainer
+  loading_engine: Memuat mesin SQL
   evaluating_query: Mengevaluasi kueri...
   total_records: Total {count} entri.
   showing_first: Menampilkan {count} pertama.
@@ -339,6 +343,37 @@ analytics:
   query: Kueri
   run: Jalankan
   results: Hasil
+  min: Min
+  avg: Rata-rata
+  max: Maks
+  p50: P50
+  p95: P95
+  rows: 1 baris | {count} baris
+updates:
+  title: Pembaruan
+  count: 1 pembaruan | {count} pembaruan
+  running: Memperbarui…
+  subtitle: Container ini menjalankan image yang lebih lama dari yang disediakan registry-nya.
+  subtitle-running: Setiap host memperbarui satu container sekaligus.
+  none: Semua container menjalankan image terbaru dari tag-nya.
+  update-selected: Perbarui | Perbarui 1 | Perbarui {count}
+  self-last: Dozzle diperbarui terakhir, lalu dimulai ulang.
+  auto: Otomatis
+  auto-hint: Juga diperbarui sesuai jadwal pembaruan otomatis
+  auto-footnote: Beri label {label} pada container agar diperbarui sesuai jadwal pembaruan otomatis.
+  scheduled-running: Jadwal pembaruan otomatis sedang berjalan.
+  progress: "{done} dari {total} selesai"
+  back: Kembali
+  busy: Pembaruan lain sedang berjalan.
+  summary: "{updated} diperbarui"
+  summary-failed: "{updated} diperbarui, {failed} gagal"
+  status:
+    queued: Antre
+    pulling: Mengunduh
+    recreating: Membuat ulang
+    done: Diperbarui
+    up-to-date: Terkini
+    error: Gagal
 drawer:
   maximize: Maksimalkan
   restore: Pulihkan
@@ -769,9 +804,9 @@ setup:
   close: "Tutup"
   copy: "Salin"
   settings-title: "Siapkan Dozzle"
-  settings-desc: "Login, aksi kontainer, shell, dan Dozzle Cloud dalam beberapa langkah."
+  settings-desc: "Login, aksi kontainer, shell, host lain, dan Dozzle Cloud dalam beberapa langkah."
   settings-done-title: "Dozzle sudah disiapkan"
-  settings-done-desc: "Login aktif. Buka penyiapan untuk meninjau aksi kontainer, shell, dan Dozzle Cloud."
+  settings-done-desc: "Login aktif. Buka penyiapan untuk meninjau aksi kontainer, shell, host lain, dan Dozzle Cloud."
   settings-closed-title: "Penyiapan sudah ditutup"
   settings-closed-desc: "Tanpa login, penyiapan hanya menerima perubahan dalam 15 menit pertama instalasi baru. Gunakan variabel lingkungan sebagai gantinya."
   steps:
@@ -780,6 +815,8 @@ setup:
     actions: "Aksi dan shell"
     cloud: "Dozzle Cloud"
     cloud-note: "Opsional"
+    hosts: "Host"
+    hosts-note: "Opsional"
     update: "Pembaruan otomatis"
     update-note: "Perlu aksi"
     restart: "Mulai ulang"
@@ -798,6 +835,7 @@ setup:
     password: "Kata sandi"
     confirm: "Konfirmasi kata sandi"
     password-hint: "Minimal 8 karakter. Huruf, angka, titik, tanda hubung, dan garis bawah pada nama pengguna."
+    mismatch: "Kata sandi tidak cocok."
     saved-volume: "Disimpan ke volume yang di-mount"
     after-restart: "Login aktif setelah dimulai ulang"
     "on": "Login aktif"
@@ -828,6 +866,42 @@ setup:
     window-closed: "Tanpa login, penyiapan hanya menerima perubahan pada 15 menit pertama instalasi baru. Setel ini dengan variabel lingkungan, atau aktifkan login terlebih dahulu."
     no-access: "Akun Anda tidak dapat mengubah pengaturan ini."
     restart-note: "Perubahan ini berlaku setelah Dozzle dimulai ulang."
+  hosts:
+    title: "Tambah host lain"
+    subtitle: "Lihat kontainer di mesin Anda yang lain dari Dozzle ini. Jalankan agen di tiap mesin, lalu tambahkan alamatnya di sini."
+    run-title: "Jalankan agen"
+    run-body: "Di mesin lain, tambahkan ini ke file compose lalu jalankan. Simpan port 7007 di jaringan privat."
+    custom-cert: "Dozzle ini memakai sertifikatnya sendiri, jadi agen perlu pasangan yang sama atau koneksinya akan ditolak."
+    cert-docs: "Panduan sertifikat"
+    connect-title: "Hubungkan"
+    address: "Alamat"
+    name: "Nama"
+    optional: "(opsional)"
+    add: "Tambah host"
+    connect-note: "Dozzle menghubungkan dulu sebelum menyimpan. Host langsung muncul, tanpa restart."
+    added: "{name} terhubung."
+    list-title: "Agen"
+    connected: "Terhubung"
+    offline: "Tidak terhubung"
+    remove: "Hapus"
+    skip: "Nanti saja"
+    error-exists: "Agen itu sudah ditambahkan."
+    error-duplicate: "Mesin itu sudah terhubung sebagai host lain. Jika agen ini memakai Docker engine yang sama, beri agen DOZZLE_HOST_ID sendiri."
+    error-connect: "Tidak dapat terhubung ke agen: {reason}"
+    error-cert: "Agen memakai sertifikat yang berbeda dari Dozzle ini. Salin cuplikannya lagi, perbarui agen, lalu buat ulang."
+    error-cert-custom: "Agen tidak memiliki sertifikat khusus Dozzle ini. Berikan file sertifikat dan kunci yang sama ke agen, lalu buat ulang."
+    error-unsupported-mode: "Host tidak dapat ditambahkan atau dihapus di sini dalam mode ini."
+    error-invalid: "Alamat atau nama itu tidak valid."
+    error-rate-limited: "Terlalu banyak percobaan. Tunggu satu menit lalu coba lagi."
+    error-env-agent: "Agen ini diatur lewat DOZZLE_REMOTE_AGENT, jadi hanya bisa dihapus di sana."
+    error-not-found: "Agen itu sudah tidak ada di daftar."
+    error-custom-cert: "Dozzle ini sudah memakai sertifikat khusus, jadi tidak ada sertifikat privat yang perlu dibuat."
+    private-label: "Sertifikat privat"
+    private-desc: "Hanya Dozzle ini yang bisa terhubung ke agen. Agen lain tidak terpengaruh."
+    private-warning: "Cuplikan ini berisi kunci privat. Perlakukan seperti kata sandi."
+    private-pill: "privat"
+    private-error: "Tidak dapat membuat sertifikat privat, jadi sertifikat bersama yang dipakai. {reason}"
+    private-missing: "Dozzle ini belum punya sertifikat privat. Nyalakan lagi Sertifikat privat, lalu coba lagi."
   cloud:
     title: "Hubungkan Dozzle Cloud"
     subtitle: "Ketahui saat ada yang rusak tanpa harus membiarkan tab terbuka."
@@ -847,6 +921,7 @@ setup:
     subtitle: "Dozzle menarik image baru dan mengganti container-nya sendiri pada jam sepi. Pengaturan, pengguna, dan peringatan tetap ada."
     auto-label: "Perbarui otomatis"
     auto-desc: "Memeriksa image yang lebih baru dan hanya mengganti Dozzle jika ada."
+    auto-containers: Container berlabel {label} diperbarui pada waktu yang sama.
     when-label: "Kapan"
     time-label: "Waktu"
     server-time: "Memakai zona waktu server."
@@ -862,6 +937,7 @@ setup:
     reason-pinned-tag: "Anda memakai tag versi yang dipatok, jadi tidak ada yang lebih baru untuk ditarik. Gunakan tag seperti latest untuk mendapat pembaruan."
     reason-unsupported: "Dozzle tidak dapat menemukan kontainernya sendiri di sini, jadi tidak dapat mengganti dirinya sendiri."
     reason-swarm-worker: "Dozzle berjalan sebagai layanan Swarm di node worker. Hanya manager yang dapat memperbarui layanan, jadi jalankan Dozzle di manager atau perbarui dengan docker service update."
+    containers-still: Container berlabel {label} tetap diperbarui sesuai jadwal ini.
     pull-denied: "Tidak dapat menarik {image}. Image ini mungkin hanya ada di mesin ini, atau registry memerlukan docker login."
   restart:
     title: "Mulai ulang Dozzle"
