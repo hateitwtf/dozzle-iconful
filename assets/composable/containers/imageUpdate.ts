@@ -51,7 +51,7 @@ const STALE_AFTER = 30 * 60 * 1000;
 //
 // Matched by container id, the same way the backend decides to self-update, so
 // a renamed image still counts and a second Dozzle on the host does not.
-function isSelf(container: Container) {
+export function isSelf(container: Container) {
   const self = config.selfContainerId;
   if (!self || container.id.length < 12 || !self.startsWith(container.id)) return false;
   if (container.isSwarm) return false;
@@ -66,6 +66,23 @@ function mayBeSelf(container: Container) {
   if (config.selfContainerId || container.isSwarm) return false;
   if (!container.image.includes("amir20/dozzle")) return false;
   return config.hosts.find((host) => host.id === container.host)?.type === "local";
+}
+
+// Same rule as the backend's updatable: a stopped standalone container can
+// still be updated so it starts on the new image, but an exited swarm task is
+// history the orchestrator already replaced.
+function offerable(container: Container) {
+  if (container.state === "deleted") return false;
+  return !container.isSwarm || container.state === "running";
+}
+
+/**
+ * Whether Dozzle can update this container itself, whether or not an update is
+ * waiting. Kubernetes rolls out images through the workload, so a single pod has
+ * nothing to update. Shared by the toolbar and the command palette.
+ */
+export function canUpdate(container: Container) {
+  return !!config.enableActions && config.mode !== "k8s" && !mayBeSelf(container) && offerable(container);
 }
 
 const checkingAll = ref(false);
@@ -100,7 +117,9 @@ async function checkAll(force = false) {
 // Dozzle is able to update itself.
 export const useImageUpdates = () => {
   const hasUpdate = (container: Container) =>
-    results.get(`${container.host}/${container.id}`)?.status === "update-available" && !mayBeSelf(container);
+    offerable(container) &&
+    results.get(`${container.host}/${container.id}`)?.status === "update-available" &&
+    !mayBeSelf(container);
 
   return { checkAll, checking: readonly(checkingAll), hasUpdate, isSelf };
 };
@@ -163,10 +182,7 @@ export const useImageUpdate = (container: Ref<Container>, historical: Ref<boolea
   // The alert is informational, so it shows whether or not actions are on.
   const showAlert = computed(() => updateAvailable.value && !dismissed.value);
 
-  // Whether Dozzle can perform the update itself. Independent of whether an
-  // update is currently available, so the existing manual pull button stays
-  // available exactly as before.
-  const updatable = computed(() => !!config.enableActions && !mayBeSelf(container.value));
+  const updatable = computed(() => canUpdate(container.value));
 
   // Dozzle's own standalone container replaces itself through a helper, so the
   // update waits for the new process and the menu also links the release notes.
@@ -199,7 +215,9 @@ export const useImageUpdate = (container: Ref<Container>, historical: Ref<boolea
       // rendered as HTML so it can carry a docs link. Image names are
       // arbitrary strings, in k8s especially.
       let message = t("alert.image-update.message", { image: escapeHtml(container.value.image) });
-      if (!config.enableActions) {
+      // Kubernetes rolls images out through the workload, so turning actions
+      // on would not give this pod an update button.
+      if (!config.enableActions && config.mode !== "k8s") {
         message += " " + t("alert.image-update.enable-actions");
       }
 

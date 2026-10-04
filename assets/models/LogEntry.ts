@@ -7,6 +7,7 @@ import GroupedLogItem from "@/components/logs/entries/GroupedLogItem.vue";
 import ContainerEventLogItem from "@/components/logs/entries/ContainerEventLogItem.vue";
 import SkippedEntriesLogItem from "@/components/logs/entries/SkippedEntriesLogItem.vue";
 import LoadMoreLogItem from "@/components/logs/entries/LoadMoreLogItem.vue";
+import RangeEdgeLogItem from "@/components/logs/entries/RangeEdgeLogItem.vue";
 import AlertLogItem from "@/components/logs/entries/AlertLogItem.vue";
 import CloudEventLogItem from "@/components/logs/entries/CloudEventLogItem.vue";
 
@@ -69,6 +70,23 @@ export interface MatchedEvent {
  */
 const matchedEvents = new WeakMap<LogEntry<LogMessage>, ShallowRef<MatchedEvent | undefined>>();
 
+/**
+ * What Dozzle Cloud's error memory knows about the pattern behind a line. Kept
+ * beside the entry for the same reasons as matched events above.
+ */
+export interface PatternMemory {
+  status: "new" | "louder" | "known" | "learning";
+  /** The collapsed pattern, e.g. "connection refused to <IP4>:<N>". */
+  pattern: string;
+  /** Nanoseconds; absent when Cloud has never seen the pattern. */
+  firstSeen?: number;
+  daysSeen?: number;
+  ratePerHour: number;
+  usualRatePerHour: number;
+}
+
+const patternMemories = new WeakMap<LogEntry<LogMessage>, ShallowRef<PatternMemory | undefined>>();
+
 export abstract class LogEntry<T extends LogMessage> {
   protected readonly _message: T;
 
@@ -78,6 +96,14 @@ export abstract class LogEntry<T extends LogMessage> {
   }
   public set matchedEvent(event: MatchedEvent | undefined) {
     matchedEventRef(this).value = event;
+  }
+
+  /** Cloud's error memory for this line's pattern, once the loader reports it. */
+  public get patternMemory(): PatternMemory | undefined {
+    return patternMemoryRef(this).value;
+  }
+  public set patternMemory(memory: PatternMemory | undefined) {
+    patternMemoryRef(this).value = memory;
   }
   constructor(
     message: T,
@@ -206,6 +232,7 @@ export class ComplexLogEntry extends LogEntry<JSONObject> {
     // away before it was drawn. Sharing the ref rather than copying the value
     // also keeps a badge that arrives after this clone was made.
     matchedEvents.set(clone, matchedEventRef(event));
+    patternMemories.set(clone, patternMemoryRef(event));
     return clone;
   }
 }
@@ -354,6 +381,36 @@ export class LoadMoreLogEntry extends LogEntry<string> {
   async loadMore(): Promise<void> {
     await this.loader(this);
   }
+}
+
+export type RangeEdgeAction = { label: string; run: () => void };
+
+/**
+ * Where a time range stops, at the top or the bottom of the stream, with the
+ * ways to move that end. It takes the place of the load-more row once nothing is
+ * left to load inside the range.
+ */
+export class RangeEdgeLogEntry extends LogEntry<string> {
+  constructor(
+    date: Date,
+    public readonly edge: "start" | "end",
+    public readonly actions: RangeEdgeAction[],
+  ) {
+    super("", "", date.getTime(), date, "stderr", "info");
+  }
+
+  getComponent(): Component {
+    return RangeEdgeLogItem;
+  }
+}
+
+function patternMemoryRef(entry: LogEntry<any>): ShallowRef<PatternMemory | undefined> {
+  let existing = patternMemories.get(entry);
+  if (!existing) {
+    existing = shallowRef<PatternMemory | undefined>(undefined);
+    patternMemories.set(entry, existing);
+  }
+  return existing;
 }
 
 function matchedEventRef(entry: LogEntry<any>): ShallowRef<MatchedEvent | undefined> {

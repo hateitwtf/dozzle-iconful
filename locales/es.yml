@@ -13,6 +13,8 @@ toolbar:
   stop: Detener
   start: Iniciar
   restart: Reiniciar
+  rollout-restart: "Reiniciar {kind}"
+  rollout-restart-done: "{workload} está desplegando pods nuevos."
   update: Actualizar
   update-service: Actualizar Servicio
   update-pulling: Descargando última imagen...
@@ -47,6 +49,7 @@ toolbar:
   section-export: Exportar
   section-container: Contenedor
   section-image: Imagen
+  section-workload: "Carga de trabajo"
 action:
   copy-log: Copiar registro
   copy-link: Copiar enlace permanente
@@ -86,6 +89,7 @@ label:
   event-suppressed-hint: Dozzle Cloud detectó esta línea pero retuvo la alerta
   event-metric: Métrica
   event-container: Contenedor
+  memory-new: "Nuevo"
   host-count: Sin Hosts | 1 Host | {count} Hosts
   service: Sin servicios | 1 servicio | {count} servicios
   services: Servicios
@@ -107,6 +111,9 @@ label:
   name: Nombre
   cpu: CPU
   core: Sin núcleos | 1 núcleo | {count} núcleos
+  disk: Disco
+  load: Carga
+  uptime: Tiempo activo
   mem: MEM
   pinned: Fijado
   per-page: Filas por página
@@ -132,12 +139,15 @@ label:
   more-options: Más opciones
   groups: Grupos
 tooltip:
+  memory-new: "Dozzle Cloud no había visto este error en este contenedor. Haz clic para verlo en contexto."
+  memory-new-since: "Visto por primera vez en este contenedor: {time}. Haz clic para ver dónde empezó."
   live-logs: Estos registros están congelados en este momento. Haz clic para seguir la transmisión en vivo.
   search: Buscar contenedores (⌘ + K, CTRL + K)
   pin-column: Anclar como columna
   unpin-column: Desanclar columna
   merge-stream: Combinar en el flujo
   merge-stream-hint: Abre un contenedor para combinarlo
+  merge-stream-other-host: "Solo se pueden combinar contenedores del mismo host"
   unmerge-stream: Quitar del flujo
   merge-all: Fusionar todo en un flujo
   network-io: "Red: ↑ {tx}/s · ↓ {rx}/s"
@@ -173,6 +183,8 @@ error:
   logs-skipped: Mostrar {total} entradas ocultas
   container-not-found: Contenedor no encontrado.
   container-not-found-hint: Puede que se haya eliminado o que su host ya no esté accesible.
+  nothing-running: "No hay nada en ejecución"
+  nothing-running-hint: "Ninguno de los contenedores de esta vista está en ejecución. Los logs aparecerán aquí en cuanto se inicie uno."
   action-failed: Acción Fallida
   update-failed: Actualización Fallida
   unable-to-complete-action: No se pudo completar la acción
@@ -259,6 +271,26 @@ cloud-chat:
     notifications: Comprobando las notificaciones…
     action: Ejecutando la acción…
     working: Trabajando…
+  step:
+    logs: Buscando en los logs
+    containers: Revisando contenedores
+    stats: Comprobando el uso de recursos
+    inspect: Inspeccionando el contenedor
+    alerts: Revisando alertas
+    findings: Revisando hallazgos
+    events: Revisando el historial del contenedor
+    docs: Leyendo la documentación
+    notifications: Revisando notificaciones
+    action: Ejecutando la acción
+  phase:
+    reading: Leyendo la pregunta
+    reviewing: Repasando lo encontrado
+    writing: Escribiendo la respuesta
+    retrying: Tarda más de lo normal, reintentando
+  found: "{n} encontrados"
+  nothing-found: no se encontró nada
+  worked-for: Trabajó {time}
+  earlier: "{n} anteriores"
   placeholder: Pregunta sobre estos logs
   historical: histórico
   n-containers: "{n} contenedores"
@@ -965,3 +997,45 @@ mcp-authorize:
   return: "Volver al cliente"
   redirecting: "Volviendo al cliente. Puedes cerrar esta pestaña cuando termine."
   failed: "No se pudo completar esta solicitud."
+mobile-nav:
+  label: "Principal"
+  home: "Inicio"
+  browse: "Explorar"
+  back: "Atrás"
+time-range:
+  title: "Intervalo de tiempo"
+  live: "En vivo"
+  last-15m: "Últimos 15 minutos"
+  last-1h: "Última hora"
+  last-6h: "Últimas 6 horas"
+  last-24h: "Últimas 24 horas"
+  custom: "Intervalo personalizado"
+  from: "Desde"
+  to: "Hasta"
+  keep-following: "Seguir en vivo"
+  volume: "Volumen de logs"
+  errors: "Errores"
+  bucket: "{lines} líneas · {errors} errores"
+  not-scanned: "sin leer"
+  invalid: "El final debe ser posterior al inicio."
+  show: "Mostrar logs"
+  edge-start: "Desde"
+  edge-end: "Hasta"
+  show-earlier: "mostrar antes"
+  show-later: "mostrar después"
+  to-now: "hasta ahora"
+  shift-earlier: "Ventana anterior"
+  shift-later: "Ventana siguiente"
+  last-short: "Últimos {span}"
+  since-short: "Desde {time}"
+  custom-hint: "Elige los días y luego las horas. Horas en {zone}."
+  keep-following-hint: "Deja el final abierto y sigue mostrando líneas nuevas."
+  previous-month: "Mes anterior"
+  next-month: "Mes siguiente"
+  empty-range: "No hay logs en este intervalo"
+  empty-range-hint: "No se escribió nada entre {from} y {to}."
+  empty-since: "No hay logs desde {time}"
+  empty-since-hint: "Las líneas nuevas aparecen aquí en cuanto se escriben."
+  jump-before: "Líneas anteriores · {time}"
+  jump-after: "Líneas posteriores · {time}"
+  empty-window: "No hay logs en esta ventana"

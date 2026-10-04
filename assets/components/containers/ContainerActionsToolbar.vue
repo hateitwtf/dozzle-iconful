@@ -1,11 +1,16 @@
 <template>
   <Popover
     hover
+    sheet
     placement="bottom-end"
     panel-class="rounded-box bg-base-200 border-base-content/10 w-max min-w-60 border p-1.5 shadow-lg"
   >
     <template #trigger>
-      <button type="button" class="icon-btn btn btn-ghost btn-sm relative w-8 gap-0 px-0 md:gap-0.5">
+      <button
+        type="button"
+        class="icon-btn btn btn-ghost btn-sm relative w-8 gap-0 px-0 md:gap-0.5"
+        data-testid="log-actions"
+      >
         <carbon:circle-solid class="text-red w-2 md:w-2.5" v-if="streamConfig.stderr" />
         <carbon:circle-solid class="text-blue w-2 md:w-2.5" v-if="streamConfig.stdout" />
         <span
@@ -69,6 +74,31 @@
         </a>
       </li>
       <li class="section">{{ $t("toolbar.section-filters") }}</li>
+      <!-- A phone has no room for the time chip in the title bar, so it lives here. -->
+      <li v-if="isMobile && !historical">
+        <details>
+          <summary>
+            <mdi:clock-outline />
+            {{ $t("time-range.title") }}
+            <span class="value">{{ timeLabel }}</span>
+          </summary>
+          <ul class="menu">
+            <li v-for="row in timeRows" :key="row.key">
+              <a @click="row.run()">
+                <mdi:check class="w-4" v-if="row.active" />
+                <div v-else class="w-4"></div>
+                {{ row.label }}
+              </a>
+            </li>
+            <li>
+              <a @click="customRange()">
+                <mdi:calendar-range class="w-4" />
+                {{ $t("time-range.custom") }}…
+              </a>
+            </li>
+          </ul>
+        </details>
+      </li>
       <li>
         <details>
           <summary>
@@ -170,24 +200,16 @@
       <li class="section" v-if="showContainerSection">{{ $t("toolbar.section-container") }}</li>
       <template v-if="enableActions && !historical">
         <!-- Kubernetes has no stop or start for one container, only restart. -->
-        <li v-if="canStartStop">
-          <button
-            @click="stop()"
-            :disabled="actionStates.stop || actionStates.restart"
-            v-if="container.state == 'running'"
-          >
+        <li v-if="canStartStop && power">
+          <button @click="stop()" :disabled="actionStates.stop || actionStates.restart" v-if="power === 'stop'">
             <carbon:stop-filled-alt /> {{ $t("toolbar.stop") }}
           </button>
 
-          <button
-            @click="start()"
-            :disabled="actionStates.start || actionStates.restart"
-            v-if="container.state != 'running'"
-          >
+          <button @click="start()" :disabled="actionStates.start || actionStates.restart" v-else>
             <carbon:play /> {{ $t("toolbar.start") }}
           </button>
         </li>
-        <li>
+        <li v-if="power">
           <button @click="restart()" :disabled="disableRestart">
             <carbon:restart
               :class="{
@@ -196,6 +218,13 @@
               }"
             />
             {{ $t("toolbar.restart") }}
+          </button>
+        </li>
+        <!-- Restart above replaces this one pod; this rolls every pod of the workload. -->
+        <li v-if="workload">
+          <button @click="rolloutRestart(workload)" :disabled="rollingOut" :title="`${workload.kind}/${workload.name}`">
+            <carbon:renew :class="{ 'animate-spin': rollingOut, 'text-secondary': rollingOut }" />
+            {{ $t("toolbar.rollout-restart", { kind: workload.kind }) }}
           </button>
         </li>
         <li v-if="imageUpdatable">
@@ -275,8 +304,9 @@
 </template>
 
 <script lang="ts" setup>
-import { Container } from "@/models/Container";
+import { Container, powerAction } from "@/models/Container";
 import { allLevels } from "@/composable/logs/logContext";
+import { appendRangeParams } from "@/composable/logs/timeRange";
 import LogAnalytics from "@/components/logs/LogAnalytics.vue";
 import Terminal from "./Terminal.vue";
 
@@ -285,13 +315,23 @@ const { linked: cloudLinked } = useCloudSurface();
 const { openRail, openCloud } = useCloudRail();
 const { unseen: unseenAlerts } = useViewAlerts();
 const { enableActions, enableShell, enableDownload } = config;
-const { streamConfig, hasComplexLogs, levels } = useLoggingContext();
+const { streamConfig, hasComplexLogs, levels, timeRange } = useLoggingContext();
+const {
+  rows: timeRows,
+  label: timeLabel,
+  custom: customRange,
+} = useTimeRangeMenu(
+  () => container,
+  () => timeRange.value,
+);
 const showDrawer = useDrawer();
 
 const { container, historical = false } = defineProps<{ container: Container; historical?: boolean }>();
 const clear = defineEmit();
 const { actionStates, start, stop, restart, update } = useContainerActions(toRef(() => container));
 const canStartStop = config.mode !== "k8s";
+const workload = computed(() => containerWorkload(container));
+const { restarting: rollingOut, rolloutRestart } = useRolloutRestart();
 const {
   showAlert: showImageUpdateAlert,
   isSelf: isSelfContainer,
@@ -343,6 +383,7 @@ async function copyLogs() {
   if (streamConfig.value.stdout) params.append("stdout", "1");
   if (streamConfig.value.stderr) params.append("stderr", "1");
   params.append("everything", "1");
+  appendRangeParams(params, timeRange.value);
 
   const { appliedSearchFilter } = useSearchFilter();
   if (appliedSearchFilter.value) {
@@ -451,6 +492,8 @@ const { downloadUrl, isFiltered } = useDownloadUrl(
   toRef(() => container.name),
 );
 
+// Nothing to act on once the container is deleted, and Docker will not start a paused one.
+const power = computed(() => powerAction(container));
 const disableRestart = computed(() => actionStates.stop || actionStates.start || actionStates.restart);
 
 // The section header is shared by container actions and the shell entries, so it

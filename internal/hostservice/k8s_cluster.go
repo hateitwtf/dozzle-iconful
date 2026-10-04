@@ -2,8 +2,11 @@ package hostservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -108,7 +111,8 @@ func (m *K8sClusterService) watchNodes(ctx context.Context, client *k8s.Client) 
 // setHost records a host and tells subscribers, but only when something they can see
 // changed: nodes report status every few seconds with nothing new in it.
 func (m *K8sClusterService) setHost(host container.Host) {
-	if previous, ok := m.hosts.Load(host.ID); ok && previous == host {
+	// DeepEqual, not ==: Host carries a Disks slice, so it is no longer comparable.
+	if previous, ok := m.hosts.Load(host.ID); ok && reflect.DeepEqual(previous, host) {
 		return
 	}
 	m.hosts.Store(host.ID, host)
@@ -134,6 +138,40 @@ func (m *K8sClusterService) FindContainer(host string, id string, labels contain
 	}
 
 	return container.NewContainerService(m.client, c), nil
+}
+
+// ErrWorkloadNotFound means none of the workload's pods are visible to the caller.
+var ErrWorkloadNotFound = errors.New("workload not found")
+
+// RolloutRestart restarts a workload only if the caller can see at least one of its
+// pods, so a label filter that hides a workload also keeps it from being restarted.
+func (m *K8sClusterService) RolloutRestart(ctx context.Context, namespace, kind, name string, labels container.ContainerLabels) error {
+	containers, err := m.client.ListContainers(ctx, labels)
+	if err != nil {
+		return err
+	}
+	if !workloadVisible(containers, namespace, kind, name) {
+		return ErrWorkloadNotFound
+	}
+	return m.client.RolloutRestart(ctx, namespace, kind, name)
+}
+
+// workloadVisible matches any link in the owner chain, not only its top: an
+// operator's custom resource can own the StatefulSet that owns the pod.
+func workloadVisible(containers []container.Container, namespace, kind, name string) bool {
+	return slices.ContainsFunc(containers, func(c container.Container) bool {
+		if c.Labels["@k8s.namespace"] != namespace {
+			return false
+		}
+		count, _ := strconv.Atoi(c.Labels["@k8s.owner.count"])
+		for i := range count {
+			prefix := fmt.Sprintf("@k8s.owner.%d.", i)
+			if c.Labels[prefix+"kind"] == kind && c.Labels[prefix+"name"] == name {
+				return true
+			}
+		}
+		return false
+	})
 }
 
 func (m *K8sClusterService) ListContainersForHost(host string, labels container.ContainerLabels) ([]container.Container, error) {
@@ -227,6 +265,11 @@ func (m *K8sClusterService) LocalClients() []container.Client {
 
 func (m *K8sClusterService) LocalClientServices() []container.ClientService {
 	return []container.ClientService{m.client}
+}
+
+// ClientServices is the one cluster client: k8s mode has no agents to add.
+func (m *K8sClusterService) ClientServices(_ bool) []container.ClientService {
+	return m.LocalClientServices()
 }
 
 // StartNotificationManager initializes and starts the notification manager for k8s mode

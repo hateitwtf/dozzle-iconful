@@ -112,6 +112,9 @@ type CloudHooks struct {
 	// GetRecentAlerts fetches what fired lately across the instance, for the
 	// notifications page and the container dot. Nil when cloud is not wired.
 	GetRecentAlerts func(ctx context.Context, sinceNs int64, limit int32, subscriptionID string, includeFollowUps bool) (*cloud.AlertResult, error)
+	// GetPatternContext asks Cloud's error memory about the lines on screen:
+	// whether each one's pattern is new for its container, or louder than usual.
+	GetPatternContext func(ctx context.Context, lines []cloud.PatternLine, fromNs, toNs int64) ([]cloud.PatternContext, error)
 
 	// GetContainerMetrics reads back the stats this instance pushed for one
 	// container, past the live window the browser holds. Nil when cloud is not
@@ -164,6 +167,7 @@ type HostService interface {
 	SubscribeAvailableHosts(ctx context.Context, hosts chan<- container.Host)
 	LocalClients() []container.Client
 	LocalClientServices() []container.ClientService
+	ClientServices(retry bool) []container.ClientService
 	// Notification methods
 	AddSubscription(sub *notification.Subscription) error
 	RemoveSubscription(id int)
@@ -194,6 +198,14 @@ type handler struct {
 	reconcileMu  sync.Mutex
 	reconciling  bool
 	reconciledAt time.Time
+
+	// One shared ticker keeps every open tab's host card current. It is started
+	// lazily on the first subscriber and reads each host once per interval, the
+	// agents over the connections they already hold, so the work grows with the
+	// number of hosts and not with the number of tabs.
+	hostMetricsOnce sync.Once
+	hostMetricsMu   sync.Mutex
+	hostMetricsSubs map[chan []hostMetricsEvent]struct{}
 }
 
 // Server is the HTTP server plus the usage beacon hooks main runs around it.
@@ -275,6 +287,7 @@ func createRouter(h *handler) *chi.Mux {
 				r.Get("/hosts/{host}/containers/{id}/logs/stream", h.streamContainerLogs)
 				r.Get("/hosts/{host}/logs/stream", h.streamHostLogs)
 				r.Get("/hosts/{host}/containers/{id}/logs", h.fetchLogsBetweenDates)
+				r.Get("/hosts/{host}/containers/{id}/logs/histogram", h.fetchLogHistogram)
 				r.Get("/hosts/{host}/logs/mergedStream/{ids}", h.streamLogsMerged)
 				r.Get("/containers/{hostIds}/download", h.downloadLogs) // formatted as host:container,host:container
 				r.Get("/labels/{labels}/logs/stream", h.streamLogsWithLabels)
@@ -304,6 +317,9 @@ func createRouter(h *handler) *chi.Mux {
 					r.Get("/updates/stream", h.streamBulkUpdate)
 					if h.config.Mode == "server" {
 						r.Post("/update/self", h.updateSelf)
+					}
+					if h.config.Mode == "k8s" {
+						r.Post("/k8s/workloads/{namespace}/{kind}/{name}/restart", h.rolloutRestart)
 					}
 				}
 				if h.config.EnableShell {
@@ -369,6 +385,7 @@ func createRouter(h *handler) *chi.Mux {
 					r.Get("/search/logs", h.cloudSearchLogs)
 					r.Get("/alerts", h.cloudAlerts)
 					r.Get("/alerts/recent", h.cloudRecentAlerts)
+					r.Post("/patterns", h.cloudPatterns)
 					r.Get("/hosts/{host}/containers/{id}/metrics", h.cloudContainerMetrics)
 					r.Post("/chat", h.cloudChat)
 					r.Get("/config", h.cloudConfig)

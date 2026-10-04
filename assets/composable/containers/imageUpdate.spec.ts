@@ -54,7 +54,7 @@ vi.mock("vue-i18n", () => ({
   }),
 }));
 
-const { useImageUpdate } = await import("./imageUpdate");
+const { useImageUpdate, useImageUpdates } = await import("./imageUpdate");
 
 let counter = 0;
 
@@ -78,6 +78,7 @@ function container(overrides: Partial<Container> = {}): Container {
     host: "localhost",
     image: "nginx:latest",
     isSwarm: false,
+    state: "running",
     ...overrides,
   } as Container;
 }
@@ -221,6 +222,18 @@ describe("useImageUpdate", () => {
     expect(result.updatable.value).toBe(true);
   });
 
+  // The server refuses updates in k8s mode, so the menu must not offer one.
+  test("does not offer updating in Kubernetes mode", async () => {
+    holder.config.mode = "k8s";
+    try {
+      mockCheck({ status: "update-available", remoteDigest: "sha256:new" });
+      const { result } = await run(container({ host: "remote" }));
+      expect(result.updatable.value).toBe(false);
+    } finally {
+      delete holder.config.mode;
+    }
+  });
+
   test("allows updating Dozzle when it runs as a swarm service", async () => {
     mockCheck({ status: "update-available", remoteDigest: "sha256:new" });
     const { result } = await run(container({ id: SELF_ID, image: "amir20/dozzle:latest", isSwarm: true }));
@@ -347,6 +360,22 @@ describe("useImageUpdate", () => {
       expect(holder.toasts[0].message).toContain("alert.image-update.enable-actions");
     });
 
+    // In k8s there is no per-pod update to unlock, so the notice stays informational.
+    test("neither offers an update nor suggests actions in Kubernetes mode", async () => {
+      holder.config.mode = "k8s";
+      holder.config.enableActions = false;
+      holder.showAlertSetting!.value = true;
+      try {
+        mockCheck({ status: "update-available", remoteDigest: "sha256:new" });
+        await run(container());
+
+        expect(holder.toasts[0].action).toBeUndefined();
+        expect(holder.toasts[0].message).not.toContain("alert.image-update.enable-actions");
+      } finally {
+        delete holder.config.mode;
+      }
+    });
+
     test("does not nag about actions when they are already enabled", async () => {
       holder.showAlertSetting!.value = true;
       mockCheck({ status: "update-available", remoteDigest: "sha256:new" });
@@ -388,5 +417,47 @@ describe("useImageUpdate", () => {
 
       expect(holder.toasts).toHaveLength(0);
     });
+  });
+});
+
+describe("useImageUpdates", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  async function checkAll(...containers: Container[]) {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () =>
+          containers.map((c) => ({
+            host: c.host,
+            id: c.id,
+            result: { status: "update-available", image: c.image, checkedAt: new Date().toISOString() },
+          })),
+      }),
+    );
+    const updates = useImageUpdates();
+    await updates.checkAll(true);
+    return updates;
+  }
+
+  test("offers a stopped standalone container", async () => {
+    const stopped = container({ state: "exited" });
+    const { hasUpdate } = await checkAll(stopped);
+    expect(hasUpdate(stopped)).toBe(true);
+  });
+
+  test("skips an exited swarm task but offers the running one", async () => {
+    const old = container({ state: "exited", isSwarm: true });
+    const current = container({ state: "running", isSwarm: true });
+    const { hasUpdate } = await checkAll(old, current);
+    expect(hasUpdate(old)).toBe(false);
+    expect(hasUpdate(current)).toBe(true);
+  });
+
+  test("skips a deleted container", async () => {
+    const deleted = container({ state: "deleted" });
+    const { hasUpdate } = await checkAll(deleted);
+    expect(hasUpdate(deleted)).toBe(false);
   });
 });

@@ -13,6 +13,8 @@ toolbar:
   stop: Durdur
   start: Başlat
   restart: Yeniden Başlat
+  rollout-restart: "{kind} yeniden başlat"
+  rollout-restart-done: "{workload} yeni pod'ları dağıtıyor."
   update: Güncelle
   update-service: Servisi Güncelle
   update-pulling: En son imaj indiriliyor...
@@ -47,6 +49,7 @@ toolbar:
   section-export: Dışa aktar
   section-container: Konteyner
   section-image: İmaj
+  section-workload: "İş yükü"
 action:
   copy-log: Günlüğü kopyala
   copy-link: Kalıcı bağlantıyı kopyala
@@ -86,6 +89,7 @@ label:
   event-suppressed-hint: Dozzle Cloud bu satırı eşleştirdi ancak uyarıyı tuttu
   event-metric: Metrik
   event-container: Konteyner
+  memory-new: "Yeni"
   host-count: Ana Bilgisayar yok | 1 Ana Bilgisayar | {count} Ana Bilgisayar
   service: Servis yok | 1 servis | {count} servis
   services: Servisler
@@ -107,6 +111,9 @@ label:
   name: Ad
   cpu: CPU
   core: Çekirdek yok | 1 çekirdek | {count} çekirdek
+  disk: Disk
+  load: Yük
+  uptime: Çalışma süresi
   mem: MEM
   pinned: Sabitlenmiş
   per-page: Sayfa başına satır
@@ -132,12 +139,15 @@ label:
   more-options: Diğer seçenekler
   groups: Gruplar
 tooltip:
+  memory-new: "Dozzle Cloud bu hatayı bu container'da daha önce görmedi. Bağlamında görmek için tıklayın."
+  memory-new-since: "Bu container'da ilk görülme: {time}. Nerede başladığını görmek için tıklayın."
   live-logs: Bu günlükler bu ana sabitlenmiştir. Canlı akışı izlemek için tıklayın.
   search: Konteynerlerde ara (⌘ + k, ⌃k)
   pin-column: Sütun olarak sabitle
   unpin-column: Sütun sabitlemesini kaldır
   merge-stream: Akışa birleştir
   merge-stream-hint: Birleştirmek için bir konteyner açın
+  merge-stream-other-host: "Yalnızca aynı ana makinedeki konteynerler birleştirilebilir"
   unmerge-stream: Akıştan çıkar
   merge-all: Tümünü tek bir akışta birleştir
   network-io: "Ağ: ↑ {tx}/sn · ↓ {rx}/sn"
@@ -173,6 +183,8 @@ error:
   logs-skipped: "{total} gizli girişi göster"
   container-not-found: Konteyner bulunamadı
   container-not-found-hint: Kaldırılmış olabilir ya da ana makinesine artık ulaşılamıyor.
+  nothing-running: "Burada çalışan bir şey yok"
+  nothing-running-hint: "Bu görünümdeki konteynerlerin hiçbiri çalışmıyor. Biri başladığında loglar burada görünür."
   action-failed: İşlem Başarısız
   update-failed: Güncelleme Başarısız
   unable-to-complete-action: İşlem tamamlanamadı
@@ -720,6 +732,26 @@ cloud-chat:
     notifications: Bildirimler kontrol ediliyor…
     action: İşlem çalıştırılıyor…
     working: Çalışıyor…
+  step:
+    logs: Loglarda aranıyor
+    containers: Container'lara bakılıyor
+    stats: Kaynak kullanımı kontrol ediliyor
+    inspect: Container inceleniyor
+    alerts: Uyarılar gözden geçiriliyor
+    findings: Bulgular gözden geçiriliyor
+    events: Container geçmişi kontrol ediliyor
+    docs: Belgeler okunuyor
+    notifications: Bildirimler kontrol ediliyor
+    action: İşlem çalıştırılıyor
+  phase:
+    reading: Soru okunuyor
+    reviewing: Bulunanlar değerlendiriliyor
+    writing: Yanıt yazılıyor
+    retrying: Normalden uzun sürüyor, yeniden deneniyor
+  found: "{n} bulundu"
+  nothing-found: hiçbir şey bulunamadı
+  worked-for: "{time} çalıştı"
+  earlier: "{n} önceki"
   placeholder: Bu loglar hakkında sor
   historical: geçmiş
   n-containers: "{n} konteyner"
@@ -968,3 +1000,45 @@ mcp-authorize:
   return: "İstemciye dön"
   redirecting: "İstemciye dönülüyor. Tamamlandığında bu sekmeyi kapatabilirsiniz."
   failed: "Bu istek tamamlanamadı."
+mobile-nav:
+  label: "Ana menü"
+  home: "Ana sayfa"
+  browse: "Göz at"
+  back: "Geri"
+time-range:
+  title: "Zaman aralığı"
+  live: "Canlı"
+  last-15m: "Son 15 dakika"
+  last-1h: "Son 1 saat"
+  last-6h: "Son 6 saat"
+  last-24h: "Son 24 saat"
+  custom: "Özel aralık"
+  from: "Başlangıç"
+  to: "Bitiş"
+  keep-following: "Takip etmeye devam et"
+  volume: "Log hacmi"
+  errors: "Hatalar"
+  bucket: "{lines} satır · {errors} hata"
+  not-scanned: "okunmadı"
+  invalid: "Bitiş, başlangıçtan sonra olmalı."
+  show: "Logları göster"
+  edge-start: "Başlangıç"
+  edge-end: "Bitiş"
+  show-earlier: "daha öncesini göster"
+  show-later: "daha sonrasını göster"
+  to-now: "şimdiye kadar"
+  shift-earlier: "Önceki pencere"
+  shift-later: "Sonraki pencere"
+  last-short: "Son {span}"
+  since-short: "{time} itibarıyla"
+  custom-hint: "Önce günleri, sonra saatleri seç. Saatler {zone} saat diliminde."
+  keep-following-hint: "Bitişi açık bırak ve yeni satırları göstermeye devam et."
+  previous-month: "Önceki ay"
+  next-month: "Sonraki ay"
+  empty-range: "Bu aralıkta log yok"
+  empty-range-hint: "{from} ile {to} arasında hiçbir şey yazılmadı."
+  empty-since: "{time} itibarıyla log yok"
+  empty-since-hint: "Yeni satırlar yazılır yazılmaz burada görünür."
+  jump-before: "Önceki satırlar · {time}"
+  jump-after: "Sonraki satırlar · {time}"
+  empty-window: "Bu pencerede log yok"

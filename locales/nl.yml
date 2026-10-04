@@ -13,6 +13,8 @@ toolbar:
   stop: Stoppen
   start: Starten
   restart: Herstarten
+  rollout-restart: "{kind} herstarten"
+  rollout-restart-done: "{workload} rolt nieuwe pods uit."
   update: Bijwerken
   update-service: Service Bijwerken
   update-pulling: Laatste image ophalen...
@@ -47,6 +49,7 @@ toolbar:
   section-export: Exporteren
   section-container: Container
   section-image: Image
+  section-workload: "Workload"
 action:
   copy-log: Log kopiëren
   copy-link: Permalink kopiëren
@@ -86,6 +89,7 @@ label:
   event-suppressed-hint: Dozzle Cloud herkende deze regel maar hield de melding tegen
   event-metric: Metriek
   event-container: Container
+  memory-new: "Nieuw"
   host-count: Geen Hosts | 1 Host | {count} Hosts
   service: Geen services | 1 service | {count} services
   services: Services
@@ -107,6 +111,9 @@ label:
   name: Naam
   cpu: CPU
   core: Geen kernen | 1 kern | {count} kernen
+  disk: Schijf
+  load: Belasting
+  uptime: Uptime
   mem: MEM
   pinned: Vastgezet
   per-page: Rijen per pagina
@@ -132,12 +139,15 @@ label:
   more-options: Meer opties
   groups: Groepen
 tooltip:
+  memory-new: "Dozzle Cloud heeft deze fout nog niet eerder op deze container gezien. Klik om hem in context te zien."
+  memory-new-since: "Voor het eerst gezien op deze container: {time}. Klik om te zien waar hij begon."
   live-logs: Deze logs zijn bevroren op dit tijdstip. Klik om de live stream te volgen.
   search: Zoek containers (⌘ + k, ⌃k)
   pin-column: Vastzetten als kolom
   unpin-column: Kolom losmaken
   merge-stream: Samenvoegen met stream
   merge-stream-hint: Open een container om mee samen te voegen
+  merge-stream-other-host: "Alleen containers op dezelfde host kunnen worden samengevoegd"
   unmerge-stream: Verwijderen uit stream
   merge-all: Voeg alles samen in één stream
   network-io: "Netwerk: ↑ {tx}/s · ↓ {rx}/s"
@@ -173,6 +183,8 @@ error:
   logs-skipped: Toon {total} verborgen items
   container-not-found: Container niet gevonden
   container-not-found-hint: Mogelijk is hij verwijderd, of is de host niet meer bereikbaar.
+  nothing-running: "Hier draait niets"
+  nothing-running-hint: "Geen van de containers in deze weergave draait. Logs verschijnen hier zodra er een start."
   action-failed: Actie Mislukt
   update-failed: Update Mislukt
   unable-to-complete-action: Kan actie niet voltooien
@@ -718,6 +730,26 @@ cloud-chat:
     notifications: Meldingen controleren…
     action: Actie uitvoeren…
     working: Bezig…
+  step:
+    logs: Logs doorzoeken
+    containers: Containers bekijken
+    stats: Resourcegebruik controleren
+    inspect: Container inspecteren
+    alerts: Waarschuwingen bekijken
+    findings: Bevindingen bekijken
+    events: Containergeschiedenis controleren
+    docs: Documentatie lezen
+    notifications: Meldingen controleren
+    action: Actie uitvoeren
+  phase:
+    reading: Vraag lezen
+    reviewing: Resultaten doornemen
+    writing: Antwoord schrijven
+    retrying: Duurt langer dan normaal, opnieuw proberen
+  found: "{n} gevonden"
+  nothing-found: niets gevonden
+  worked-for: "{time} gewerkt"
+  earlier: "{n} eerdere"
   placeholder: Vraag over deze logs
   historical: historisch
   n-containers: "{n} containers"
@@ -966,3 +998,45 @@ mcp-authorize:
   return: "Terug naar de client"
   redirecting: "Terug naar de client. Je kunt dit tabblad sluiten zodra het klaar is."
   failed: "Dit verzoek kon niet worden voltooid."
+mobile-nav:
+  label: "Hoofdmenu"
+  home: "Start"
+  browse: "Bladeren"
+  back: "Terug"
+time-range:
+  title: "Tijdsbereik"
+  live: "Live"
+  last-15m: "Laatste 15 minuten"
+  last-1h: "Laatste uur"
+  last-6h: "Laatste 6 uur"
+  last-24h: "Laatste 24 uur"
+  custom: "Aangepast bereik"
+  from: "Van"
+  to: "Tot"
+  keep-following: "Blijven volgen"
+  volume: "Logvolume"
+  errors: "Fouten"
+  bucket: "{lines} regels · {errors} fouten"
+  not-scanned: "niet gelezen"
+  invalid: "Het einde moet na het begin liggen."
+  show: "Logs tonen"
+  edge-start: "Vanaf"
+  edge-end: "Tot"
+  show-earlier: "eerder tonen"
+  show-later: "later tonen"
+  to-now: "tot nu"
+  shift-earlier: "Vorig venster"
+  shift-later: "Volgend venster"
+  last-short: "Laatste {span}"
+  since-short: "Sinds {time}"
+  custom-hint: "Kies de dagen en daarna de tijden. Tijden in {zone}."
+  keep-following-hint: "Laat het einde open en blijf nieuwe regels tonen."
+  previous-month: "Vorige maand"
+  next-month: "Volgende maand"
+  empty-range: "Geen logs in dit bereik"
+  empty-range-hint: "Er is niets geschreven tussen {from} en {to}."
+  empty-since: "Geen logs sinds {time}"
+  empty-since-hint: "Nieuwe regels verschijnen hier zodra ze geschreven worden."
+  jump-before: "Eerdere regels · {time}"
+  jump-after: "Latere regels · {time}"
+  empty-window: "Geen logs in dit venster"

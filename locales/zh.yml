@@ -13,6 +13,8 @@ toolbar:
   stop: 停止
   start: 启动
   restart: 重启
+  rollout-restart: "重启 {kind}"
+  rollout-restart-done: "{workload} 正在滚动部署新的 Pod。"
   update: 更新
   update-service: 更新服务
   update-pulling: 正在拉取最新镜像...
@@ -47,6 +49,7 @@ toolbar:
   section-export: 导出
   section-container: 容器
   section-image: 镜像
+  section-workload: "工作负载"
 action:
   copy-log: 复制日志
   copy-link: 复制永久链接
@@ -86,6 +89,7 @@ label:
   event-suppressed-hint: Dozzle Cloud 匹配到该行，但拦下了警报
   event-metric: 指标
   event-container: 容器
+  memory-new: "新"
   host-count: 无主机 | 1 个主机 | {count} 个主机
   service: 无服务 | 1 个服务 | {count} 个服务
   services: 服务
@@ -122,6 +126,9 @@ label:
   name: 名称
   cpu: CPU
   core: 无核心 | 1 个核心 | {count} 个核心
+  disk: 磁盘
+  load: 负载
+  uptime: 运行时间
   mem: MEM
   pinned: 固定
   per-page: 每页行数
@@ -132,12 +139,15 @@ label:
   k8s-menu: Kubernetes
   group-menu: 自定义组
 tooltip:
+  memory-new: "Dozzle Cloud 之前未在此容器中见过此错误。点击在上下文中查看。"
+  memory-new-since: "首次在此容器中出现：{time}。点击查看它从哪里开始。"
   live-logs: 这些日志已冻结在该时间点。点击以查看实时日志流。
   search: 搜索 (⌘ + k, ⌃k)
   pin-column: 固定为列
   unpin-column: 取消固定列
   merge-stream: 合并到日志流
   merge-stream-hint: 打开一个容器以进行合并
+  merge-stream-other-host: "只能合并同一主机上的容器"
   unmerge-stream: 从日志流移除
   merge-all: 将所有内容合并到一个流中
   network-io: "网络：↑ {tx}/s · ↓ {rx}/s"
@@ -173,6 +183,8 @@ error:
   logs-skipped: 显示 {total} 个隐藏条目
   container-not-found: 容器未找到。
   container-not-found-hint: 它可能已被删除，或其主机已无法访问。
+  nothing-running: "这里没有运行中的容器"
+  nothing-running-hint: "此视图中的容器都没有在运行。只要有一个启动，日志就会显示在这里。"
   action-failed: 操作失败
   update-failed: 更新失败
   unable-to-complete-action: 无法完成操作
@@ -717,6 +729,26 @@ cloud-chat:
     notifications: 正在检查通知…
     action: 正在执行操作…
     working: 处理中…
+  step:
+    logs: 搜索日志
+    containers: 查看容器
+    stats: 检查资源使用情况
+    inspect: 检查容器
+    alerts: 查看告警
+    findings: 查看发现
+    events: 检查容器历史
+    docs: 阅读文档
+    notifications: 检查通知
+    action: 执行操作
+  phase:
+    reading: 阅读问题
+    reviewing: 梳理找到的内容
+    writing: 撰写回答
+    retrying: 比平时慢，正在重试
+  found: 找到 {n} 条
+  nothing-found: 未找到
+  worked-for: 用时 {time}
+  earlier: 更早的 {n} 条
   placeholder: 就这些日志提问
   historical: 历史
   n-containers: "{n} 个容器"
@@ -965,3 +997,45 @@ mcp-authorize:
   return: "返回客户端"
   redirecting: "正在返回客户端。完成后即可关闭此标签页。"
   failed: "无法完成此请求。"
+mobile-nav:
+  label: "主菜单"
+  home: "首页"
+  browse: "浏览"
+  back: "返回"
+time-range:
+  title: "时间范围"
+  live: "实时"
+  last-15m: "最近 15 分钟"
+  last-1h: "最近 1 小时"
+  last-6h: "最近 6 小时"
+  last-24h: "最近 24 小时"
+  custom: "自定义范围"
+  from: "开始"
+  to: "结束"
+  keep-following: "持续跟随"
+  volume: "日志量"
+  errors: "错误"
+  bucket: "{lines} 行 · {errors} 个错误"
+  not-scanned: "未读取"
+  invalid: "结束时间必须晚于开始时间。"
+  show: "显示日志"
+  edge-start: "起始"
+  edge-end: "截至"
+  show-earlier: "显示更早"
+  show-later: "显示更晚"
+  to-now: "到现在"
+  shift-earlier: "上一时段"
+  shift-later: "下一时段"
+  last-short: "最近 {span}"
+  since-short: "自 {time} 起"
+  custom-hint: "先选日期，再选时间。时间为 {zone}。"
+  keep-following-hint: "结束时间保持开放，继续显示新日志。"
+  previous-month: "上个月"
+  next-month: "下个月"
+  empty-range: "此范围内没有日志"
+  empty-range-hint: "{from} 至 {to} 之间没有写入任何内容。"
+  empty-since: "自 {time} 起没有日志"
+  empty-since-hint: "新日志写入后会立即显示在这里。"
+  jump-before: "更早的日志 · {time}"
+  jump-after: "更晚的日志 · {time}"
+  empty-window: "此时段内没有日志"

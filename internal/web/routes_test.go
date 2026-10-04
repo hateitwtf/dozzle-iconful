@@ -65,6 +65,12 @@ func (m *MockedClient) ContainerCreate(ctx context.Context, inspectResp docker_t
 	return args.Get(0).(string), args.Error(1)
 }
 
+func (m *MockedClient) NetworkDependents(ctx context.Context, id string, name string) ([]string, error) {
+	args := m.Called(ctx, id, name)
+	ids, _ := args.Get(0).([]string)
+	return ids, args.Error(1)
+}
+
 func (m *MockedClient) ServiceUpdate(ctx context.Context, serviceID string, imageName string) error {
 	args := m.Called(ctx, serviceID, imageName)
 	return args.Error(0)
@@ -91,6 +97,11 @@ func (m *MockedClient) ContainerStats(context.Context, string, chan<- container.
 
 func (m *MockedClient) ContainerLogsBetweenDates(ctx context.Context, id string, from time.Time, to time.Time, stdType container.StdType) (io.ReadCloser, error) {
 	args := m.Called(ctx, id, from, to, stdType)
+	return args.Get(0).(io.ReadCloser), args.Error(1)
+}
+
+func (m *MockedClient) ContainerLogsTail(ctx context.Context, id string, lines int) (io.ReadCloser, error) {
+	args := m.Called(ctx, id, lines)
 	return args.Get(0).(io.ReadCloser), args.Error(1)
 }
 

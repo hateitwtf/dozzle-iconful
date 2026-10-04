@@ -4,11 +4,11 @@ import type { ContainerHealth, ContainerJson, ContainerStat } from "@/types/Cont
 import { Container } from "@/models/Container";
 import i18n from "@/modules/i18n";
 import { parseEventData } from "@/utils/events";
-import { Host } from "./hosts";
+import { Host, HostMetrics } from "./hosts";
 import { sessionHost } from "@/composable/app/storage";
 
 const { showToast, removeToast } = useToast();
-const { updateHost, removeHost } = useHosts();
+const { updateHost, updateHostMetrics, removeHost } = useHosts();
 const { markStale } = useStaleUI();
 // @ts-ignore
 const { t } = i18n.global;
@@ -17,7 +17,13 @@ export const useContainerStore = defineStore("container", () => {
   const containers: Ref<Container[]> = ref([]);
 
   let es: EventSource | null = null;
+  // True once the first list has arrived, and never false again: views gate their
+  // mount on it, so dropping it on a reconnect tore every open one down.
   const ready = ref(false);
+  // Set from open until the list the server sends on connect has landed. That list
+  // covers every host, so it is reconciled as the whole world, and what it carries is
+  // a replay rather than news, so nothing in it is flagged as new.
+  let replaying = false;
 
   const allContainersById = computed(() =>
     containers.value.reduce(
@@ -54,7 +60,6 @@ export const useContainerStore = defineStore("container", () => {
   let openedBefore = false;
   function connect() {
     es?.close();
-    ready.value = false;
     es = new EventSource(withBase("/api/events/stream"));
     es.addEventListener("error", (e) => {
       reconnect.onError();
@@ -86,7 +91,8 @@ export const useContainerStore = defineStore("container", () => {
     });
 
     es.addEventListener("containers-changed", (e) => {
-      updateContainers(parseEventData<ContainerJson[]>(e));
+      updateContainers(parseEventData<ContainerJson[]>(e), replaying);
+      replaying = false;
       ready.value = true;
       // the load-time notice below may have fired against a slow first list; the
       // containers are here now, so it no longer describes anything
@@ -108,6 +114,7 @@ export const useContainerStore = defineStore("container", () => {
           case "die":
             container.state = "exited";
             container.finishedAt = new Date(event.time);
+            container.health = undefined;
             break;
           case "destroy":
             container.state = "deleted";
@@ -127,6 +134,7 @@ export const useContainerStore = defineStore("container", () => {
       const existing = allContainersById.value[container.id];
       if (existing) {
         existing.name = container.name;
+        existing.group = container.group;
         existing.state = container.state;
         existing.health = container.health;
         existing.startedAt = new Date(container.startedAt);
@@ -149,6 +157,8 @@ export const useContainerStore = defineStore("container", () => {
       updateHost(host);
     });
 
+    es.addEventListener("host-metrics", (e) => updateHostMetrics(parseEventData<HostMetrics>(e)));
+
     es.addEventListener("container-health", (e) => {
       const event = parseEventData<{ actorId: string; health: ContainerHealth }>(e);
       const container = allContainersById.value[event.actorId];
@@ -167,12 +177,10 @@ export const useContainerStore = defineStore("container", () => {
       }
       removeToast("events-stream");
       // EventSource reconnects on its own without going through connect(), and the server
-      // replays the full list on every connect. Reset ready so the replay isn't mistaken
-      // for containers that just started and flagged as new.
-      ready.value = false;
-      if (containers.value.length > 0) {
-        containers.value = [];
-      }
+      // replays the full list on every connect. The containers already here are kept and
+      // reconciled against that list: emptying the store first unmounted every open log
+      // view, and the remount came back with its scroll, older pages and stream gone.
+      replaying = true;
     };
   }
 
@@ -194,23 +202,29 @@ export const useContainerStore = defineStore("container", () => {
     }
   })();
 
-  const updateContainers = (containersPayload: ContainerJson[]) => {
+  const updateContainers = (containersPayload: ContainerJson[], full = false) => {
+    const flagNew = ready.value && !full;
     const existingContainers = containersPayload.filter((c) => allContainersById.value[c.id]);
     const newContainers = containersPayload.filter((c) => !allContainersById.value[c.id]);
 
     existingContainers.forEach((c) => {
       const existing = allContainersById.value[c.id];
-      if (ready.value && existing.state !== "running" && c.state === "running") {
+      if (flagNew && existing.state !== "running" && c.state === "running") {
         existing.isNew = true;
       }
       existing.state = c.state;
       existing.health = c.health;
       existing.name = c.name;
+      existing.group = c.group;
+      // A start reaches here as a re-list, with no event of its own, so this is the
+      // only place a restarted container learns when its new run began.
+      existing.startedAt = new Date(c.startedAt);
+      existing.finishedAt = new Date(c.finishedAt);
     });
 
     const mapped = newContainers.map((c) => {
       const container = Container.fromJSON(c);
-      if (ready.value) {
+      if (flagNew) {
         container.isNew = true;
       }
       return container;
@@ -225,12 +239,14 @@ export const useContainerStore = defineStore("container", () => {
     // 24.8 KB once it has filled the window. A day of CI on one host ran to hundreds of
     // megabytes that only a reload freed.
     //
-    // Scoped by host, never wholesale: only the payload sent on connect covers every
-    // host. The others are one host's list after a start, a rename, or a stale-host
-    // repair, and treating one of those as the whole world would drop every other host.
+    // Scoped by host, never wholesale, except for the payload sent on connect, which is
+    // the only one that covers every host. That one also drops hosts it no longer names
+    // (gone, unreachable, or emptied while the tab was disconnected). The others are one
+    // host's list after a start, a rename, or a stale-host repair, and treating one of
+    // those as the whole world would drop every other host.
     const listedHosts = new Set(containersPayload.map((c) => c.host));
     const stillListed = new Set(containersPayload.map((c) => c.id));
-    const kept = containers.value.filter((c) => !listedHosts.has(c.host) || stillListed.has(c.id));
+    const kept = containers.value.filter((c) => stillListed.has(c.id) || (!full && !listedHosts.has(c.host)));
 
     containers.value = [...kept, ...mapped];
   };

@@ -13,6 +13,8 @@ toolbar:
   stop: Stop
   start: Start
   restart: Restart
+  rollout-restart: "Restart {kind}"
+  rollout-restart-done: "{workload} is rolling out new pods."
   update: Update
   update-service: Update Service
   update-pulling: Pulling latest image...
@@ -47,6 +49,7 @@ toolbar:
   section-export: Export
   section-container: Container
   section-image: Image
+  section-workload: "Workload"
 action:
   copy-log: Copy log
   copy-link: Copy permalink
@@ -86,6 +89,7 @@ label:
   event-suppressed-hint: Dozzle Cloud matched this line but held the alert back
   event-metric: Metric
   event-container: Container
+  memory-new: "New"
   host-count: No Hosts | 1 Host | {count} Hosts
   service: No services | 1 service | {count} services
   services: Services
@@ -108,6 +112,9 @@ label:
   cpu: CPU
   core: No cores | 1 core | {count} cores
   mem: MEM
+  disk: Disk
+  load: Load
+  uptime: Uptime
   pinned: Pinned
   per-page: Rows per page
   sort-by: Sort by
@@ -132,12 +139,15 @@ label:
   more-options: More options
   groups: Groups
 tooltip:
+  memory-new: "Dozzle Cloud hasn't seen this error on this container before. Click to see it in context."
+  memory-new-since: "First seen on this container: {time}. Click to see where it started."
   live-logs: These logs are frozen at this point in time. Click to follow the live stream.
   search: Search containers (⌘ + k, ⌃k)
   pin-column: Pin as column
   unpin-column: Unpin column
   merge-stream: Merge into stream
   merge-stream-hint: Open a container to merge it with
+  merge-stream-other-host: "Only containers on the same host can be merged"
   unmerge-stream: Remove from stream
   merge-all: Merge all into one stream
   network-io: "Network: ↑ {tx}/s · ↓ {rx}/s"
@@ -173,6 +183,8 @@ error:
   logs-skipped: Show {total} hidden entries
   container-not-found: Container not found
   container-not-found-hint: It may have been removed, or its host is no longer reachable.
+  nothing-running: "Nothing running here"
+  nothing-running-hint: "None of the containers in this view are running. Logs show up here once one starts."
   action-failed: Action Failed
   update-failed: Update Failed
   unable-to-complete-action: Unable to complete action
@@ -267,6 +279,26 @@ cloud-chat:
     notifications: Checking notifications…
     action: Running the action…
     working: Working…
+  step:
+    logs: Searching logs
+    containers: Looking at containers
+    stats: Checking resource usage
+    inspect: Inspecting the container
+    alerts: Reviewing alerts
+    findings: Reviewing findings
+    events: Checking container history
+    docs: Reading the docs
+    notifications: Checking notifications
+    action: Running the action
+  phase:
+    reading: Reading the question
+    reviewing: Going over what it found
+    writing: Writing the answer
+    retrying: Taking longer than usual, trying again
+  found: "{n} found"
+  nothing-found: nothing found
+  worked-for: Worked for {time}
+  earlier: "{n} earlier"
   placeholder: Ask about these logs
   historical: historical
   n-containers: "{n} containers"
@@ -973,3 +1005,45 @@ mcp-authorize:
   return: "Return to the client"
   redirecting: "Returning to the client. You can close this tab once it has finished."
   failed: "This request could not be completed."
+mobile-nav:
+  label: "Main"
+  home: "Home"
+  browse: "Browse"
+  back: "Back"
+time-range:
+  title: "Time range"
+  live: "Live"
+  last-15m: "Last 15 minutes"
+  last-1h: "Last hour"
+  last-6h: "Last 6 hours"
+  last-24h: "Last 24 hours"
+  custom: "Custom range"
+  from: "From"
+  to: "To"
+  keep-following: "Keep following"
+  volume: "Log volume"
+  errors: "Errors"
+  bucket: "{lines} lines · {errors} errors"
+  not-scanned: "not scanned"
+  invalid: "The end has to be after the start."
+  show: "Show logs"
+  edge-start: "From"
+  edge-end: "Until"
+  show-earlier: "show earlier"
+  show-later: "show later"
+  to-now: "to now"
+  shift-earlier: "Previous window"
+  shift-later: "Next window"
+  last-short: "Last {span}"
+  since-short: "Since {time}"
+  custom-hint: "Pick the days, then the times. Times are in {zone}."
+  keep-following-hint: "Leave the end open and keep showing new lines."
+  previous-month: "Previous month"
+  next-month: "Next month"
+  empty-range: "No logs in this range"
+  empty-range-hint: "Nothing was written between {from} and {to}."
+  empty-since: "No logs since {time}"
+  empty-since-hint: "New lines show up here as soon as they are written."
+  jump-before: "Earlier lines · {time}"
+  jump-after: "Later lines · {time}"
+  empty-window: "No logs in this window"

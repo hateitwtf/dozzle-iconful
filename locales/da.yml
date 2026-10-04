@@ -13,6 +13,8 @@ toolbar:
   stop: Stop
   start: Start
   restart: Genstart
+  rollout-restart: "Genstart {kind}"
+  rollout-restart-done: "{workload} ruller nye pods ud."
   update: Opdater
   update-service: Opdater Tjeneste
   update-pulling: Henter seneste image...
@@ -47,6 +49,7 @@ toolbar:
   section-export: Eksport
   section-container: Container
   section-image: Image
+  section-workload: "Workload"
 action:
   copy-log: Kopier log
   copy-link: Kopier permalink
@@ -86,6 +89,7 @@ label:
   event-suppressed-hint: Dozzle Cloud matchede denne linje, men holdt alarmen tilbage
   event-metric: Metrik
   event-container: Container
+  memory-new: "Ny"
   host-count: Ingen Værter | 1 Vært | {count} Værter
   service: Ingen tjenester | 1 tjeneste | {count} tjenester
   services: Tjenester
@@ -107,6 +111,9 @@ label:
   name: Navn
   cpu: CPU
   core: Ingen kerner | 1 kerne | {count} kerner
+  disk: Disk
+  load: Belastning
+  uptime: Oppetid
   mem: MEM
   pinned: Fastgjort
   per-page: Rækker per side
@@ -132,12 +139,15 @@ label:
   more-options: Flere valgmuligheder
   groups: Grupper
 tooltip:
+  memory-new: "Dozzle Cloud har ikke set denne fejl på denne container før. Klik for at se den i sammenhæng."
+  memory-new-since: "Først set på denne container: {time}. Klik for at se, hvor den startede."
   live-logs: Disse logs er frosset på dette tidspunkt. Klik for at følge live-streamen.
   search: Søg containere (⌘ + k, ⌃k)
   pin-column: Fastgør som kolonne
   unpin-column: Frigør kolonne
   merge-stream: Flet ind i strømmen
   merge-stream-hint: Åbn en container for at flette med den
+  merge-stream-other-host: "Kun containere på samme vært kan flettes"
   unmerge-stream: Fjern fra strømmen
   merge-all: Sammenlæg alt i én stream
   network-io: "Netværk: ↑ {tx}/s · ↓ {rx}/s"
@@ -173,6 +183,8 @@ error:
   logs-skipped: Vis {total} skjulte indtastninger
   container-not-found: Container ikke fundet
   container-not-found-hint: Den kan være fjernet, eller dens vært kan ikke længere nås.
+  nothing-running: "Intet kører her"
+  nothing-running-hint: "Ingen af containerne i denne visning kører. Logs vises her, så snart en starter."
   action-failed: Handling Mislykkedes
   update-failed: Opdatering Mislykkedes
   unable-to-complete-action: Kan ikke fuldføre handling
@@ -717,6 +729,26 @@ cloud-chat:
     notifications: Tjekker notifikationer…
     action: Kører handlingen…
     working: Arbejder…
+  step:
+    logs: Søger i logs
+    containers: Ser på containere
+    stats: Tjekker ressourceforbrug
+    inspect: Inspicerer containeren
+    alerts: Gennemgår alarmer
+    findings: Gennemgår fund
+    events: Tjekker containerhistorik
+    docs: Læser dokumentationen
+    notifications: Tjekker notifikationer
+    action: Udfører handlingen
+  phase:
+    reading: Læser spørgsmålet
+    reviewing: Gennemgår det fundne
+    writing: Skriver svaret
+    retrying: Tager længere tid end normalt, prøver igen
+  found: "{n} fundet"
+  nothing-found: intet fundet
+  worked-for: Arbejdede i {time}
+  earlier: "{n} tidligere"
   placeholder: Spørg om disse logs
   historical: historisk
   n-containers: "{n} containere"
@@ -965,3 +997,45 @@ mcp-authorize:
   return: "Tilbage til klienten"
   redirecting: "Vender tilbage til klienten. Du kan lukke denne fane, når det er færdigt."
   failed: "Anmodningen kunne ikke gennemføres."
+mobile-nav:
+  label: "Hovedmenu"
+  home: "Hjem"
+  browse: "Gennemse"
+  back: "Tilbage"
+time-range:
+  title: "Tidsinterval"
+  live: "Live"
+  last-15m: "Seneste 15 minutter"
+  last-1h: "Seneste time"
+  last-6h: "Seneste 6 timer"
+  last-24h: "Seneste 24 timer"
+  custom: "Brugerdefineret interval"
+  from: "Fra"
+  to: "Til"
+  keep-following: "Bliv ved med at følge"
+  volume: "Logvolumen"
+  errors: "Fejl"
+  bucket: "{lines} linjer · {errors} fejl"
+  not-scanned: "ikke læst"
+  invalid: "Slutningen skal ligge efter starten."
+  show: "Vis logs"
+  edge-start: "Fra"
+  edge-end: "Indtil"
+  show-earlier: "vis tidligere"
+  show-later: "vis senere"
+  to-now: "til nu"
+  shift-earlier: "Forrige vindue"
+  shift-later: "Næste vindue"
+  last-short: "Seneste {span}"
+  since-short: "Siden {time}"
+  custom-hint: "Vælg dagene og derefter tidspunkterne. Tider i {zone}."
+  keep-following-hint: "Lad slutningen stå åben og bliv ved med at vise nye linjer."
+  previous-month: "Forrige måned"
+  next-month: "Næste måned"
+  empty-range: "Ingen logs i dette interval"
+  empty-range-hint: "Der blev ikke skrevet noget mellem {from} og {to}."
+  empty-since: "Ingen logs siden {time}"
+  empty-since-hint: "Nye linjer vises her, så snart de bliver skrevet."
+  jump-before: "Tidligere linjer · {time}"
+  jump-after: "Senere linjer · {time}"
+  empty-window: "Ingen logs i dette vindue"

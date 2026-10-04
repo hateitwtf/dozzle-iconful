@@ -13,6 +13,8 @@ toolbar:
   stop: Stop
   start: Start
   restart: Neustarten
+  rollout-restart: "{kind} neu starten"
+  rollout-restart-done: "{workload} rollt neue Pods aus."
   update: Aktualisieren
   update-service: Service Aktualisieren
   update-pulling: Neuestes Image wird geladen...
@@ -47,6 +49,7 @@ toolbar:
   section-export: Export
   section-container: Container
   section-image: Image
+  section-workload: "Workload"
 action:
   copy-log: Log kopieren
   copy-link: Permalink kopieren
@@ -86,6 +89,7 @@ label:
   event-suppressed-hint: Dozzle Cloud hat diese Zeile erkannt, den Alarm aber zurückgehalten
   event-metric: Metrik
   event-container: Container
+  memory-new: "Neu"
   host-count: Keine Hosts | 1 Host | {count} Hosts
   service: Kein Service | 1 Service | {count} Services
   services: Service
@@ -107,6 +111,9 @@ label:
   name: Name
   cpu: CPU
   core: Keine Kerne | 1 Kern | {count} Kerne
+  disk: Datenträger
+  load: Last
+  uptime: Laufzeit
   mem: MEM
   pinned: Angepinnt
   per-page: Zeilen pro Seite
@@ -132,12 +139,15 @@ label:
   more-options: Weitere Optionen
   groups: Gruppen
 tooltip:
+  memory-new: "Dozzle Cloud hat diesen Fehler in diesem Container noch nie gesehen. Klicken, um ihn im Kontext zu sehen."
+  memory-new-since: "Zuerst in diesem Container gesehen: {time}. Klicken, um zu sehen, wo er begann."
   live-logs: Diese Logs sind auf diesen Zeitpunkt eingefroren. Klicken, um dem Live-Stream zu folgen.
   search: Suche Container (⌘ + k, ⌃k)
   pin-column: Als Spalte anheften
   unpin-column: Spalte lösen
   merge-stream: In den Stream einfügen
   merge-stream-hint: Zum Zusammenführen zuerst einen Container öffnen
+  merge-stream-other-host: "Nur Container auf demselben Host lassen sich zusammenführen"
   unmerge-stream: Aus dem Stream entfernen
   merge-all: Alles in einen Stream zusammenführen
   network-io: "Netzwerk: ↑ {tx}/s · ↓ {rx}/s"
@@ -173,6 +183,8 @@ error:
   logs-skipped: Zeige {total} versteckte Einträge
   container-not-found: Container nicht gefunden.
   container-not-found-hint: Er wurde möglicherweise entfernt, oder sein Host ist nicht mehr erreichbar.
+  nothing-running: "Hier läuft nichts"
+  nothing-running-hint: "Keiner der Container in dieser Ansicht läuft. Logs erscheinen hier, sobald einer startet."
   action-failed: Aktion fehlgeschlagen
   update-failed: Aktualisierung fehlgeschlagen
   unable-to-complete-action: Aktion konnte nicht abgeschlossen werden
@@ -717,6 +729,26 @@ cloud-chat:
     notifications: Benachrichtigungen werden geprüft…
     action: Aktion wird ausgeführt…
     working: Arbeitet…
+  step:
+    logs: Logs werden durchsucht
+    containers: Container werden angesehen
+    stats: Ressourcennutzung wird geprüft
+    inspect: Container wird inspiziert
+    alerts: Alarme werden geprüft
+    findings: Befunde werden geprüft
+    events: Container-Verlauf wird geprüft
+    docs: Dokumentation wird gelesen
+    notifications: Benachrichtigungen werden geprüft
+    action: Aktion wird ausgeführt
+  phase:
+    reading: Frage wird gelesen
+    reviewing: Ergebnisse werden ausgewertet
+    writing: Antwort wird geschrieben
+    retrying: Dauert länger als üblich, neuer Versuch
+  found: "{n} gefunden"
+  nothing-found: nichts gefunden
+  worked-for: "{time} gearbeitet"
+  earlier: "{n} frühere"
   placeholder: Zu diesen Logs fragen
   historical: historisch
   n-containers: "{n} Container"
@@ -965,3 +997,45 @@ mcp-authorize:
   return: "Zurück zum Client"
   redirecting: "Zurück zum Client. Du kannst diesen Tab schließen, sobald es fertig ist."
   failed: "Diese Anfrage konnte nicht abgeschlossen werden."
+mobile-nav:
+  label: "Hauptmenü"
+  home: "Start"
+  browse: "Durchsuchen"
+  back: "Zurück"
+time-range:
+  title: "Zeitraum"
+  live: "Live"
+  last-15m: "Letzte 15 Minuten"
+  last-1h: "Letzte Stunde"
+  last-6h: "Letzte 6 Stunden"
+  last-24h: "Letzte 24 Stunden"
+  custom: "Eigener Zeitraum"
+  from: "Von"
+  to: "Bis"
+  keep-following: "Weiter mitlesen"
+  volume: "Log-Volumen"
+  errors: "Fehler"
+  bucket: "{lines} Zeilen · {errors} Fehler"
+  not-scanned: "nicht gelesen"
+  invalid: "Das Ende muss nach dem Anfang liegen."
+  show: "Logs anzeigen"
+  edge-start: "Ab"
+  edge-end: "Bis"
+  show-earlier: "früher anzeigen"
+  show-later: "später anzeigen"
+  to-now: "bis jetzt"
+  shift-earlier: "Vorheriges Fenster"
+  shift-later: "Nächstes Fenster"
+  last-short: "Letzte {span}"
+  since-short: "Seit {time}"
+  custom-hint: "Wähle die Tage, dann die Uhrzeiten. Zeiten in {zone}."
+  keep-following-hint: "Ende offen lassen und neue Zeilen weiter anzeigen."
+  previous-month: "Vorheriger Monat"
+  next-month: "Nächster Monat"
+  empty-range: "Keine Logs in diesem Zeitraum"
+  empty-range-hint: "Zwischen {from} und {to} wurde nichts geschrieben."
+  empty-since: "Keine Logs seit {time}"
+  empty-since-hint: "Neue Zeilen erscheinen hier, sobald sie geschrieben werden."
+  jump-before: "Frühere Zeilen · {time}"
+  jump-after: "Spätere Zeilen · {time}"
+  empty-window: "Keine Logs in diesem Fenster"

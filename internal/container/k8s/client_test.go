@@ -317,6 +317,96 @@ func TestResetRESTMapperThrottles(t *testing.T) {
 	assert.Equal(t, 2, mapper.resets)
 }
 
+func TestPodToContainersDefaultNameAndNoGroup(t *testing.T) {
+	client := newTestK8sClient(t)
+
+	containers := client.podToContainers(t.Context(), podWithOwner())
+	require.Len(t, containers, 1)
+	assert.Equal(t, "api-6f88b977f4-pod/api", containers[0].Name)
+	assert.Empty(t, containers[0].Group)
+}
+
+func TestPodToContainersHonorsDozzleLabels(t *testing.T) {
+	client := newTestK8sClient(t)
+	pod := podWithOwner()
+	pod.Labels["dev.dozzle.name"] = "api"
+	pod.Labels["dev.dozzle.group"] = "backend"
+
+	containers := client.podToContainers(t.Context(), pod)
+	require.Len(t, containers, 1)
+	assert.Equal(t, "api", containers[0].Name)
+	assert.Equal(t, "backend", containers[0].Group)
+}
+
+func TestPodToContainersPrefersDozzleAnnotations(t *testing.T) {
+	client := newTestK8sClient(t)
+	pod := podWithOwner()
+	pod.Labels["dev.dozzle.name"] = "api"
+	pod.Labels["dev.dozzle.group"] = "backend"
+	pod.Annotations = map[string]string{
+		"dev.dozzle.name":  "Public API",
+		"dev.dozzle.group": "Payments team",
+	}
+
+	containers := client.podToContainers(t.Context(), pod)
+	require.Len(t, containers, 1)
+	assert.Equal(t, "Public API", containers[0].Name)
+	assert.Equal(t, "Payments team", containers[0].Group)
+}
+
+func TestPodToContainersReadsDozzleAnnotationsWithoutLabels(t *testing.T) {
+	client := newTestK8sClient(t)
+	pod := podWithOwner()
+	pod.Annotations = map[string]string{
+		"dev.dozzle.name":  "Public API",
+		"dev.dozzle.group": "Payments team",
+		"dev.dozzle.url":   "https://api.example.com",
+		"dev.dozzle.icon":  "nginx",
+		"other.io/ignored": "x",
+	}
+
+	containers := client.podToContainers(t.Context(), pod)
+	require.Len(t, containers, 1)
+	c := containers[0]
+	assert.Equal(t, "Public API", c.Name)
+	assert.Equal(t, "Payments team", c.Group)
+	// The UI reads url, icon and group off labels, so annotations have to land there.
+	assert.Equal(t, "https://api.example.com", c.Labels["dev.dozzle.url"])
+	assert.Equal(t, "nginx", c.Labels["dev.dozzle.icon"])
+	assert.Equal(t, "Payments team", c.Labels["dev.dozzle.group"])
+	assert.NotContains(t, c.Labels, "other.io/ignored")
+}
+
+func TestPodToContainersKeepsBareNameWithInitContainer(t *testing.T) {
+	client := newTestK8sClient(t)
+	pod := podWithOwner()
+	pod.Labels["dev.dozzle.name"] = "api"
+	pod.Spec.InitContainers = []corev1.Container{{Name: "migrate", Image: "example/migrate:latest"}}
+
+	containers := client.podToContainers(t.Context(), pod)
+	require.Len(t, containers, 2)
+	assert.Equal(t, "api/migrate", containers[0].Name)
+	assert.Equal(t, "api", containers[1].Name)
+}
+
+func TestPodToContainersSuffixesCustomNameInMultiContainerPod(t *testing.T) {
+	client := newTestK8sClient(t)
+	pod := podWithOwner()
+	pod.Labels["dev.dozzle.name"] = "api"
+	pod.Labels["dev.dozzle.group"] = "backend"
+	pod.Spec.InitContainers = []corev1.Container{{Name: "migrate", Image: "example/migrate:latest"}}
+	pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{Name: "proxy", Image: "envoyproxy/envoy"})
+
+	containers := client.podToContainers(t.Context(), pod)
+	require.Len(t, containers, 3)
+	assert.Equal(t, "api/migrate", containers[0].Name)
+	assert.Equal(t, "api/api", containers[1].Name)
+	assert.Equal(t, "api/proxy", containers[2].Name)
+	for _, c := range containers {
+		assert.Equal(t, "backend", c.Group)
+	}
+}
+
 func podWithOwner() *corev1.Pod {
 	return &corev1.Pod{
 		APIVersion: "v1", Kind: "Pod",
@@ -343,6 +433,42 @@ func replicaSetOwner() k8sOwner {
 		Name:       "api-6f88b977f4",
 		UID:        types.UID("rs-uid"),
 	})
+}
+
+func TestRolloutRestartStampsPodTemplate(t *testing.T) {
+	deployment := &appsv1.Deployment{Namespace: "default", Name: "api"}
+	statefulSet := &appsv1.StatefulSet{Namespace: "default", Name: "db"}
+	daemonSet := &appsv1.DaemonSet{Namespace: "default", Name: "agent"}
+	client := &Client{Clientset: k8sfake.NewSimpleClientset(deployment, statefulSet, daemonSet)}
+	apps := client.Clientset.AppsV1()
+
+	require.NoError(t, client.RolloutRestart(t.Context(), "default", "Deployment", "api"))
+	require.NoError(t, client.RolloutRestart(t.Context(), "default", "StatefulSet", "db"))
+	require.NoError(t, client.RolloutRestart(t.Context(), "default", "DaemonSet", "agent"))
+
+	d, err := apps.Deployments("default").Get(t.Context(), "api", metav1.GetOptions{})
+	require.NoError(t, err)
+	assert.NotEmpty(t, d.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"])
+	s, err := apps.StatefulSets("default").Get(t.Context(), "db", metav1.GetOptions{})
+	require.NoError(t, err)
+	assert.NotEmpty(t, s.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"])
+	ds, err := apps.DaemonSets("default").Get(t.Context(), "agent", metav1.GetOptions{})
+	require.NoError(t, err)
+	assert.NotEmpty(t, ds.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"])
+}
+
+func TestRolloutRestartRefusesOtherKinds(t *testing.T) {
+	client := &Client{Clientset: k8sfake.NewSimpleClientset()}
+
+	err := client.RolloutRestart(t.Context(), "default", "CronJob", "nightly")
+	assert.ErrorIs(t, err, errors.ErrUnsupported)
+}
+
+func TestRolloutRestartReportsMissingWorkload(t *testing.T) {
+	client := &Client{Clientset: k8sfake.NewSimpleClientset()}
+
+	err := client.RolloutRestart(t.Context(), "default", "Deployment", "gone")
+	assert.True(t, apierrors.IsNotFound(err))
 }
 
 func newTestK8sClient(t *testing.T, objects ...runtime.Object) *Client {

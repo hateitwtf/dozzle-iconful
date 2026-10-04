@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"encoding/json"
@@ -53,6 +54,39 @@ type Client struct {
 	host          container.Host
 	info          system.Info
 	serviceLabels serviceLabelCache
+
+	// hostMetrics is set only when the engine runs on the machine Dozzle can read
+	// /proc and statfs on. A local client pointed at DOCKER_HOST=tcp:// or ssh://
+	// is still typed "local", but its load and disk belong to another box.
+	hostMetrics bool
+
+	// Host-level metrics are read from /proc and statfs, and Host() is called on
+	// hot paths (stats log lines, every Hosts() fan-out), so the result is cached
+	// for a few seconds rather than re-read on every call.
+	metricsMu sync.Mutex
+	metrics   container.HostMetrics
+	metricsOK bool
+	metricsAt time.Time
+}
+
+// hostMetricsCacheTTL bounds how stale the host card's numbers can be, while
+// keeping the per-call cost off Host()'s hot paths.
+const hostMetricsCacheTTL = 5 * time.Second
+
+// readHostMetrics returns the local host's metrics, re-reading them at most once
+// per TTL. metricsOK reports whether the host /proc was readable; disk can be
+// present even when it was not, since it comes from the engine's data directory.
+func (d *Client) readHostMetrics() (container.HostMetrics, bool) {
+	d.metricsMu.Lock()
+	defer d.metricsMu.Unlock()
+
+	if !d.metricsAt.IsZero() && time.Since(d.metricsAt) < hostMetricsCacheTTL {
+		return d.metrics, d.metricsOK
+	}
+
+	m, ok := container.ReadHostMetrics(d.info.DockerRootDir)
+	d.metrics, d.metricsOK, d.metricsAt = m, ok, time.Now()
+	return m, ok
 }
 
 // NewClient connects a Docker or Podman engine. hostIDs decides what this host
@@ -122,7 +156,15 @@ func NewLocalClient(hostname string, hostIDs container.HostIDResolver) (*Client,
 		host.Name = hostname
 	}
 
-	return NewClient(cli, host, hostIDs), nil
+	c := NewClient(cli, host, hostIDs)
+	c.hostMetrics = isLocalDaemon(cli.DaemonHost())
+	return c, nil
+}
+
+// isLocalDaemon reports whether the engine is reached over a local socket, which
+// is the only case where this machine's /proc and filesystem describe it.
+func isLocalDaemon(daemonHost string) bool {
+	return strings.HasPrefix(daemonHost, "unix://") || strings.HasPrefix(daemonHost, "npipe://")
 }
 
 func NewRemoteClient(host container.Host, hostIDs container.HostIDResolver) (*Client, error) {
@@ -245,6 +287,22 @@ func (d *Client) ContainerInspect(ctx context.Context, containerID string) (dock
 func (d *Client) ContainerRemove(ctx context.Context, containerID string) error {
 	_, err := d.cli.ContainerRemove(ctx, containerID, client.ContainerRemoveOptions{})
 	return err
+}
+
+// NetworkDependents returns the ids of every container, running or not, that
+// shares the network namespace of the container id (named name).
+func (d *Client) NetworkDependents(ctx context.Context, id string, name string) ([]string, error) {
+	list, err := d.cli.ContainerList(ctx, client.ContainerListOptions{All: true})
+	if err != nil {
+		return nil, err
+	}
+	var ids []string
+	for _, c := range list.Items {
+		if c.ID != id && selfupdate.JoinsNetworkOf(c.HostConfig.NetworkMode, id, name) {
+			ids = append(ids, c.ID)
+		}
+	}
+	return ids, nil
 }
 
 // ContainerCreate creates the replacement for the container inspectResp
@@ -455,13 +513,33 @@ func (d *Client) ContainerLogsBetweenDates(ctx context.Context, id string, from 
 	return reader, nil
 }
 
+// ContainerLogsTail returns the newest `lines` lines of both streams, oldest
+// first, with timestamps. Unlike a read with `since`, the daemon seeks to them
+// from the end of the log instead of decoding it from the start.
+func (d *Client) ContainerLogsTail(ctx context.Context, id string, lines int) (io.ReadCloser, error) {
+	return d.cli.ContainerLogs(ctx, id, client.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Timestamps: true,
+		Tail:       strconv.Itoa(lines),
+	})
+}
+
 func (d *Client) Ping(ctx context.Context) error {
 	_, err := d.cli.Ping(ctx, client.PingOptions{})
 	return err
 }
 
 func (d *Client) Host() container.Host {
-	return d.host
+	h := d.host
+	// Host-level metrics are read live (and cached for a few seconds) so they
+	// don't freeze at the value seen at startup. Only an engine on this machine
+	// can be read this way; remote hosts would get theirs through the agent.
+	if d.hostMetrics {
+		m, ok := d.readHostMetrics()
+		h.ApplyHostMetrics(m, ok)
+	}
+	return h
 }
 
 func (d *Client) ContainerAttach(ctx context.Context, id string) (*container.ExecSession, error) {
@@ -663,6 +741,11 @@ func newContainerFromJSON(c docker.InspectResponse, host string) container.Conta
 		RestartPolicy: restartPolicy,
 		NetworkMode:   string(c.HostConfig.NetworkMode),
 		FullyLoaded:   true,
+		RestartCount:  c.RestartCount,
+	}
+	if c.State != nil {
+		container.OOMKilled = c.State.OOMKilled
+		container.ExitCode = c.State.ExitCode
 	}
 
 	if createdAt, err := time.Parse(time.RFC3339Nano, c.Created); err == nil {
@@ -677,7 +760,9 @@ func newContainerFromJSON(c docker.InspectResponse, host string) container.Conta
 		container.FinishedAt = stoppedAt.UTC()
 	}
 
-	if c.State.Health != nil {
+	// Docker keeps the last health status after a container stops, flipped to
+	// "unhealthy" by the kill. Neither describes a container that is not running.
+	if c.State.Health != nil && c.State.Running {
 		container.Health = strings.ToLower(string(c.State.Health.Status))
 	}
 

@@ -3,6 +3,7 @@ package container
 import (
 	"context"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -183,6 +184,20 @@ func (s *Store) handleEvent(event ContainerEvent) {
 		s.patch(id, func(c *Container) bool {
 			c.State = "exited"
 			c.FinishedAt = time.Now()
+			// A healthcheck only runs while the container does.
+			c.Health = ""
+			// Docker puts the exit code on the die event; a start re-inspects,
+			// which is where RestartCount and OOMKilled are refreshed.
+			if code, err := strconv.Atoi(event.ActorAttributes["exitCode"]); err == nil {
+				c.ExitCode = code
+			}
+			return true
+		})
+
+	case "oom":
+		// Sent just before the die of a run the kernel killed for memory.
+		s.patch(id, func(c *Container) bool {
+			c.OOMKilled = true
 			return true
 		})
 
@@ -239,6 +254,11 @@ func (s *Store) handleUpdate(event ContainerEvent) {
 		leftCreated := c.State == "created" && (update.State == "exited" || update.State == "restarting")
 		started = c.State != "running" && (update.State == "running" || leftCreated)
 		c.Name = update.Name
+		// Name and group both come from dev.dozzle.* on the pod, which can change in place.
+		c.Group = update.Group
+		// A pod created while Pending has no imageID yet, and a restart can pull a
+		// new digest, so only the update knows what the container runs now.
+		c.ImageDigest = update.ImageDigest
 		c.State = update.State
 		c.Labels = update.Labels
 		c.StartedAt = update.StartedAt

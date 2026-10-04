@@ -7,6 +7,13 @@
     </div>
     <span class="sr-only">Loading...</span>
   </ul>
+  <!-- A time range with nothing in it says where the log does have lines, rather
+       than the stream's "no logs yet", which reads as if the container never wrote any. -->
+  <RangeEmptyState
+    v-else-if="emptyRange && (emptyRange.kind === 'range' || !waitingForMoreLog) && !inSearch"
+    :container="entityContainer"
+    :range="emptyRange"
+  />
   <EmptyState
     v-else-if="noLogs && !waitingForMoreLog && !inSearch"
     data-testid="no-logs"
@@ -16,13 +23,14 @@
     <template #icon><mdi:text-box-outline class="size-6" /></template>
   </EmptyState>
   <slot :messages="messages" v-else></slot>
-  <IndeterminateBar :color :intensity="streaming ? 1 : 0" v-if="!historical" />
+  <IndeterminateBar :color :intensity="streaming ? 1 : 0" v-if="!historical && !stopped" />
 </template>
 
 <script lang="ts" setup generic="T">
 import { LogStreamSource } from "@/composable/logs/eventStreams";
-import { HistoricalContainer } from "@/models/Container";
+import { Container, HistoricalContainer, isStopped } from "@/models/Container";
 import { LoadMoreLogEntry } from "@/models/LogEntry";
+import { isStreamLog } from "@/composable/cloud/alertMerger";
 const route = useRoute();
 
 const { entity, streamSource } = $defineProps<{
@@ -30,9 +38,19 @@ const { entity, streamSource } = $defineProps<{
   entity: T;
 }>();
 
-const { historical } = useLoggingContext();
+const { historical, timeRange, containers } = useLoggingContext();
 
 const { messages, opened, loading, error, searchStatus } = streamSource(toRef(() => entity));
+
+const entityContainer = computed(
+  () => (entity instanceof HistoricalContainer ? entity.container : entity) as Container,
+);
+// Edge rows are not lines: a range holding only its two edges is empty.
+const emptyRange = computed(() => {
+  const range = timeRange.value;
+  if (range.kind === "live" || loading.value || messages.value.some(isStreamLog)) return undefined;
+  return range;
+});
 
 // While a search is running (or just finished), SearchStatus owns the empty
 // messaging, so suppress the generic "no logs" state to avoid the false signal.
@@ -44,6 +62,10 @@ const color = computed(() => {
   if (opened.value) return "primary";
   return "error";
 });
+
+// Once everything in the view has stopped there is nothing more to send, and the
+// bar would only imply a stream that is not there.
+const stopped = computed(() => containers.value.length > 0 && containers.value.every(isStopped));
 
 // The bar reflects real throughput. `messages` is a shallow ref replaced once
 // per buffer flush, so every arriving batch relights it and it fades back after

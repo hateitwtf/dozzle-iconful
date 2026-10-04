@@ -13,6 +13,8 @@ toolbar:
   stop: Остановить
   start: Запустить
   restart: Перезапустить
+  rollout-restart: "Перезапустить {kind}"
+  rollout-restart-done: "{workload} разворачивает новые поды."
   update: Обновить
   update-service: Обновить Сервис
   update-pulling: Загрузка последнего образа...
@@ -47,6 +49,7 @@ toolbar:
   section-export: Экспорт
   section-container: Контейнер
   section-image: Образ
+  section-workload: "Рабочая нагрузка"
 action:
   copy-log: Копировать лог
   copy-link: Копировать постоянную ссылку
@@ -86,6 +89,7 @@ label:
   event-suppressed-hint: Dozzle Cloud нашёл совпадение, но удержал оповещение
   event-metric: Метрика
   event-container: Контейнер
+  memory-new: "Новое"
   host-count: Нет Хостов | 1 Хост | {count} Хостов
   service: Нет сервисов | 1 сервис | {count} сервисов
   services: Сервисы
@@ -107,6 +111,9 @@ label:
   name: Имя
   cpu: CPU
   core: Нет ядер | 1 ядро | {count} ядер
+  disk: Диск
+  load: Нагрузка
+  uptime: Время работы
   mem: MEM
   pinned: Закреплено
   per-page: Строк на странице
@@ -132,12 +139,15 @@ label:
   more-options: Дополнительные параметры
   groups: Группы
 tooltip:
+  memory-new: "Dozzle Cloud ещё не видел эту ошибку в этом контейнере. Нажмите, чтобы увидеть её в контексте."
+  memory-new-since: "Впервые замечена в этом контейнере: {time}. Нажмите, чтобы увидеть, где она началась."
   live-logs: Эти логи зафиксированы на этот момент времени. Нажмите, чтобы следить за живым потоком.
   search: Поиск контейнеров (⌘ + k, ⌃k)
   pin-column: Закрепить столбец
   unpin-column: Открепить столбец
   merge-stream: Объединить с потоком
   merge-stream-hint: Откройте контейнер, чтобы объединить с ним
+  merge-stream-other-host: "Объединять можно только контейнеры на одном хосте"
   unmerge-stream: Убрать из потока
   merge-all: Объединить все в один поток
   network-io: "Сеть: ↑ {tx}/s · ↓ {rx}/s"
@@ -173,6 +183,8 @@ error:
   logs-skipped: Показать {total} скрытых записей
   container-not-found: Контейнер не найден.
   container-not-found-hint: Возможно, он был удалён или его хост больше недоступен.
+  nothing-running: "Здесь ничего не запущено"
+  nothing-running-hint: "Ни один контейнер в этом представлении не запущен. Логи появятся здесь, как только какой-нибудь запустится."
   action-failed: Действие не выполнено
   update-failed: Обновление не выполнено
   unable-to-complete-action: Не удалось выполнить действие
@@ -717,6 +729,26 @@ cloud-chat:
     notifications: Проверяю уведомления…
     action: Выполняю действие…
     working: Работаю…
+  step:
+    logs: Поиск по логам
+    containers: Просмотр контейнеров
+    stats: Проверка использования ресурсов
+    inspect: Инспекция контейнера
+    alerts: Просмотр оповещений
+    findings: Просмотр находок
+    events: Проверка истории контейнера
+    docs: Чтение документации
+    notifications: Проверка уведомлений
+    action: Выполнение действия
+  phase:
+    reading: Чтение вопроса
+    reviewing: Разбор найденного
+    writing: Написание ответа
+    retrying: Дольше обычного, повторная попытка
+  found: "найдено: {n}"
+  nothing-found: ничего не найдено
+  worked-for: "Работа: {time}"
+  earlier: "ранее: {n}"
   placeholder: Спросить об этих логах
   historical: история
   n-containers: "Контейнеров: {n}"
@@ -965,3 +997,45 @@ mcp-authorize:
   return: "Вернуться в клиент"
   redirecting: "Возвращаемся в клиент. Когда всё завершится, эту вкладку можно закрыть."
   failed: "Не удалось выполнить запрос."
+mobile-nav:
+  label: "Главное меню"
+  home: "Главная"
+  browse: "Обзор"
+  back: "Назад"
+time-range:
+  title: "Временной диапазон"
+  live: "В реальном времени"
+  last-15m: "Последние 15 минут"
+  last-1h: "Последний час"
+  last-6h: "Последние 6 часов"
+  last-24h: "Последние 24 часа"
+  custom: "Свой диапазон"
+  from: "С"
+  to: "По"
+  keep-following: "Продолжать следить"
+  volume: "Объём логов"
+  errors: "Ошибки"
+  bucket: "Строк: {lines} · ошибок: {errors}"
+  not-scanned: "не прочитано"
+  invalid: "Конец должен быть позже начала."
+  show: "Показать логи"
+  edge-start: "С"
+  edge-end: "До"
+  show-earlier: "показать раньше"
+  show-later: "показать позже"
+  to-now: "до сейчас"
+  shift-earlier: "Предыдущее окно"
+  shift-later: "Следующее окно"
+  last-short: "Последние {span}"
+  since-short: "С {time}"
+  custom-hint: "Выберите дни, затем время. Время в {zone}."
+  keep-following-hint: "Оставить конец открытым и показывать новые строки."
+  previous-month: "Предыдущий месяц"
+  next-month: "Следующий месяц"
+  empty-range: "В этом диапазоне нет логов"
+  empty-range-hint: "С {from} по {to} ничего не записано."
+  empty-since: "Нет логов с {time}"
+  empty-since-hint: "Новые строки появятся здесь сразу после записи."
+  jump-before: "Более ранние строки · {time}"
+  jump-after: "Более поздние строки · {time}"
+  empty-window: "В этом окне нет логов"

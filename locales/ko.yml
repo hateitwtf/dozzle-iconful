@@ -13,6 +13,8 @@ toolbar:
   stop: 중지
   start: 시작
   restart: 다시 시작
+  rollout-restart: "{kind} 다시 시작"
+  rollout-restart-done: "{workload}에서 새 파드를 배포하는 중입니다."
   update: 업데이트
   update-service: 서비스 업데이트
   update-pulling: 최신 이미지 가져오는 중...
@@ -47,6 +49,7 @@ toolbar:
   section-export: 내보내기
   section-container: 컨테이너
   section-image: 이미지
+  section-workload: "워크로드"
 action:
   copy-log: 로그 복사
   copy-link: 영구 링크 복사
@@ -86,6 +89,7 @@ label:
   event-suppressed-hint: Dozzle Cloud가 이 줄을 감지했지만 알림을 보류했습니다
   event-metric: 메트릭
   event-container: 컨테이너
+  memory-new: "신규"
   host-count: 호스트가 없습니다 | 호스트 1개 | 호스트 {count}개
   service: 서비스가 없습니다 | 서비스 1개 | 서비스 {count}개
   services: 서비스
@@ -107,6 +111,9 @@ label:
   name: 이름
   cpu: CPU
   core: 코어 없음 | 코어 1개 | 코어 {count}개
+  disk: 디스크
+  load: 부하
+  uptime: 가동 시간
   mem: 메모리
   pinned: 고정됨
   per-page: 페이지당 행 수
@@ -132,12 +139,15 @@ label:
   more-options: 추가 옵션
   groups: 그룹
 tooltip:
+  memory-new: "Dozzle Cloud가 이 컨테이너에서 이 오류를 본 적이 없습니다. 클릭하면 맥락 속에서 볼 수 있습니다."
+  memory-new-since: "이 컨테이너에서 처음 발견: {time}. 클릭하면 처음 시작된 곳을 볼 수 있습니다."
   live-logs: 이 로그는 해당 시점에 고정되어 있습니다. 실시간 스트림을 보려면 클릭하세요.
   search: 컨테이너 검색 (⌘ + k, ⌃k)
   pin-column: 열로 고정
   unpin-column: 열 고정 해제
   merge-stream: 스트림에 병합
   merge-stream-hint: 병합하려면 먼저 컨테이너를 여세요
+  merge-stream-other-host: "같은 호스트의 컨테이너만 병합할 수 있습니다"
   unmerge-stream: 스트림에서 제거
   merge-all: 모두 하나의 스트림으로 병합
   network-io: "네트워크: ↑ {tx}/s · ↓ {rx}/s"
@@ -173,6 +183,8 @@ error:
   logs-skipped: 숨겨진 항목 {total}개 보기
   container-not-found: 컨테이너를 찾을 수 없습니다
   container-not-found-hint: 삭제되었거나 호스트에 더 이상 연결할 수 없습니다.
+  nothing-running: "실행 중인 항목이 없습니다"
+  nothing-running-hint: "이 보기의 컨테이너 중 실행 중인 것이 없습니다. 하나라도 시작되면 여기에 로그가 표시됩니다."
   action-failed: 작업 실패
   update-failed: 업데이트 실패
   unable-to-complete-action: 작업을 완료할 수 없습니다
@@ -719,6 +731,26 @@ cloud-chat:
     notifications: 알림 확인 중…
     action: 작업 실행 중…
     working: 작업 중…
+  step:
+    logs: 로그 검색 중
+    containers: 컨테이너 확인 중
+    stats: 리소스 사용량 확인 중
+    inspect: 컨테이너 검사 중
+    alerts: 알림 검토 중
+    findings: 발견 사항 검토 중
+    events: 컨테이너 기록 확인 중
+    docs: 문서 읽는 중
+    notifications: 알림 설정 확인 중
+    action: 작업 실행 중
+  phase:
+    reading: 질문 읽는 중
+    reviewing: 찾은 내용 검토 중
+    writing: 답변 작성 중
+    retrying: 평소보다 오래 걸려 다시 시도 중
+  found: "{n}개 찾음"
+  nothing-found: 찾은 항목 없음
+  worked-for: "{time} 동안 작업"
+  earlier: 이전 {n}개
   placeholder: 이 로그에 대해 질문
   historical: 기록 보기
   n-containers: 컨테이너 {n}개
@@ -967,3 +999,45 @@ mcp-authorize:
   return: "클라이언트로 돌아가기"
   redirecting: "클라이언트로 돌아가는 중입니다. 완료되면 이 탭을 닫아도 됩니다."
   failed: "요청을 완료할 수 없습니다."
+mobile-nav:
+  label: "기본 메뉴"
+  home: "홈"
+  browse: "둘러보기"
+  back: "뒤로"
+time-range:
+  title: "시간 범위"
+  live: "실시간"
+  last-15m: "최근 15분"
+  last-1h: "최근 1시간"
+  last-6h: "최근 6시간"
+  last-24h: "최근 24시간"
+  custom: "사용자 지정 범위"
+  from: "시작"
+  to: "끝"
+  keep-following: "계속 따라가기"
+  volume: "로그량"
+  errors: "오류"
+  bucket: "{lines}줄 · 오류 {errors}개"
+  not-scanned: "읽지 않음"
+  invalid: "끝 시간은 시작 시간 이후여야 합니다."
+  show: "로그 보기"
+  edge-start: "시작"
+  edge-end: "끝"
+  show-earlier: "더 이전 보기"
+  show-later: "더 이후 보기"
+  to-now: "지금까지"
+  shift-earlier: "이전 구간"
+  shift-later: "다음 구간"
+  last-short: "최근 {span}"
+  since-short: "{time}부터"
+  custom-hint: "날짜를 고른 다음 시간을 고르세요. 시간대는 {zone}입니다."
+  keep-following-hint: "끝을 열어 두고 새 줄을 계속 표시합니다."
+  previous-month: "이전 달"
+  next-month: "다음 달"
+  empty-range: "이 범위에 로그가 없습니다"
+  empty-range-hint: "{from}부터 {to}까지 기록된 내용이 없습니다."
+  empty-since: "{time} 이후 로그가 없습니다"
+  empty-since-hint: "새 줄이 기록되면 바로 여기에 표시됩니다."
+  jump-before: "이전 줄 · {time}"
+  jump-after: "이후 줄 · {time}"
+  empty-window: "이 구간에 로그가 없습니다"

@@ -20,7 +20,10 @@ export type UsageKey =
   | "cloud.welcome"
   | "cloud.connect"
   | "cloud.chat"
-  | "stream.reconnect";
+  | "stream.reconnect"
+  | "memory.chip.shown"
+  | "memory.chip.hover"
+  | "memory.chip.open";
 
 export const USAGE_FLUSH_INTERVAL = 5 * 60 * 1000;
 const MINUTE = 60 * 1000;

@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
@@ -163,6 +164,14 @@ func (k *Client) podToContainers(ctx context.Context, pod *corev1.Pod) []contain
 	// Build labels map with pod labels, namespace, and owner reference
 	labels := make(map[string]string)
 	maps.Copy(labels, pod.Labels)
+	// Every dev.dozzle.* setting works as an annotation too, and the annotation wins:
+	// label values cannot hold spaces, a URL or a data URI, and stop at 63 characters.
+	// Folding them into labels keeps one source for the backend and the UI alike.
+	for key, value := range pod.Annotations {
+		if strings.HasPrefix(key, "dev.dozzle.") && value != "" {
+			labels[key] = value
+		}
+	}
 	labels["namespace"] = pod.Namespace
 	labels["@k8s.namespace"] = pod.Namespace
 
@@ -208,33 +217,54 @@ func (k *Client) podToContainers(ctx context.Context, pod *corev1.Pod) []contain
 		initLabels["@k8s.init"] = "true"
 	}
 
+	// The name is set on the pod, so it only stays bare on the pod's one app container.
+	// Init containers (migrations, native sidecars) always keep their own name as a
+	// suffix, so a single-app pod with an init container still reads as the app.
+	customName := labels["dev.dozzle.name"]
+	group := labels["dev.dozzle.group"]
+	multipleApps := len(pod.Spec.Containers) > 1
+
 	containers := make([]container.Container, 0, len(pod.Spec.InitContainers)+len(pod.Spec.Containers))
-	add := func(c corev1.Container, labels map[string]string) {
+	add := func(c corev1.Container, labels map[string]string, isInit bool) {
+		name := pod.Name + "/" + c.Name
+		if customName != "" {
+			name = customName
+			if isInit || multipleApps {
+				name += "/" + c.Name
+			}
+		}
 		state, containerStarted, finished := phaseToState(pod.Status.Phase), started, time.Time{}
+		var facts runFacts
 		if status, ok := statuses[c.Name]; ok {
 			state, containerStarted, finished = containerStatusToState(status, started)
+			facts = containerRunFacts(status)
 		}
 		containers = append(containers, container.Container{
-			ID:          pod.Namespace + ":" + pod.Name + ":" + c.Name,
-			Name:        pod.Name + "/" + c.Name,
-			Image:       c.Image,
-			Created:     pod.CreationTimestamp.Time,
-			State:       state,
-			StartedAt:   containerStarted,
-			FinishedAt:  finished,
-			Command:     strings.Join(c.Command, " "),
-			Host:        pod.Spec.NodeName,
-			Tty:         c.TTY,
-			Labels:      labels,
-			Stats:       utils.NewRingBuffer[container.ContainerStat](300),
-			FullyLoaded: true,
+			RestartCount: facts.restarts,
+			OOMKilled:    facts.oomKilled,
+			ExitCode:     facts.exitCode,
+			ImageDigest:  imageDigest(statuses[c.Name].ImageID),
+			ID:           pod.Namespace + ":" + pod.Name + ":" + c.Name,
+			Name:         name,
+			Group:        group,
+			Image:        c.Image,
+			Created:      pod.CreationTimestamp.Time,
+			State:        state,
+			StartedAt:    containerStarted,
+			FinishedAt:   finished,
+			Command:      strings.Join(c.Command, " "),
+			Host:         pod.Spec.NodeName,
+			Tty:          c.TTY,
+			Labels:       labels,
+			Stats:        utils.NewRingBuffer[container.ContainerStat](300),
+			FullyLoaded:  true,
 		})
 	}
 	for _, c := range pod.Spec.InitContainers {
-		add(c, initLabels)
+		add(c, initLabels, true)
 	}
 	for _, c := range pod.Spec.Containers {
-		add(c, labels)
+		add(c, labels, false)
 	}
 	return containers
 }
@@ -258,6 +288,40 @@ func containerStatusToState(status corev1.ContainerStatus, podStarted time.Time)
 	default:
 		return "created", podStarted, time.Time{}
 	}
+}
+
+type runFacts struct {
+	restarts  int
+	oomKilled bool
+	exitCode  int
+}
+
+// containerRunFacts reads what the last run ended with. A crash-looping
+// container is Waiting with the facts on LastTerminationState; one that ended
+// for good carries them on State.
+func containerRunFacts(status corev1.ContainerStatus) runFacts {
+	f := runFacts{restarts: int(status.RestartCount)}
+	t := status.State.Terminated
+	if t == nil {
+		t = status.LastTerminationState.Terminated
+	}
+	if t != nil {
+		f.oomKilled = t.Reason == "OOMKilled"
+		f.exitCode = int(t.ExitCode)
+	}
+	return f
+}
+
+// imageDigest turns a status imageID into the "repo@sha256:..." form the image
+// checker compares. containerd reports it bare, the old dockershim prefixed it with
+// docker-pullable://. An image that never came from a registry (loaded into kind,
+// built on the node) has only an image ID and no repo, so it stays uncheckable.
+func imageDigest(imageID string) string {
+	imageID = strings.TrimPrefix(imageID, "docker-pullable://")
+	if !strings.Contains(imageID, "@") {
+		return ""
+	}
+	return imageID
 }
 
 func (k *Client) resolveOwnerChain(ctx context.Context, namespace string, refs []metav1.OwnerReference) []k8sOwner {
@@ -662,6 +726,19 @@ func (k *Client) ContainerLogsBetweenDates(ctx context.Context, id string, start
 	}, nil
 }
 
+// ContainerLogsTail returns the newest `lines` lines of the current run, oldest
+// first, with timestamps.
+func (k *Client) ContainerLogsTail(ctx context.Context, id string, lines int) (io.ReadCloser, error) {
+	namespace, podName, containerName := parsePodContainerID(id)
+	tail := int64(lines)
+	opts := &corev1.PodLogOptions{
+		Container:  containerName,
+		Timestamps: true,
+		TailLines:  &tail,
+	}
+	return k.Clientset.CoreV1().Pods(namespace).GetLogs(podName, opts).Stream(ctx)
+}
+
 func startsWithTimestamp(b []byte) bool {
 	_, err := time.Parse("2006-01-02T15:04:05", string(b[:min(len(b), len("2006-01-02T15:04:05"))]))
 	return err == nil
@@ -828,6 +905,34 @@ func (k *Client) ContainerActions(ctx context.Context, action container.Containe
 	return pods.Delete(ctx, podName, metav1.DeleteOptions{
 		Preconditions: &metav1.Preconditions{UID: &pod.UID},
 	})
+}
+
+// RolloutRestart does what `kubectl rollout restart` does: it stamps the pod template
+// with the current time, and the controller replaces every pod under its own rollout
+// strategy, so maxUnavailable is respected and pods pull their image again if their
+// pull policy says so. Only the three kinds kubectl supports can be restarted.
+func (k *Client) RolloutRestart(ctx context.Context, namespace, kind, name string) error {
+	patch := fmt.Appendf(nil, `{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":%q}}}}}`, time.Now().Format(time.RFC3339))
+	apps := k.Clientset.AppsV1()
+	opts := metav1.PatchOptions{}
+
+	var err error
+	switch kind {
+	case "Deployment":
+		_, err = apps.Deployments(namespace).Patch(ctx, name, types.StrategicMergePatchType, patch, opts)
+	case "StatefulSet":
+		_, err = apps.StatefulSets(namespace).Patch(ctx, name, types.StrategicMergePatchType, patch, opts)
+	case "DaemonSet":
+		_, err = apps.DaemonSets(namespace).Patch(ctx, name, types.StrategicMergePatchType, patch, opts)
+	default:
+		return fmt.Errorf("%s cannot be rolled out, only Deployment, StatefulSet and DaemonSet: %w", kind, errors.ErrUnsupported)
+	}
+	if err != nil {
+		return err
+	}
+
+	log.Info().Str("kind", kind).Str("name", name).Str("namespace", namespace).Msg("rollout restart")
+	return nil
 }
 
 func (k *Client) ContainerAttach(ctx context.Context, id string) (*container.ExecSession, error) {

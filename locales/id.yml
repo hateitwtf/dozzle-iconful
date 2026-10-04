@@ -13,6 +13,8 @@ toolbar:
   stop: Hentikan
   start: Mulai
   restart: Mulai ulang
+  rollout-restart: "Mulai ulang {kind}"
+  rollout-restart-done: "{workload} sedang meluncurkan pod baru."
   update: Perbarui
   update-service: Perbarui Layanan
   update-pulling: Mengunduh image terbaru...
@@ -47,6 +49,7 @@ toolbar:
   section-export: Ekspor
   section-container: Kontainer
   section-image: Image
+  section-workload: "Workload"
 action:
   copy-log: Salin log
   copy-link: Salin permalink
@@ -87,6 +90,7 @@ label:
   event-suppressed-hint: Dozzle Cloud mencocokkan baris ini tetapi menahan peringatannya
   event-metric: Metrik
   event-container: Kontainer
+  memory-new: "Baru"
   host-count: Tidak ada Host | 1 Host | {count} Host
   service: Tidak ada layanan | 1 layanan | {count} layanan
   services: Layanan
@@ -108,6 +112,9 @@ label:
   name: Nama
   cpu: CPU
   core: Tidak ada inti | 1 inti | {count} inti
+  disk: Disk
+  load: Beban
+  uptime: Waktu aktif
   mem: MEM
   pinned: Disematkan
   per-page: Baris per halaman
@@ -134,12 +141,15 @@ label:
   groups: Grup
 
 tooltip:
+  memory-new: "Dozzle Cloud belum pernah melihat error ini di container ini. Klik untuk melihatnya dalam konteks."
+  memory-new-since: "Pertama terlihat di container ini: {time}. Klik untuk melihat di mana error ini dimulai."
   live-logs: Log ini dibekukan pada waktu ini. Klik untuk mengikuti aliran langsung.
   search: Cari kontainer (⌘ + k, ⌃k)
   pin-column: Sematkan sebagai kolom
   unpin-column: Lepas sematan kolom
   merge-stream: Gabungkan ke aliran
   merge-stream-hint: Buka kontainer untuk digabungkan
+  merge-stream-other-host: "Hanya kontainer di host yang sama yang dapat digabungkan"
   unmerge-stream: Hapus dari aliran
   merge-all: Gabungkan semua ke dalam satu aliran
   network-io: "Jaringan: ↑ {tx}/s · ↓ {rx}/s"
@@ -176,6 +186,8 @@ error:
   logs-skipped: Tampilkan {total} entri tersembunyi
   container-not-found: Kontainer tidak ditemukan
   container-not-found-hint: Kontainer mungkin telah dihapus, atau host-nya tidak lagi dapat dijangkau.
+  nothing-running: "Tidak ada yang berjalan di sini"
+  nothing-running-hint: "Tidak ada kontainer di tampilan ini yang sedang berjalan. Log akan muncul di sini begitu salah satunya dimulai."
   action-failed: Tindakan Gagal
   update-failed: Pembaruan Gagal
   unable-to-complete-action: Tidak dapat menyelesaikan tindakan
@@ -729,6 +741,26 @@ cloud-chat:
     notifications: Memeriksa notifikasi…
     action: Menjalankan aksi…
     working: Sedang bekerja…
+  step:
+    logs: Mencari di log
+    containers: Melihat container
+    stats: Memeriksa penggunaan sumber daya
+    inspect: Memeriksa container
+    alerts: Meninjau peringatan
+    findings: Meninjau temuan
+    events: Memeriksa riwayat container
+    docs: Membaca dokumentasi
+    notifications: Memeriksa notifikasi
+    action: Menjalankan aksi
+  phase:
+    reading: Membaca pertanyaan
+    reviewing: Menelaah hasil yang ditemukan
+    writing: Menulis jawaban
+    retrying: Lebih lama dari biasanya, mencoba lagi
+  found: "{n} ditemukan"
+  nothing-found: tidak ada yang ditemukan
+  worked-for: Bekerja selama {time}
+  earlier: "{n} sebelumnya"
   placeholder: Tanya tentang log ini
   historical: historis
   n-containers: "{n} kontainer"
@@ -977,3 +1009,45 @@ mcp-authorize:
   return: "Kembali ke klien"
   redirecting: "Kembali ke klien. Anda dapat menutup tab ini setelah selesai."
   failed: "Permintaan ini tidak dapat diselesaikan."
+mobile-nav:
+  label: "Utama"
+  home: "Beranda"
+  browse: "Jelajahi"
+  back: "Kembali"
+time-range:
+  title: "Rentang waktu"
+  live: "Langsung"
+  last-15m: "15 menit terakhir"
+  last-1h: "1 jam terakhir"
+  last-6h: "6 jam terakhir"
+  last-24h: "24 jam terakhir"
+  custom: "Rentang khusus"
+  from: "Dari"
+  to: "Sampai"
+  keep-following: "Terus ikuti"
+  volume: "Volume log"
+  errors: "Error"
+  bucket: "{lines} baris · {errors} error"
+  not-scanned: "belum dibaca"
+  invalid: "Akhir harus setelah awal."
+  show: "Tampilkan log"
+  edge-start: "Dari"
+  edge-end: "Sampai"
+  show-earlier: "tampilkan lebih awal"
+  show-later: "tampilkan lebih lanjut"
+  to-now: "sampai sekarang"
+  shift-earlier: "Jendela sebelumnya"
+  shift-later: "Jendela berikutnya"
+  last-short: "{span} terakhir"
+  since-short: "Sejak {time}"
+  custom-hint: "Pilih tanggal, lalu jamnya. Waktu dalam {zone}."
+  keep-following-hint: "Biarkan akhir terbuka dan terus tampilkan baris baru."
+  previous-month: "Bulan sebelumnya"
+  next-month: "Bulan berikutnya"
+  empty-range: "Tidak ada log di rentang ini"
+  empty-range-hint: "Tidak ada yang ditulis antara {from} dan {to}."
+  empty-since: "Tidak ada log sejak {time}"
+  empty-since-hint: "Baris baru akan muncul di sini begitu ditulis."
+  jump-before: "Baris sebelumnya · {time}"
+  jump-after: "Baris berikutnya · {time}"
+  empty-window: "Tidak ada log di jendela ini"

@@ -13,6 +13,8 @@ toolbar:
   stop: Stop
   start: Start
   restart: Restart
+  rollout-restart: "Riavvia {kind}"
+  rollout-restart-done: "{workload} sta distribuendo nuovi pod."
   update: Aggiorna
   update-service: Aggiorna Servizio
   update-pulling: Download dell'ultima immagine...
@@ -47,6 +49,7 @@ toolbar:
   section-export: Esporta
   section-container: Container
   section-image: Immagine
+  section-workload: "Carico di lavoro"
 action:
   copy-log: Copia log
   copy-link: Copia permalink
@@ -86,6 +89,7 @@ label:
   event-suppressed-hint: Dozzle Cloud ha rilevato questa riga ma ha trattenuto l'avviso
   event-metric: Metrica
   event-container: Container
+  memory-new: "Nuovo"
   host-count: Nessun Host | 1 Host | {count} Host
   service: Nessun servizio | 1 servizio | {count} servizi
   services: Servizi
@@ -107,6 +111,9 @@ label:
   name: Nome
   cpu: CPU
   core: Nessun core | 1 core | {count} core
+  disk: Disco
+  load: Carico
+  uptime: Tempo di attività
   mem: MEM
   pinned: Fissato
   per-page: Righe per pagina
@@ -132,12 +139,15 @@ label:
   more-options: Altre opzioni
   groups: Gruppi
 tooltip:
+  memory-new: "Dozzle Cloud non ha mai visto questo errore in questo container. Fai clic per vederlo nel contesto."
+  memory-new-since: "Visto per la prima volta in questo container: {time}. Fai clic per vedere dove è iniziato."
   live-logs: Questi log sono congelati a questo istante. Fai clic per seguire lo streaming in tempo reale.
   search: Ricerca container (⌘ + k, ⌃k)
   pin-column: Blocca come colonna
   unpin-column: Sblocca colonna
   merge-stream: Unisci al flusso
   merge-stream-hint: Apri un container per unirlo
+  merge-stream-other-host: "Si possono unire solo container sullo stesso host"
   unmerge-stream: Rimuovi dal flusso
   merge-all: Unisci tutto in un flusso
   network-io: "Rete: ↑ {tx}/s · ↓ {rx}/s"
@@ -173,6 +183,8 @@ error:
   logs-skipped: Mostra {total} voci nascoste
   container-not-found: Container non trovato
   container-not-found-hint: Potrebbe essere stato rimosso, oppure il suo host non è più raggiungibile.
+  nothing-running: "Qui non è in esecuzione nulla"
+  nothing-running-hint: "Nessuno dei container di questa vista è in esecuzione. I log appariranno qui appena uno si avvia."
   action-failed: Azione Fallita
   update-failed: Aggiornamento Fallito
   unable-to-complete-action: Impossibile completare l'azione
@@ -717,6 +729,26 @@ cloud-chat:
     notifications: Controllo le notifiche…
     action: Sto eseguendo l'azione…
     working: Sto lavorando…
+  step:
+    logs: Ricerca nei log
+    containers: Analisi dei container
+    stats: Controllo dell'uso delle risorse
+    inspect: Ispezione del container
+    alerts: Revisione degli avvisi
+    findings: Revisione dei rilevamenti
+    events: Controllo della cronologia del container
+    docs: Lettura della documentazione
+    notifications: Controllo delle notifiche
+    action: Esecuzione dell'azione
+  phase:
+    reading: Lettura della domanda
+    reviewing: Analisi di quanto trovato
+    writing: Scrittura della risposta
+    retrying: Più lento del solito, nuovo tentativo
+  found: "{n} trovati"
+  nothing-found: nessun risultato
+  worked-for: Ha lavorato {time}
+  earlier: "{n} precedenti"
   placeholder: Chiedi di questi log
   historical: storico
   n-containers: "{n} container"
@@ -965,3 +997,45 @@ mcp-authorize:
   return: "Torna al client"
   redirecting: "Ritorno al client. Puoi chiudere questa scheda al termine."
   failed: "Impossibile completare la richiesta."
+mobile-nav:
+  label: "Principale"
+  home: "Home"
+  browse: "Sfoglia"
+  back: "Indietro"
+time-range:
+  title: "Intervallo di tempo"
+  live: "Live"
+  last-15m: "Ultimi 15 minuti"
+  last-1h: "Ultima ora"
+  last-6h: "Ultime 6 ore"
+  last-24h: "Ultime 24 ore"
+  custom: "Intervallo personalizzato"
+  from: "Da"
+  to: "A"
+  keep-following: "Continua a seguire"
+  volume: "Volume dei log"
+  errors: "Errori"
+  bucket: "{lines} righe · {errors} errori"
+  not-scanned: "non letto"
+  invalid: "La fine deve essere successiva all'inizio."
+  show: "Mostra log"
+  edge-start: "Da"
+  edge-end: "Fino a"
+  show-earlier: "mostra prima"
+  show-later: "mostra dopo"
+  to-now: "fino ad ora"
+  shift-earlier: "Finestra precedente"
+  shift-later: "Finestra successiva"
+  last-short: "Ultimi {span}"
+  since-short: "Da {time}"
+  custom-hint: "Scegli i giorni, poi gli orari. Orari in {zone}."
+  keep-following-hint: "Lascia aperta la fine e continua a mostrare le nuove righe."
+  previous-month: "Mese precedente"
+  next-month: "Mese successivo"
+  empty-range: "Nessun log in questo intervallo"
+  empty-range-hint: "Non è stato scritto nulla tra {from} e {to}."
+  empty-since: "Nessun log da {time}"
+  empty-since-hint: "Le nuove righe compaiono qui appena vengono scritte."
+  jump-before: "Righe precedenti · {time}"
+  jump-after: "Righe successive · {time}"
+  empty-window: "Nessun log in questa finestra"

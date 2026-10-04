@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,9 +12,9 @@ import (
 	"time"
 
 	"github.com/amir20/dozzle/internal/container"
+	"github.com/amir20/dozzle/internal/container/histogram"
 	"github.com/amir20/dozzle/internal/container/logparse"
 	"github.com/amir20/dozzle/internal/imagecheck"
-	"github.com/amir20/dozzle/internal/profile"
 	"github.com/amir20/dozzle/internal/selfupdate"
 
 	"github.com/moby/moby/api/pkg/stdcopy"
@@ -30,12 +31,15 @@ type UpdateClient interface {
 	ContainerInspect(ctx context.Context, containerID string) (docker_types.InspectResponse, error)
 	ContainerRemove(ctx context.Context, containerID string) error
 	ContainerCreate(ctx context.Context, inspectResp docker_types.InspectResponse, name string) (string, error)
+	NetworkDependents(ctx context.Context, id string, name string) ([]string, error)
 	ServiceUpdate(ctx context.Context, serviceID string, image string) error
+	ContainerLogsTail(ctx context.Context, id string, lines int) (io.ReadCloser, error)
 }
 
 var (
-	selfContainerID = profile.SelfContainerID
+	selfContainerID = selfupdate.SelfID
 	startSelfUpdate = selfupdate.Start
+	startRejoin     = selfupdate.StartRejoin
 	hostname        = os.Hostname
 )
 
@@ -62,17 +66,19 @@ func mayBeSelf(inspect docker_types.InspectResponse) bool {
 }
 
 type Service struct {
-	client  UpdateClient
-	store   *container.Store
-	checker *imagecheck.Checker
+	client     UpdateClient
+	store      *container.Store
+	checker    *imagecheck.Checker
+	histograms *histogram.Counter
 }
 
 func NewService(client UpdateClient, labels container.ContainerLabels) *Service {
 	statsCollector := NewStatsCollector(client, labels)
 	return &Service{
-		client:  client,
-		store:   container.NewStore(context.Background(), client, statsCollector, labels),
-		checker: imagecheck.Shared(),
+		client:     client,
+		store:      container.NewStore(context.Background(), client, statsCollector, labels),
+		checker:    imagecheck.Shared(),
+		histograms: histogram.NewCounter(),
 	}
 }
 
@@ -116,6 +122,30 @@ func (d *Service) LogsBetweenDates(ctx context.Context, c container.Container, f
 	dockerReader := NewLogReader(reader, c.Tty)
 	g := logparse.NewEventGenerator(ctx, dockerReader, c)
 	return g.Events, nil
+}
+
+func (d *Service) LogHistogram(ctx context.Context, c container.Container, from time.Time, to time.Time, width time.Duration) (container.LogHistogram, error) {
+	return d.histograms.Count(ctx, c.ID, from, to, width, func(ctx context.Context, lines int) (histogram.LineReader, io.Closer, error) {
+		reader, err := d.client.ContainerLogsTail(ctx, c.ID, lines)
+		if err != nil {
+			return nil, nil, err
+		}
+		return skipBadHeaders{NewLogReader(reader, c.Tty)}, reader, nil
+	})
+}
+
+// skipBadHeaders reads past a frame whose header is malformed, as the event
+// generator does, instead of ending the count there.
+type skipBadHeaders struct{ *LogReader }
+
+func (r skipBadHeaders) Read() (string, container.StdType, error) {
+	for {
+		line, std, err := r.LogReader.Read()
+		if err == ErrBadHeader {
+			continue
+		}
+		return line, std, err
+	}
 }
 
 func (d *Service) StreamLogs(ctx context.Context, c container.Container, from time.Time, stdTypes container.StdType, events chan<- *container.LogEvent) error {
@@ -288,6 +318,20 @@ func (d *Service) UpdateContainer(ctx context.Context, c container.Container, pr
 
 	containerName := strings.TrimPrefix(inspectResp.Name, "/")
 
+	// Containers joined to this one's network namespace (network_mode:
+	// service:x in compose) lose it with the old container, so they are
+	// recreated after it.
+	dependents, err := d.client.NetworkDependents(ctx, inspectResp.ID, containerName)
+	if err != nil {
+		progress(container.UpdateProgress{Status: "error", Error: fmt.Sprintf("list dependents failed: %v", err)})
+		return false, err
+	}
+
+	// From here on the old container is going away, so a client that
+	// disconnects must not leave the swap half done. That includes Dozzle
+	// itself when it shares this container's network.
+	ctx = context.WithoutCancel(ctx)
+
 	// Stop if running
 	if c.State == "running" {
 		if err := d.client.ContainerActions(ctx, container.Stop, c.ID); err != nil {
@@ -315,8 +359,82 @@ func (d *Service) UpdateContainer(ctx context.Context, c container.Container, pr
 		return false, err
 	}
 
+	if err := d.rejoinDependents(ctx, dependents, inspectResp.ID, newID); err != nil {
+		progress(container.UpdateProgress{Status: "error", Error: err.Error()})
+		return true, err
+	}
+
 	progress(container.UpdateProgress{Status: "done"})
 	return true, nil
+}
+
+// rejoinDependents recreates every container in ids, which shared the network
+// namespace of oldID, joined to newID instead. Each keeps its own image; one
+// that was stopped is recreated but left stopped. Dozzle's own container is
+// handed to the self-update helper, since recreating it here would stop this
+// process halfway through.
+func (d *Service) rejoinDependents(ctx context.Context, ids []string, oldID, newID string) error {
+	var errs []error
+	// The helper stops this process within seconds, so Dozzle goes last:
+	// stopped between a remove and a create, a dependent would be lost.
+	var self *docker_types.InspectResponse
+	var selfMode string
+	for _, id := range ids {
+		inspect, err := d.client.ContainerInspect(ctx, id)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("inspect %s failed: %w", id[:min(12, len(id))], err))
+			continue
+		}
+		name := strings.TrimPrefix(inspect.Name, "/")
+
+		mode := string(inspect.HostConfig.NetworkMode)
+		if ref := strings.TrimPrefix(mode, "container:"); strings.HasPrefix(oldID, ref) {
+			// A reference by id is dead; one by name already finds the
+			// replacement.
+			mode = "container:" + newID
+		}
+
+		if isSelf(inspect.ID) {
+			self, selfMode = &inspect, mode
+			continue
+		}
+		if mayBeSelf(inspect) {
+			errs = append(errs, fmt.Errorf("%s shares this container's network and may be Dozzle itself, recreate it manually", name))
+			continue
+		}
+
+		log.Info().Str("container", name).Str("networkMode", mode).Msg("recreating container that shares the updated container's network")
+		wasRunning := inspect.State != nil && inspect.State.Running
+		if wasRunning {
+			if err := d.client.ContainerActions(ctx, container.Stop, inspect.ID); err != nil {
+				errs = append(errs, fmt.Errorf("stop %s failed: %w", name, err))
+				continue
+			}
+		}
+		if err := d.client.ContainerRemove(ctx, inspect.ID); err != nil {
+			errs = append(errs, fmt.Errorf("remove %s failed: %w", name, err))
+			continue
+		}
+		hc := *inspect.HostConfig
+		hc.NetworkMode = docker_types.NetworkMode(mode)
+		inspect.HostConfig = &hc
+		depID, err := d.client.ContainerCreate(ctx, inspect, name)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("create %s failed: %w", name, err))
+			continue
+		}
+		if wasRunning {
+			if err := d.client.ContainerActions(ctx, container.Start, depID); err != nil {
+				errs = append(errs, fmt.Errorf("start %s failed: %w", name, err))
+			}
+		}
+	}
+	if self != nil {
+		if err := startRejoin(ctx, self.ID, selfMode); err != nil {
+			errs = append(errs, fmt.Errorf("rejoin %s failed: %w", strings.TrimPrefix(self.Name, "/"), err))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 func (d *Service) ListContainers(ctx context.Context, labels container.ContainerLabels) ([]container.Container, error) {

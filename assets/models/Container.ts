@@ -24,6 +24,27 @@ export const emptyStat = (): Stat => ({
 // agent added since then would have no name to show.
 const { hosts } = useHosts();
 
+/**
+ * Not running and not about to: it writes no more logs and reports no more stats
+ * until someone starts it. That includes one that was created and never started.
+ * Paused and restarting containers are on their way back, and a restarting one
+ * still carries the previous run's finishedAt, so neither counts.
+ */
+export const isStopped = (container: { state: ContainerState }) =>
+  container.state === "exited" ||
+  container.state === "dead" ||
+  container.state === "deleted" ||
+  container.state === "created";
+
+/**
+ * Which of start and stop the container takes. Docker refuses to start a paused
+ * container but stops one fine, and a deleted one takes neither.
+ */
+export const powerAction = (container: { state: ContainerState }): "start" | "stop" | undefined => {
+  if (container.state === "deleted") return undefined;
+  return isStopped(container) ? "start" : "stop";
+};
+
 export class GroupedContainers {
   constructor(
     public readonly name: string,
@@ -35,12 +56,15 @@ export class HistoricalContainer {
   constructor(
     public readonly container: Container,
     public readonly date: Date,
+    // Set for a time range, where `date` is its start; absent for a single moment.
+    public readonly until?: Date,
   ) {}
 }
 
 export class Container {
   private _stat: Ref<Stat>;
   private _name: string;
+  private _health?: ContainerHealth;
   // Shallow, and `markRaw` on the array inside it: a Container lives in the store's
   // deeply reactive `containers` array, so a plain `ref` here would proxy the window
   // and all 300 `Stat`s in it. Every tick then pays for a proxy plus a deep array
@@ -78,13 +102,14 @@ export class Container {
     public readonly cpuLimit: number,
     public readonly memoryLimit: number,
     stats: Stat[],
-    public readonly group?: string,
-    public health?: ContainerHealth,
+    public group?: string,
+    health?: ContainerHealth,
     public isNew: boolean = false,
     mounts: ContainerMount[] = [],
     mountStats: Record<string, MountStat> = {},
     public readonly ports: string[] = [],
   ) {
+    this._health = health;
     this.mounts = mounts;
     this.mountStats = mountStats;
     const defaultStat = emptyStat();
@@ -252,6 +277,17 @@ export class Container {
           .replace(`.${this.labels["com.docker.swarm.task.id"]}`, "")
           .replace(`.${this.labels["com.docker.swarm.node.id"]}`, "")
       : this._name;
+  }
+
+  set health(health: ContainerHealth | undefined) {
+    this._health = health;
+  }
+
+  // A healthcheck only runs while the container does, and Docker keeps the last
+  // result (flipped to unhealthy by the kill) after it stops. Neither describes a
+  // stopped container, so every surface reads no health for one.
+  get health(): ContainerHealth | undefined {
+    return isStopped(this) ? undefined : this._health;
   }
 
   get swarmId() {

@@ -33,7 +33,10 @@ toolbar:
   section-export: Izvoz
   section-container: Vsebnik
   section-image: Slika
+  section-workload: "Delovna obremenitev"
   restart: Ponovni zagon
+  rollout-restart: "Znova zaženi {kind}"
+  rollout-restart-done: "{workload} uvaja nove pode."
   update: Posodobi
   update-service: Posodobi Storitev
   update-pulling: Prenašanje najnovejše slike...
@@ -116,11 +119,15 @@ label:
   event-suppressed-hint: Dozzle Cloud je to vrstico zaznal, a zadržal opozorilo
   event-metric: Metrika
   event-container: Zabojnik
+  memory-new: "Novo"
   services: Storitve
   avg-mem: Povprečje spomina
   name: Ime
   cpu: CPU
   core: Ni jeder | 1 jedro | {count} jeder
+  disk: Disk
+  load: Obremenitev
+  uptime: Čas delovanja
   mem: MEM
   no-logs: Zabojnik še nima dnevnika
   no-logs-hint: "Vse, kar vsebnik zapiše, se takoj pojavi tukaj."
@@ -132,12 +139,15 @@ label:
     empty: "Ni ujemajočih se dnevnikov"
     empty-hint: "Preiskani vsi dnevniki. Poskusite z drugim izrazom ali počistite iskanje."
 tooltip:
+  memory-new: "Dozzle Cloud te napake v tem vsebniku še ni videl. Kliknite za prikaz v kontekstu."
+  memory-new-since: "Prvič opažena v tem vsebniku: {time}. Kliknite za prikaz, kje se je začela."
   live-logs: Ti dnevniki so zamrznjeni na tem trenutku. Kliknite za spremljanje živega toka.
   search: Iskanje zabojnikov (⌘ + k, ⌃k)
   pin-column: Pripni kot stolpec
   unpin-column: Odpni stolpec
   merge-stream: Združi s tokom
   merge-stream-hint: Odprite vsebnik za združevanje
+  merge-stream-other-host: "Združiti je mogoče le vsebnike na istem gostitelju"
   unmerge-stream: Odstrani iz toka
   merge-all: Združi vse v en tok
   network-io: "Omrežje: ↑ {tx}/s · ↓ {rx}/s"
@@ -182,6 +192,8 @@ error:
       povezovanjem z API-jem. Preverite omrežno povezavo in poskusite znova.
   container-not-found: Zabojnika ni bilo mogoče najti
   container-not-found-hint: Morda je bil odstranjen ali pa njegov gostitelj ni več dosegljiv.
+  nothing-running: "Tu nič ne teče"
+  nothing-running-hint: "Noben vsebnik v tem pogledu ne teče. Dnevniki se prikažejo tukaj, ko se kateri zažene."
   action-failed: Dejanje Neuspešno
   update-failed: Posodobitev Neuspešna
   unable-to-complete-action: Dejanja ni mogoče dokončati
@@ -722,6 +734,26 @@ cloud-chat:
     notifications: Preverjam obvestila…
     action: Izvajam dejanje…
     working: Delam…
+  step:
+    logs: Iskanje po dnevnikih
+    containers: Pregled vsebnikov
+    stats: Preverjanje porabe virov
+    inspect: Pregledovanje vsebnika
+    alerts: Pregled opozoril
+    findings: Pregled ugotovitev
+    events: Preverjanje zgodovine vsebnika
+    docs: Branje dokumentacije
+    notifications: Preverjanje obvestil
+    action: Izvajanje dejanja
+  phase:
+    reading: Branje vprašanja
+    reviewing: Pregled najdenega
+    writing: Pisanje odgovora
+    retrying: Traja dlje kot običajno, ponoven poskus
+  found: "najdeno: {n}"
+  nothing-found: nič najdenega
+  worked-for: "Delo: {time}"
+  earlier: "prejšnjih: {n}"
   placeholder: Vprašaj o teh dnevnikih
   historical: zgodovinsko
   n-containers: "Vsebnikov: {n}"
@@ -970,3 +1002,45 @@ mcp-authorize:
   return: "Nazaj na odjemalca"
   redirecting: "Vračanje na odjemalca. Ko se konča, lahko ta zavihek zaprete."
   failed: "Zahteve ni bilo mogoče dokončati."
+mobile-nav:
+  label: "Glavni meni"
+  home: "Domov"
+  browse: "Brskaj"
+  back: "Nazaj"
+time-range:
+  title: "Časovni razpon"
+  live: "V živo"
+  last-15m: "Zadnjih 15 minut"
+  last-1h: "Zadnja ura"
+  last-6h: "Zadnjih 6 ur"
+  last-24h: "Zadnjih 24 ur"
+  custom: "Razpon po meri"
+  from: "Od"
+  to: "Do"
+  keep-following: "Spremljaj naprej"
+  volume: "Količina dnevnikov"
+  errors: "Napake"
+  bucket: "Vrstice: {lines} · napake: {errors}"
+  not-scanned: "ni prebrano"
+  invalid: "Konec mora biti za začetkom."
+  show: "Prikaži dnevnike"
+  edge-start: "Od"
+  edge-end: "Do"
+  show-earlier: "prikaži prej"
+  show-later: "prikaži pozneje"
+  to-now: "do zdaj"
+  shift-earlier: "Prejšnje okno"
+  shift-later: "Naslednje okno"
+  last-short: "Zadnjih {span}"
+  since-short: "Od {time}"
+  custom-hint: "Izberi dneve, nato ure. Časi so v {zone}."
+  keep-following-hint: "Pusti konec odprt in še naprej prikazuj nove vrstice."
+  previous-month: "Prejšnji mesec"
+  next-month: "Naslednji mesec"
+  empty-range: "V tem razponu ni dnevnikov"
+  empty-range-hint: "Med {from} in {to} ni bilo zapisano nič."
+  empty-since: "Ni dnevnikov od {time}"
+  empty-since-hint: "Nove vrstice se prikažejo tukaj takoj, ko so zapisane."
+  jump-before: "Prejšnje vrstice · {time}"
+  jump-after: "Poznejše vrstice · {time}"
+  empty-window: "V tem oknu ni dnevnikov"

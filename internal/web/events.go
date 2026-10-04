@@ -1,11 +1,13 @@
 package web
 
 import (
+	"context"
 	"errors"
 	"maps"
 	"net"
 	"net/http"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/amir20/dozzle/internal/auth"
@@ -28,6 +30,8 @@ const (
 	// minimum gap between host-id reconciliations, so a burst of reconnecting tabs
 	// dials every agent once rather than once each
 	hostReconcileInterval = 10 * time.Second
+	// how often live host metrics are re-sent to a watching client
+	hostMetricRefreshInterval = 15 * time.Second
 )
 
 func (h *handler) streamEvents(w http.ResponseWriter, r *http.Request) {
@@ -49,9 +53,15 @@ func (h *handler) streamEvents(w http.ResponseWriter, r *http.Request) {
 	events := make(chan container.ContainerEvent, eventBufferSize)
 	stats := make(chan container.ContainerStat, statBufferSize)
 	availableHosts := make(chan container.Host)
+	hostMetricsUpdates := make(chan []hostMetricsEvent, 1)
 
 	h.hostService.SubscribeEventsAndStats(container.WithSubscriberName(r.Context(), "sse-events"), events, stats)
 	h.hostService.SubscribeAvailableHosts(r.Context(), availableHosts)
+
+	// One shared ticker feeds every tab; this just registers this stream's queue
+	// and drops it on the way out.
+	unsubscribeHostMetrics := h.subscribeHostMetrics(hostMetricsUpdates)
+	defer unsubscribeHostMetrics()
 
 	// An agent mints its id when its process starts, so one that restarted since the
 	// hub last looked answers under an id nothing here is keyed by. Hosts() repairs
@@ -312,6 +322,16 @@ func (h *handler) streamEvents(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			}
+		case batch := <-hostMetricsUpdates:
+			// Its own event rather than update-host: the raw client's Host() has no
+			// Available and no mode-specific Type, and update-host replaces the whole
+			// host, so reusing it would mark the host offline every tick.
+			for _, metrics := range batch {
+				if err := sseWriter.Event("host-metrics", metrics); err != nil {
+					logWriteError(err, "error writing host metrics to event stream")
+					return
+				}
+			}
 		case <-r.Context().Done():
 			return
 		}
@@ -351,4 +371,141 @@ func (h *handler) reconcileHosts() {
 		}()
 		h.hostService.Hosts()
 	}()
+}
+
+// subscribeHostMetrics registers a stream's queue for host metrics updates and
+// returns the function that removes it. The first subscriber starts the one
+// shared ticker, so N tabs cost one read of each host per interval rather than
+// N reads the way a per-stream Hosts() call did.
+func (h *handler) subscribeHostMetrics(ch chan []hostMetricsEvent) func() {
+	h.hostMetricsOnce.Do(func() {
+		h.hostMetricsSubs = make(map[chan []hostMetricsEvent]struct{})
+		go h.broadcastHostMetrics()
+	})
+	h.hostMetricsMu.Lock()
+	h.hostMetricsSubs[ch] = struct{}{}
+	h.hostMetricsMu.Unlock()
+
+	return func() {
+		h.hostMetricsMu.Lock()
+		delete(h.hostMetricsSubs, ch)
+		h.hostMetricsMu.Unlock()
+	}
+}
+
+func (h *handler) broadcastHostMetrics() {
+	ticker := time.NewTicker(hostMetricRefreshInterval)
+	defer ticker.Stop()
+	for range ticker.C {
+		h.hostMetricsMu.Lock()
+		hasSubscribers := len(h.hostMetricsSubs) > 0
+		h.hostMetricsMu.Unlock()
+		if !hasSubscribers {
+			continue
+		}
+
+		batch := h.collectHostMetrics()
+		if len(batch) == 0 {
+			continue
+		}
+
+		h.hostMetricsMu.Lock()
+		for ch := range h.hostMetricsSubs {
+			select {
+			case ch <- batch:
+			default:
+				// A tab slow to drain keeps the values it has; it will get the next batch.
+			}
+		}
+		h.hostMetricsMu.Unlock()
+	}
+}
+
+// hostMetricsCallTimeout bounds one host's read, so an agent that stopped
+// answering costs that host one tick rather than holding up every host.
+const hostMetricsCallTimeout = 3 * time.Second
+
+// collectHostMetrics reads every host's metrics in parallel: the local engine off
+// this machine, and each agent over the connection it already holds. Hosts with
+// nothing to show, an older agent or a remote engine, are left out.
+func (h *handler) collectHostMetrics() []hostMetricsEvent {
+	services := h.hostService.ClientServices(false)
+	results := make([]*hostMetricsEvent, len(services))
+	var wg sync.WaitGroup
+	for i, service := range services {
+		wg.Go(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), hostMetricsCallTimeout)
+			defer cancel()
+			host, err := service.Host(ctx)
+			if err != nil || !hostHasMetrics(host) {
+				return
+			}
+			event := newHostMetricsEvent(host)
+			results[i] = &event
+		})
+	}
+	wg.Wait()
+
+	return collapseHostMetrics(results)
+}
+
+// collapseHostMetrics drops the hosts that had nothing to show and keeps one
+// event per host id. In swarm mode a node can be reached both as the local
+// client and as an agent; both report the same machine, so one event is enough.
+func collapseHostMetrics(results []*hostMetricsEvent) []hostMetricsEvent {
+	batch := make([]hostMetricsEvent, 0, len(results))
+	seen := make(map[string]struct{}, len(results))
+	for _, event := range results {
+		if event == nil {
+			continue
+		}
+		if _, dup := seen[event.ID]; dup {
+			continue
+		}
+		seen[event.ID] = struct{}{}
+		batch = append(batch, *event)
+	}
+	return batch
+}
+
+// hostMetricsEvent is the payload of the host-metrics SSE event: the host's id and
+// its metric fields, nothing else, so the client merges it into the host it has.
+// No omitempty, so a value that drops to zero overwrites the stale one.
+type hostMetricsEvent struct {
+	ID               string  `json:"id"`
+	MetricsAvailable bool    `json:"metricsAvailable"`
+	Load1            float64 `json:"load1"`
+	Load5            float64 `json:"load5"`
+	Load15           float64 `json:"load15"`
+	Uptime           uint64  `json:"uptime"`
+	DiskTotal        uint64  `json:"diskTotal"`
+	DiskFree         uint64  `json:"diskFree"`
+	// Always an array, never null, so a drive that was unmounted clears.
+	Disks []container.Disk `json:"disks"`
+}
+
+func newHostMetricsEvent(host container.Host) hostMetricsEvent {
+	disks := host.Disks
+	if disks == nil {
+		disks = []container.Disk{}
+	}
+	return hostMetricsEvent{
+		ID:               host.ID,
+		MetricsAvailable: host.MetricsAvailable,
+		Load1:            host.Load1,
+		Load5:            host.Load5,
+		Load15:           host.Load15,
+		Uptime:           host.Uptime,
+		DiskTotal:        host.DiskTotal,
+		DiskFree:         host.DiskFree,
+		Disks:            disks,
+	}
+}
+
+// hostHasMetrics is the send gate for the metrics ticker: nothing is broadcast
+// for a host with no metrics to show. Disk counts on its own because it comes
+// from the engine's data directory and does not need the host /proc mounted, so
+// metricsAvailable is not the whole story.
+func hostHasMetrics(host container.Host) bool {
+	return host.MetricsAvailable || host.DiskTotal > 0 || len(host.Disks) > 0
 }
