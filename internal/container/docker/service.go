@@ -2,7 +2,6 @@ package docker
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/amir20/dozzle/internal/container"
+	"github.com/amir20/dozzle/internal/container/docker/swap"
 	"github.com/amir20/dozzle/internal/container/histogram"
 	"github.com/amir20/dozzle/internal/container/logparse"
 	"github.com/amir20/dozzle/internal/imagecheck"
@@ -19,6 +19,7 @@ import (
 
 	"github.com/moby/moby/api/pkg/stdcopy"
 	docker_types "github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/image"
 	"github.com/rs/zerolog/log"
 )
 
@@ -28,12 +29,16 @@ type UpdateClient interface {
 	ImagePull(ctx context.Context, image string) (io.ReadCloser, error)
 	ImageRepoDigests(ctx context.Context, imageID string) ([]string, error)
 	ImageID(ctx context.Context, ref string) (string, error)
+	ImageInspect(ctx context.Context, ref string) (image.InspectResponse, error)
 	ContainerInspect(ctx context.Context, containerID string) (docker_types.InspectResponse, error)
 	ContainerRemove(ctx context.Context, containerID string) error
 	ContainerCreate(ctx context.Context, inspectResp docker_types.InspectResponse, name string) (string, error)
 	NetworkDependents(ctx context.Context, id string, name string) ([]string, error)
 	ServiceUpdate(ctx context.Context, serviceID string, image string) error
 	ContainerLogsTail(ctx context.Context, id string, lines int) (io.ReadCloser, error)
+	// SwapAPI is the engine client UpdateContainer swaps containers, and
+	// cleans up images, with.
+	SwapAPI() swap.API
 }
 
 var (
@@ -58,7 +63,7 @@ func mayBeSelf(inspect docker_types.InspectResponse) bool {
 	if selfContainerID() != "" || inspect.Config == nil {
 		return false
 	}
-	if strings.Contains(selfupdate.ImageRef(inspect.Config), "amir20/dozzle") {
+	if strings.Contains(swap.ImageRef(inspect.Config), "amir20/dozzle") {
 		return true
 	}
 	h, err := hostname()
@@ -180,15 +185,6 @@ func (d *Service) ContainerAction(ctx context.Context, container container.Conta
 	return d.client.ContainerActions(ctx, action, container.ID)
 }
 
-type pullEvent struct {
-	Status         string `json:"status"`
-	ProgressDetail struct {
-		Current int64 `json:"current"`
-		Total   int64 `json:"total"`
-	} `json:"progressDetail"`
-	ID string `json:"id"`
-}
-
 // CheckImageUpdate reports whether the registry serves a newer image than the
 // one this container is running.
 func (d *Service) CheckImageUpdate(ctx context.Context, c container.Container, force bool) (imagecheck.Result, error) {
@@ -221,55 +217,49 @@ func (d *Service) CheckImageUpdate(ctx context.Context, c container.Container, f
 	// Config.Image is the reference the container was created from, which is
 	// what the registry must be queried for.
 	// A rolled-back Dozzle runs from a bare image id and keeps its tag in a label.
-	return d.checker.Check(ctx, selfupdate.ImageRef(inspect.Config), digests, force), nil
+	return d.checker.Check(ctx, swap.ImageRef(inspect.Config), digests, force), nil
 }
 
 func (d *Service) UpdateContainer(ctx context.Context, c container.Container, progressCh chan<- container.UpdateProgress) (bool, error) {
 	defer close(progressCh)
 
-	// The consumer is a request: an SSE handler that returns the moment a write
-	// to the client fails, or an agent stream that ends with its RPC. An
-	// unguarded send outlives it and parks this goroutine mid-update forever.
-	progress := func(p container.UpdateProgress) {
-		select {
-		case progressCh <- p:
-		case <-ctx.Done():
-		}
+	// Every send is unguarded, so the final done or rolled-back, which carries
+	// the Result the update is recorded from, is never dropped because the
+	// request ended. Every consumer drains progressCh until it is closed:
+	// ContainerService.recorded, which records the Result and forwards to the
+	// request only while it lasts, and the agent server, which keeps reading
+	// after its stream fails.
+	progress := func(p container.UpdateProgress) { progressCh <- p }
+	fail := func(err error) (bool, error) {
+		progress(container.UpdateProgress{Status: container.UpdateError, Error: err.Error()})
+		return false, err
 	}
 
 	// 1. Inspect container to get full config
 	inspectResp, err := d.client.ContainerInspect(ctx, c.ID)
 	if err != nil {
-		progress(container.UpdateProgress{Status: "error", Error: fmt.Sprintf("inspect failed: %v", err)})
-		return false, err
+		return fail(fmt.Errorf("inspect failed: %w", err))
+	}
+	if inspectResp.Config == nil {
+		return fail(fmt.Errorf("inspect failed: container has no config"))
+	}
+	// Checked before the pull: there is nothing to pull for a container that
+	// will not be swapped.
+	if !swap.Running(inspectResp.State) {
+		return fail(container.ErrNotRunning)
 	}
 
-	imageName := selfupdate.ImageRef(inspectResp.Config)
+	imageName := swap.ImageRef(inspectResp.Config)
 
 	// 2. Pull image with progress
 	reader, err := d.client.ImagePull(ctx, imageName)
 	if err != nil {
-		progress(container.UpdateProgress{Status: "error", Error: fmt.Sprintf("pull failed: %v", err)})
-		return false, err
+		return fail(fmt.Errorf("pull failed: %w", err))
 	}
 	defer reader.Close()
 
-	decoder := json.NewDecoder(reader)
-	for {
-		var event pullEvent
-		if err := decoder.Decode(&event); err == io.EOF {
-			break
-		} else if err != nil {
-			progress(container.UpdateProgress{Status: "error", Error: fmt.Sprintf("pull decode failed: %v", err)})
-			return false, err
-		}
-
-		progress(container.UpdateProgress{
-			Status:  "pulling",
-			Layer:   event.ID,
-			Current: event.ProgressDetail.Current,
-			Total:   event.ProgressDetail.Total,
-		})
+	if err := swap.ReadPull(reader, progress); err != nil {
+		return fail(err)
 	}
 
 	// 3. Compare what the tag resolves to now against what the container is
@@ -278,7 +268,8 @@ func (d *Service) UpdateContainer(ctx context.Context, c container.Container, pr
 	// happens whenever it was pulled or built before the container was
 	// recreated.
 	updated := false
-	if newImageID, err := d.client.ImageID(ctx, imageName); err != nil {
+	newImageID, err := d.client.ImageID(ctx, imageName)
+	if err != nil {
 		log.Warn().Err(err).Str("image", imageName).Msg("unable to resolve pulled image, falling back to recreate")
 		updated = true
 	} else {
@@ -286,20 +277,19 @@ func (d *Service) UpdateContainer(ctx context.Context, c container.Container, pr
 	}
 
 	if !updated {
-		progress(container.UpdateProgress{Status: "up-to-date"})
+		progress(container.UpdateProgress{Status: container.UpdateUpToDate})
 		return false, nil
 	}
 
 	// 4. Check if this is a swarm service
-	serviceName := c.Labels["com.docker.swarm.service.name"]
+	serviceName := c.Labels[container.SwarmServiceNameLabel]
 	if serviceName != "" {
-		progress(container.UpdateProgress{Status: "recreating"})
-		serviceID := c.Labels["com.docker.swarm.service.id"]
+		progress(container.UpdateProgress{Status: container.UpdateRecreating})
+		serviceID := c.Labels[container.SwarmServiceIDLabel]
 		if err := d.client.ServiceUpdate(ctx, serviceID, imageName); err != nil {
-			progress(container.UpdateProgress{Status: "error", Error: fmt.Sprintf("service update failed: %v", err)})
-			return false, err
+			return fail(fmt.Errorf("service update failed: %w", err))
 		}
-		progress(container.UpdateProgress{Status: "done"})
+		progress(container.UpdateProgress{Status: container.UpdateDone})
 		return true, nil
 	}
 
@@ -309,70 +299,122 @@ func (d *Service) UpdateContainer(ctx context.Context, c container.Container, pr
 		return startSelfUpdate(ctx, inspectResp.ID, progress)
 	}
 	if mayBeSelf(inspectResp) {
-		progress(container.UpdateProgress{Status: "error", Error: "Dozzle cannot identify its own container, so it cannot update it. Please update it manually."})
+		progress(container.UpdateProgress{Status: container.UpdateError, Error: "Dozzle cannot identify its own container, so it cannot update it. Please update it manually."})
 		return false, fmt.Errorf("cannot self-update: own container id is unknown")
 	}
 
-	// 6. Standalone container: stop -> remove -> create -> start
-	progress(container.UpdateProgress{Status: "recreating"})
+	// 6. Standalone container: swap it for one on the new image, keeping the
+	// old one until the new one has stayed up.
 
-	containerName := strings.TrimPrefix(inspectResp.Name, "/")
-
-	// Containers joined to this one's network namespace (network_mode:
-	// service:x in compose) lose it with the old container, so they are
-	// recreated after it.
-	dependents, err := d.client.NetworkDependents(ctx, inspectResp.ID, containerName)
-	if err != nil {
-		progress(container.UpdateProgress{Status: "error", Error: fmt.Sprintf("list dependents failed: %v", err)})
-		return false, err
+	// The old image's own settings are dropped from the replacement so the
+	// new image's defaults apply. It is still in the local store: nothing has
+	// removed it yet, and the old container still uses it. Not cancellable,
+	// so a client leaving now cannot make the replacement keep them.
+	var oldImage *image.InspectResponse
+	if img, err := d.client.ImageInspect(context.WithoutCancel(ctx), inspectResp.Image); err == nil {
+		oldImage = &img
+	} else {
+		log.Warn().Err(err).Str("image", inspectResp.Image).Msg("could not inspect the old image, keeping its settings on the replacement")
 	}
 
-	// From here on the old container is going away, so a client that
-	// disconnects must not leave the swap half done. That includes Dozzle
-	// itself when it shares this container's network.
+	result, rejoinErr, err := d.swapAndRejoin(ctx, inspectResp, swap.Options{
+		OldImage: oldImage,
+		Labels:   swap.PreviousLabels(inspectResp, oldImage, imageName),
+	}, progress)
 	ctx = context.WithoutCancel(ctx)
+	if err != nil {
+		if result.RolledBack {
+			undone := d.updateResult(ctx, inspectResp, oldImage, imageName, result.RestoredID, newImageID)
+			undone.RolledBack = true
+			progress(container.UpdateProgress{Status: container.UpdateRolledBack, Error: err.Error(), Result: &undone})
+			return false, fmt.Errorf("update rolled back: %w", err)
+		}
+		return fail(err)
+	}
+	done := d.updateResult(ctx, inspectResp, oldImage, imageName, result.NewID, newImageID)
 
-	// Stop if running
-	if c.State == "running" {
-		if err := d.client.ContainerActions(ctx, container.Stop, c.ID); err != nil {
-			progress(container.UpdateProgress{Status: "error", Error: fmt.Sprintf("stop failed: %v", err)})
-			return false, err
+	if rejoinErr != nil {
+		progress(container.UpdateProgress{Status: container.UpdateError, Error: rejoinErr.Error(), Result: &done})
+		return true, rejoinErr
+	}
+
+	swap.CleanupImage(ctx, d.client.SwapAPI(), inspectResp)
+
+	progress(container.UpdateProgress{Status: container.UpdateDone, Result: &done})
+	return true, nil
+}
+
+// swapAndRejoin reports recreating, swaps old as opts describe, and moves the
+// containers joined to old's network namespace (network_mode: service:x in
+// compose), which lose it with the old container, onto whichever container
+// holds it afterwards. From the swap on, ctx being cancelled is ignored: a
+// client that disconnects must not leave the swap half done, and that
+// includes Dozzle itself when it shares old's network.
+//
+// err is the swap's (with a failed rejoin after a rollback added to it), or a
+// failure to list the dependents before anything was touched. rejoinErr is a
+// failure to move them after a swap that committed.
+func (d *Service) swapAndRejoin(ctx context.Context, old docker_types.InspectResponse, opts swap.Options, progress func(container.UpdateProgress)) (result swap.Result, rejoinErr error, err error) {
+	progress(container.UpdateProgress{Status: container.UpdateRecreating})
+
+	dependents, err := d.client.NetworkDependents(ctx, old.ID, strings.TrimPrefix(old.Name, "/"))
+	if err != nil {
+		return swap.Result{}, nil, fmt.Errorf("list dependents failed: %w", err)
+	}
+
+	ctx = context.WithoutCancel(ctx)
+	opts.OnVerifying = func() { progress(container.UpdateProgress{Status: container.UpdateVerifying}) }
+	result, err = swap.Swap(ctx, d.client.SwapAPI(), old, opts)
+	if err != nil {
+		// A stopped old container took its namespace with it, so dependents
+		// rejoin whichever container now holds the name.
+		if result.OldStopped && result.RolledBack {
+			if rejoinErr := d.rejoinDependents(ctx, dependents, old.ID, result.RestoredID); rejoinErr != nil {
+				err = fmt.Errorf("%w; %v", err, rejoinErr)
+			}
+		}
+		return result, nil, err
+	}
+	return result, d.rejoinDependents(ctx, dependents, old.ID, result.NewID), nil
+}
+
+// updateResult is what a swap of old (running oldImage, nil when it could not
+// be inspected, and following ref) changed: newID runs now, on toImageID.
+func (d *Service) updateResult(ctx context.Context, old docker_types.InspectResponse, oldImage *image.InspectResponse, ref, newID, toImageID string) container.UpdateResult {
+	r := container.UpdateResult{
+		OldID:       shortContainerID(old.ID),
+		NewID:       shortContainerID(newID),
+		FromImageID: old.Image,
+		ToImageID:   toImageID,
+		FromDigest:  swap.PreviousRef(oldImage, ref),
+	}
+	if old.State != nil {
+		if startedAt, err := time.Parse(time.RFC3339Nano, old.State.StartedAt); err == nil {
+			r.OldStartedAt = startedAt.UTC()
 		}
 	}
-
-	// Remove
-	if err := d.client.ContainerRemove(ctx, c.ID); err != nil {
-		progress(container.UpdateProgress{Status: "error", Error: fmt.Sprintf("remove failed: %v", err)})
-		return false, err
+	if toImageID != "" {
+		if img, err := d.client.ImageInspect(ctx, toImageID); err == nil {
+			r.ToDigest = swap.PreviousRef(&img, ref)
+		}
 	}
+	return r
+}
 
-	// Create with same config
-	newID, err := d.client.ContainerCreate(ctx, inspectResp, containerName)
-	if err != nil {
-		progress(container.UpdateProgress{Status: "error", Error: fmt.Sprintf("create failed: %v", err)})
-		return false, err
+// shortContainerID is the 12-character id the store keys containers by.
+func shortContainerID(id string) string {
+	if len(id) > 12 {
+		return id[:12]
 	}
-
-	// Start
-	if err := d.client.ContainerActions(ctx, container.Start, newID); err != nil {
-		progress(container.UpdateProgress{Status: "error", Error: fmt.Sprintf("start failed: %v", err)})
-		return false, err
-	}
-
-	if err := d.rejoinDependents(ctx, dependents, inspectResp.ID, newID); err != nil {
-		progress(container.UpdateProgress{Status: "error", Error: err.Error()})
-		return true, err
-	}
-
-	progress(container.UpdateProgress{Status: "done"})
-	return true, nil
+	return id
 }
 
 // rejoinDependents recreates every container in ids, which shared the network
 // namespace of oldID, joined to newID instead. Each keeps its own image; one
-// that was stopped is recreated but left stopped. Dozzle's own container is
-// handed to the self-update helper, since recreating it here would stop this
-// process halfway through.
+// that was stopped is recreated but left stopped. newID is running: only a
+// running container is swapped. Dozzle's own container is handed to the
+// self-update helper, since recreating it here would stop this process halfway
+// through.
 func (d *Service) rejoinDependents(ctx context.Context, ids []string, oldID, newID string) error {
 	var errs []error
 	// The helper stops this process within seconds, so Dozzle goes last:
@@ -442,7 +484,9 @@ func (d *Service) ListContainers(ctx context.Context, labels container.Container
 }
 
 func (d *Service) Host(ctx context.Context) (container.Host, error) {
-	return d.client.Host(), nil
+	host := d.client.Host()
+	host.Reclaimable = d.store.Reclaimable()
+	return host, nil
 }
 
 func (d *Service) SubscribeStats(ctx context.Context, stats chan<- container.ContainerStat) {

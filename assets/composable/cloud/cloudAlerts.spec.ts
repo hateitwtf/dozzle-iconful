@@ -7,10 +7,18 @@ import {
   fetchAlerts,
   attachEvents,
   mergeCloudEvents,
+  mergeDeploys,
   type CloudAlert,
   type CloudEvent,
 } from "./cloudAlerts";
-import { AlertLogEntry, CloudEventLogEntry, SimpleLogEntry, type LogEntry, type LogMessage } from "@/models/LogEntry";
+import {
+  AlertLogEntry,
+  CloudEventLogEntry,
+  DeployLogEntry,
+  SimpleLogEntry,
+  type LogEntry,
+  type LogMessage,
+} from "@/models/LogEntry";
 
 vi.mock("./cloudConfig", () => ({ useCloudConfig: () => ({ cloudConfig: { value: null } }) }));
 
@@ -329,5 +337,112 @@ describe("mergeCloudEvents", () => {
     const logs = [log(10, 100)];
     expect(shape(mergeCloudEvents(logs, [cloudEvent()], seen))).toHaveLength(2);
     expect(mergeCloudEvents(logs, [cloudEvent()], seen)).toBe(logs);
+  });
+});
+
+describe("mergeDeploys", () => {
+  const deployEvent = (overrides: Partial<CloudEvent> = {}, verdict = "regressed"): CloudEvent => ({
+    ts: ns(150),
+    containerId: "abc",
+    hostId: "h",
+    type: "deploy",
+    suppressed: false,
+    deploy: {
+      deployId: "d1",
+      container: "app",
+      fromRef: "app:1.4.1",
+      toRef: "app:1.4.2",
+      verdict: verdict as any,
+      reason: "3 new errors",
+    },
+    ...overrides,
+  });
+  const marker = (at: number, newId = "abc") =>
+    new DeployLogEntry(
+      { host: "h", name: "app", oldId: "o", newId, at: new Date(at).toISOString(), source: "dozzle" },
+      ms(at),
+    );
+  const shape = (entries: LogEntry<LogMessage>[]) =>
+    entries.map((e) => (e instanceof DeployLogEntry ? `deploy:${e.containerID}` : `log:${e.id}`));
+
+  test("puts the verdict on the marker for the container the update created", () => {
+    const m = marker(150);
+    const logs = [m, log(10, 200)];
+    const seen = new Set<string>();
+
+    const first = mergeDeploys(logs, [deployEvent()], seen);
+    expect(first.logs).toBe(logs);
+    expect(first.changed).toBe(true);
+    expect(m.verdict?.verdict).toBe("regressed");
+
+    // The same answer again changes nothing, so the view need not re-render.
+    expect(mergeDeploys(logs, [deployEvent()], seen).changed).toBe(false);
+
+    const decided = deployEvent();
+    decided.deploy!.decision = "kept";
+    expect(mergeDeploys(logs, [decided], seen).changed).toBe(true);
+    expect(m.verdict?.decision).toBe("kept");
+  });
+
+  // A real wall-clock time in nanoseconds is past 2^53, and this one divides back
+  // to a hair under its millisecond.
+  test("finds the marker when the nanosecond time does not divide back exactly", () => {
+    const at = 1_790_000_000_002;
+    const m = marker(at);
+    mergeDeploys([m], [deployEvent({ ts: at * 1_000_000 })], new Set());
+    expect(m.verdict?.verdict).toBe("regressed");
+  });
+
+  // An update Dozzle no longer remembers (an agent, or a restart since) shows
+  // from Dozzle Cloud's record, placed by time.
+  test("splices in a marker from Dozzle Cloud where Dozzle has none", () => {
+    const logs = [log(10, 100), log(11, 200)];
+    const seen = new Set<string>();
+    const { logs: merged } = mergeDeploys(logs, [deployEvent()], seen);
+    expect(shape(merged)).toEqual(["log:10", "deploy:abc", "log:11"]);
+    const placed = merged[1] as DeployLogEntry;
+    expect(placed.update.imageRef).toBe("app:1.4.2");
+    expect(placed.update.host).toBe("h");
+    expect(placed.verdict?.verdict).toBe("regressed");
+
+    // An overlapping window does not draw it twice.
+    expect(shape(mergeDeploys([log(11, 200)], [deployEvent()], seen).logs)).toEqual(["log:11"]);
+  });
+
+  test("leaves a marker for another container alone", () => {
+    const m = marker(90, "other");
+    const { logs } = mergeDeploys([m, log(10, 100)], [deployEvent({ ts: ns(300) })], new Set());
+    expect(m.verdict).toBeUndefined();
+    expect(shape(logs)).toEqual(["deploy:other", "log:10", "deploy:abc"]);
+  });
+
+  // A rollback leaves the old container running again, so its record carries the
+  // same container id as the update it undid. Both are kept, each with its own verdict.
+  test("tells two updates on the same container apart by when they finished", () => {
+    const updated = marker(90);
+    const undone = marker(150);
+    const seen = new Set<string>();
+    const { logs } = mergeDeploys([updated, log(10, 100), undone], [deployEvent()], seen);
+    expect(shape(logs)).toEqual(["deploy:abc", "log:10", "deploy:abc"]);
+    expect(undone.verdict?.verdict).toBe("regressed");
+    expect(updated.verdict).toBeUndefined();
+
+    // Dozzle Cloud's copy of the earlier update is not mistaken for the later one.
+    const earlier = deployEvent({ ts: ns(90) }, "clean");
+    earlier.deploy!.deployId = "d0";
+    mergeDeploys(logs, [earlier], seen);
+    expect(updated.verdict?.verdict).toBe("clean");
+    expect(undone.verdict?.verdict).toBe("regressed");
+  });
+
+  test("DeployLogEntry.updateKey differs for a rollback on the same container", () => {
+    expect(marker(90).updateKey).not.toBe(marker(150).updateKey);
+    expect(marker(90).updateKey).toBe(marker(90).updateKey);
+  });
+
+  // A verdict is not a notification, so it never becomes a cloud-event row.
+  test("mergeCloudEvents skips deploy events", () => {
+    const logs = [log(10, 100)];
+    expect(mergeCloudEvents(logs, [deployEvent({ suppressed: true })], new Set())).toBe(logs);
   });
 });

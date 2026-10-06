@@ -1,6 +1,26 @@
 <template>
+  <!-- Update now, its progress and its outcome: the same panel on the wizard's update
+       step and on Settings → Updates. Only the first row differs. -->
   <div class="border-base-content/15 bg-base-200/40 divide-base-content/10 divide-y rounded-lg border">
-    <div class="flex flex-wrap items-center gap-3 p-4">
+    <!-- The wizard: which version runs now, before any schedule exists. -->
+    <div v-if="variant === 'version'" class="flex flex-wrap items-center justify-between gap-3 p-4">
+      <span class="min-w-0">
+        <span class="block text-sm font-medium">{{ $t("setup.update.version-label") }}</span>
+        <span class="mt-0.5 block truncate font-mono text-xs">
+          <span class="font-semibold">{{ autoUpdate.currentVersion }}</span>
+          <span class="text-base-content/40"> · {{ autoUpdate.image }}</span>
+        </span>
+      </span>
+      <button type="button" class="btn btn-sm shrink-0" :disabled="!canUpdate || busy" :aria-busy="busy" @click="run">
+        <span v-if="phase === 'pulling'" class="loading loading-spinner loading-xs"></span>
+        <mdi:download v-else class="size-4" />
+        {{ $t("setup.update.update-now") }}
+      </button>
+    </div>
+
+    <!-- Settings: shown only while the schedule is on, so it says what the schedule
+         will do, not how to turn it on. -->
+    <div v-else class="flex flex-wrap items-center gap-3 p-4">
       <div class="shrink-0 rounded-full p-2" :class="stale ? 'bg-warning/10 text-warning' : 'bg-info/10 text-info'">
         <mdi:package-down v-if="stale" class="size-5" />
         <mdi:autorenew v-else class="size-5" />
@@ -9,11 +29,8 @@
         <div class="text-sm font-medium">{{ title }}</div>
         <!-- The tag first: it is what the schedule follows and what Update now pulls. -->
         <div class="text-base-content/60 mt-0.5 truncate text-xs">
-          <template v-if="autoUpdate.image">
-            <span class="font-mono">{{ autoUpdate.image }}</span>
-            ·
-          </template>
-          {{ schedule }}
+          <!-- The schedule is the row below, so only what that row cannot say. -->
+          <span class="font-mono">{{ autoUpdate.image || autoUpdate.currentVersion }}</span>
         </div>
       </div>
       <button
@@ -21,8 +38,8 @@
         type="button"
         class="btn btn-sm shrink-0"
         :disabled="busy"
-        @click="updateNow(autoUpdate.image)"
         :aria-busy="busy"
+        @click="run"
       >
         <span v-if="phase === 'pulling'" class="loading loading-spinner loading-xs"></span>
         <mdi:download v-else class="size-4" />
@@ -66,33 +83,37 @@
 </template>
 
 <script lang="ts" setup>
-import type { SetupAutoUpdate, SetupStatus } from "@/composable/setup/setup";
+import type { SetupAutoUpdate, SetupStatus, SetupStepId } from "@/composable/setup/setup";
 
-// The parent only mounts this when auto-update is on, so the panel is about what
-// the schedule will do, not about turning it on. Changing the schedule is still
-// the wizard's job.
-const { status, autoUpdate } = defineProps<{ status: SetupStatus; autoUpdate: SetupAutoUpdate }>();
+const {
+  status,
+  autoUpdate,
+  variant = "schedule",
+  resume,
+} = defineProps<{
+  status: SetupStatus;
+  autoUpdate: SetupAutoUpdate;
+  // version: the wizard's step, before a schedule is chosen. schedule: Settings, with one on.
+  variant?: "version" | "schedule";
+  // The wizard step to land on again once the new version answers.
+  resume?: SetupStepId;
+}>();
 
 const { t } = useI18n();
 const { latestRelease } = useAnnouncements();
-// No resume marker: nothing reopens the wizard after an update started from here.
-const { phase, progress, error, errorDetail, busy, updateNow } = useSelfUpdate();
-const { headline } = useSelfUpdateCheck();
+const { phase, progress, error, errorDetail, busy, updateNow } = useSelfUpdate({ resume });
+// Only the schedule row names a newer version; the wizard has no reason to ask.
+const headline = variant === "schedule" ? useSelfUpdateCheck().headline : computed(() => "current" as const);
+
+const run = () => updateNow(autoUpdate.image);
+const canUpdate = computed(() => canSelfUpdate(status));
 
 const stale = computed(() => headline.value !== "current");
 const title = computed(() => {
   if (headline.value === "image") return t("settings.update-available");
   if (headline.value === "release") return t("settings.new-version", { version: latestRelease.value?.name });
-  // A pinned tag or a Dozzle it cannot find still runs the schedule, but only for
-  // labelled containers. actions-off is a schedule waiting on a restart, not a gap.
-  if (!autoUpdate.supported && autoUpdate.reason !== "actions-off") return t("settings.auto-update-containers");
   return t("settings.auto-update-on");
 });
 
-const canUpdate = computed(() => canSelfUpdate(status));
-const schedule = computed(() =>
-  autoUpdate.mode === "daily"
-    ? t("settings.auto-update-daily", { time: autoUpdate.time })
-    : t("settings.auto-update-weekly", { time: autoUpdate.time }),
-);
+defineExpose({ phase });
 </script>

@@ -14,6 +14,7 @@ import (
 
 	"github.com/amir20/dozzle/internal/agentcerts"
 	"github.com/amir20/dozzle/internal/container"
+	"github.com/amir20/dozzle/internal/container/agent/pb"
 	"github.com/amir20/dozzle/internal/imagecheck"
 	"github.com/amir20/dozzle/internal/notification/dispatcher"
 	"github.com/amir20/dozzle/internal/utils"
@@ -22,8 +23,11 @@ import (
 	"github.com/go-faker/faker/v4/pkg/options"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 )
 
@@ -114,8 +118,21 @@ func (m *MockedClientService) Exec(ctx context.Context, c container.Container, c
 }
 
 func (m *MockedClientService) UpdateContainer(ctx context.Context, c container.Container, progressCh chan<- container.UpdateProgress) (bool, error) {
-	args := m.Called(ctx, c, progressCh)
-	return args.Bool(0), args.Error(1)
+	defer close(progressCh)
+	args := m.Called(ctx, c)
+	for _, p := range args.Get(0).([]container.UpdateProgress) {
+		progressCh <- p
+	}
+	return args.Bool(1), args.Error(2)
+}
+
+func (m *MockedClientService) RollbackContainer(ctx context.Context, c container.Container, opts container.RollbackOptions, progressCh chan<- container.UpdateProgress) error {
+	defer close(progressCh)
+	args := m.Called(ctx, c, opts)
+	for _, p := range args.Get(0).([]container.UpdateProgress) {
+		progressCh <- p
+	}
+	return args.Error(1)
 }
 
 func (m *MockedClientService) CheckImageUpdate(ctx context.Context, c container.Container, force bool) (imagecheck.Result, error) {
@@ -168,6 +185,21 @@ func init() {
 
 	mockService.On("Client").Return(nil)
 
+	mockService.On("UpdateContainer", mock.Anything, mock.Anything).Return([]container.UpdateProgress{
+		{Status: container.UpdateRecreating},
+		{Status: container.UpdateVerifying},
+		{Status: container.UpdateRolledBack, Error: "replacement is unhealthy", Result: &rolledBackResult},
+	}, false, nil)
+
+	mockService.On("RollbackContainer", mock.Anything, mock.Anything, container.RollbackOptions{ExpectedFromDigest: "sha256:now"}).Return([]container.UpdateProgress{
+		{Status: container.UpdateRecreating},
+		{Status: container.UpdateVerifying},
+		{Status: container.UpdateDone, Result: &rollbackResult},
+	}, nil)
+	mockService.On("RollbackContainer", mock.Anything, mock.Anything, container.RollbackOptions{ExpectedFromDigest: "sha256:moved"}).Return([]container.UpdateProgress{
+		{Status: container.UpdateError, Error: "container no longer runs the expected image"},
+	}, container.ErrDigestMismatch)
+
 	mockService.On("StreamLogs", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		events := args.Get(4).(chan<- *container.LogEvent)
 		for _, e := range streamedLogEvents {
@@ -205,6 +237,102 @@ func TestListContainers(t *testing.T) {
 	assert.Equal(t, []container.Container{
 		wantedContainer,
 	}, containers)
+}
+
+// The swap's statuses come back from the agent as they are.
+func TestUpdateContainerCarriesStatuses(t *testing.T) {
+	rpc, err := NewClient("passthrough://bufnet", certs, grpc.WithContextDialer(bufDialer))
+	require.NoError(t, err)
+
+	progress := make(chan container.UpdateProgress, 10)
+	updated, err := rpc.UpdateContainer(context.Background(), "123456", progress)
+	require.NoError(t, err)
+	assert.False(t, updated, "a rolled back update did not update anything")
+
+	var got []container.UpdateProgress
+	for p := range progress {
+		got = append(got, p)
+	}
+	assert.Equal(t, []container.UpdateProgress{
+		{Status: container.UpdateRecreating},
+		{Status: container.UpdateVerifying},
+		{Status: container.UpdateRolledBack, Error: "replacement is unhealthy", Result: &rolledBackResult},
+	}, got, "the result travels back, so the server can record the update")
+}
+
+var rolledBackResult = container.UpdateResult{
+	OldID:        "abc000000000",
+	NewID:        "abc000000000",
+	FromImageID:  "sha256:old",
+	ToImageID:    "sha256:new",
+	FromDigest:   "nginx@sha256:aaa",
+	ToDigest:     "nginx@sha256:bbb",
+	OldStartedAt: time.Date(2026, 9, 1, 3, 0, 0, 0, time.UTC),
+	RolledBack:   true,
+}
+
+var rollbackResult = container.UpdateResult{OldID: "abc000000000", NewID: "def000000000", FromImageID: "sha256:new", ToImageID: "sha256:old"}
+
+func TestRollbackContainerCarriesOptionsAndStatuses(t *testing.T) {
+	rpc, err := NewClient("passthrough://bufnet", certs, grpc.WithContextDialer(bufDialer))
+	require.NoError(t, err)
+
+	progress := make(chan container.UpdateProgress, 10)
+	err = rpc.RollbackContainer(context.Background(), "123456", container.RollbackOptions{ExpectedFromDigest: "sha256:now"}, progress)
+	require.NoError(t, err)
+
+	var got []container.UpdateProgress
+	for p := range progress {
+		got = append(got, p)
+	}
+	assert.Equal(t, []container.UpdateProgress{
+		{Status: container.UpdateRecreating},
+		{Status: container.UpdateVerifying},
+		{Status: container.UpdateDone, Result: &rollbackResult},
+	}, got)
+}
+
+// A refusal on the agent reaches the caller as an error and an error status.
+func TestRollbackContainerReturnsAgentError(t *testing.T) {
+	rpc, err := NewClient("passthrough://bufnet", certs, grpc.WithContextDialer(bufDialer))
+	require.NoError(t, err)
+
+	progress := make(chan container.UpdateProgress, 10)
+	err = rpc.RollbackContainer(context.Background(), "123456", container.RollbackOptions{ExpectedFromDigest: "sha256:moved"}, progress)
+	require.ErrorContains(t, err, "expected image")
+
+	var got []container.UpdateProgress
+	for p := range progress {
+		got = append(got, p)
+	}
+	assert.Equal(t, []container.UpdateProgress{{Status: container.UpdateError, Error: "container no longer runs the expected image"}}, got)
+}
+
+// oldAgent is an agent that predates rollbacks: the RPC fails at the first
+// Recv with Unimplemented.
+type oldAgent struct {
+	pb.AgentServiceClient
+}
+
+type unimplementedStream struct {
+	grpc.ServerStreamingClient[pb.UpdateContainerProgress]
+}
+
+func (unimplementedStream) Recv() (*pb.UpdateContainerProgress, error) {
+	return nil, status.Error(codes.Unimplemented, "unknown method RollbackContainer for service protobuf.AgentService")
+}
+
+func (oldAgent) RollbackContainer(context.Context, *pb.RollbackContainerRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[pb.UpdateContainerProgress], error) {
+	return unimplementedStream{}, nil
+}
+
+func TestRollbackContainerOnOldAgent(t *testing.T) {
+	rpc := &Client{client: oldAgent{}, endpoint: "10.0.0.5:7007", nameOverride: "nas"}
+	progress := make(chan container.UpdateProgress, 1)
+	err := rpc.RollbackContainer(context.Background(), "123456", container.RollbackOptions{}, progress)
+	require.EqualError(t, err, "agent on host nas is too old to roll back; upgrade it")
+	_, open := <-progress
+	assert.False(t, open)
 }
 
 var streamedLogEvents = []*container.LogEvent{
@@ -326,4 +454,25 @@ func TestVerifyAgentCert(t *testing.T) {
 	assert.Error(t, verifyAgentCert(other.Certificate, pool(private)), "an agent with another pair is refused")
 	assert.Error(t, verifyAgentCert(certs.Certificate, pool(private)), "the public shared cert is refused by a private hub")
 	assert.Error(t, verifyAgentCert(nil, pool(private)))
+}
+
+// A request that ends before the swap starts cancels the stream (a pull on a
+// wedged daemon must not pin it); once detached, the stream outlives it.
+func TestSwapStreamContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	streamCtx, _, stop := swapStreamContext(ctx)
+	defer stop()
+	cancel()
+	select {
+	case <-streamCtx.Done():
+	case <-time.After(time.Second):
+		t.Fatal("stream not cancelled with the request before the swap started")
+	}
+
+	ctx, cancel = context.WithCancel(context.Background())
+	streamCtx, detach, stop2 := swapStreamContext(ctx)
+	defer stop2()
+	assert.True(t, detach())
+	cancel()
+	assert.NoError(t, streamCtx.Err(), "detached stream outlives the request")
 }

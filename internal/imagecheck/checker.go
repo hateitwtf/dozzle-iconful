@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/amir20/dozzle/internal/updatepolicy"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/singleflight"
 )
@@ -33,6 +34,14 @@ func ParseMode(input string) (Mode, error) {
 	}
 }
 
+// Allows reports whether a check may contact a registry. explicit means a
+// person asked for this check, rather than it running because a page opened.
+// It says nothing about the digest cache: an explicit check can still be
+// answered from it. The zero Mode allows nothing.
+func (m Mode) Allows(explicit bool) bool {
+	return m == ModeAutomatic || (m == ModeManual && explicit)
+}
+
 // Status is the outcome of an update check for a single container.
 type Status string
 
@@ -47,7 +56,8 @@ const (
 	StatusNotCheckable Status = "not-checkable"
 	// StatusAuthRequired means the registry refused an anonymous request.
 	StatusAuthRequired Status = "auth-required"
-	// StatusSkipped means the container opted out via label.
+	// StatusSkipped means updates are off for the container, by label or
+	// from the UI, so it is not checked.
 	StatusSkipped Status = "skipped"
 	StatusUnknown Status = "unknown"
 )
@@ -67,18 +77,15 @@ func (r Result) UpdateAvailable() bool {
 	return r.Status == StatusUpdateAvailable
 }
 
-// SkipLabel lets an operator silence checks for a container they pin
-// deliberately, following the existing dev.dozzle.* label convention.
-const SkipLabel = "dev.dozzle.update-check"
+// SkipLabel is the older label that silenced checks for a container. It is
+// still read; dev.dozzle.update=off is the one to use. See updatepolicy.
+const SkipLabel = updatepolicy.LegacyCheckLabel
 
-// Skipped reports whether container labels opt out of update checks.
+// Skipped reports whether container labels set updates off for a container,
+// which also stops it being checked.
 func Skipped(labels map[string]string) bool {
-	switch labels[SkipLabel] {
-	case "false", "off", "no":
-		return true
-	default:
-		return false
-	}
+	p, ok := updatepolicy.FromLabels(labels)
+	return ok && p == updatepolicy.Off
 }
 
 type digestEntry struct {

@@ -30,6 +30,8 @@ const (
 	bulkUpToDate = "up-to-date"
 	bulkDone     = "done"
 	bulkError    = "error"
+	// bulkRolledBack is final: the new container failed and the old one is back.
+	bulkRolledBack = container.UpdateRolledBack
 
 	// Generous, since a pull of a multi-gigabyte image on a slow link is
 	// legitimate. It only exists so a wedged daemon cannot pin the job forever.
@@ -77,26 +79,13 @@ type bulkUpdater struct {
 	watchers map[chan struct{}]struct{}
 }
 
-const swarmServiceLabel = "com.docker.swarm.service.id"
-
-// updatable reports whether c is worth checking and offering for update. A
-// stopped standalone container still is, so it starts on the new image. An
-// exited swarm task is not: it is history the orchestrator left behind after
-// replacing it, and its service is updated through the task that is running.
-func updatable(c container.Container) bool {
-	if c.State == "deleted" {
-		return false
-	}
-	return c.Labels[swarmServiceLabel] == "" || c.State == "running"
-}
-
 // selfSwarmService is the swarm service Dozzle's own container belongs to, or
 // empty when it is not a swarm task or is not among containers.
 func selfSwarmService(containers []container.Container) string {
 	selfID := setupSelfID()
 	for _, c := range containers {
 		if selfID != "" && len(c.ID) >= 12 && strings.HasPrefix(selfID, c.ID) {
-			return c.Labels[swarmServiceLabel]
+			return c.Labels[container.SwarmServiceIDLabel]
 		}
 	}
 	return ""
@@ -110,7 +99,7 @@ func isSelfContainer(c container.Container, selfService string) bool {
 	if selfID != "" && len(c.ID) >= 12 && strings.HasPrefix(selfID, c.ID) {
 		return true
 	}
-	return selfService != "" && c.Labels[swarmServiceLabel] == selfService
+	return selfService != "" && c.Labels[container.SwarmServiceIDLabel] == selfService
 }
 
 // bulkUpdates is shared by the handler and the scheduler, which are built
@@ -136,7 +125,7 @@ func (u *bulkUpdater) Start(services []*container.ContainerService, trigger, sel
 		// rolls the whole service, and the rest would roll it again. If any of
 		// them is Dozzle's, the one kept still has to go last.
 		key := c.Host + "/" + c.ID
-		if id := c.Labels[swarmServiceLabel]; id != "" {
+		if id := c.Labels[container.SwarmServiceIDLabel]; id != "" {
 			key = "service/" + id
 		}
 		if kept, ok := seen[key]; ok {
@@ -197,7 +186,7 @@ func (u *bulkUpdater) run(job *bulkUpdateJob) {
 	for _, items := range byHost {
 		wg.Go(func() {
 			for _, item := range items {
-				u.runItem(item)
+				u.runItem(item, updateSource(job.Trigger))
 			}
 		})
 	}
@@ -206,7 +195,7 @@ func (u *bulkUpdater) run(job *bulkUpdateJob) {
 	// Everything else is finished, so marking the job done here lets watchers
 	// see the full result before Dozzle goes away.
 	if self != nil {
-		u.runItem(self)
+		u.runItem(self, updateSource(job.Trigger))
 	}
 
 	u.mu.Lock()
@@ -217,14 +206,34 @@ func (u *bulkUpdater) run(job *bulkUpdateJob) {
 	u.notify()
 }
 
-func (u *bulkUpdater) runItem(item *bulkUpdateItem) {
+// updateSource is what the update record says started a job's updates.
+func updateSource(trigger string) string {
+	if trigger == "schedule" {
+		return container.UpdateSourceSchedule
+	}
+	return container.UpdateSourceDozzle
+}
+
+func (u *bulkUpdater) runItem(item *bulkUpdateItem, source string) {
+	// A stopped container is never updated. The host refuses one too, but an
+	// older agent would not.
+	if item.service.Container.State != "running" {
+		u.mu.Lock()
+		item.Status = bulkError
+		item.Error = container.ErrNotRunning.Error()
+		u.mu.Unlock()
+		u.notify()
+		log.Info().Str("container", item.Name).Msg("bulk update: container not updated, it is not running")
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), bulkItemTimeout)
 	defer cancel()
 
 	progressCh := make(chan container.UpdateProgress, 50)
 	errCh := make(chan error, 1)
 	go func() {
-		_, err := item.service.Update(ctx, progressCh)
+		_, err := item.service.Update(ctx, source, progressCh)
 		errCh <- err
 	}()
 
@@ -234,7 +243,9 @@ func (u *bulkUpdater) runItem(item *bulkUpdateItem) {
 
 	err := <-errCh
 	u.mu.Lock()
-	if err != nil && item.Status != bulkError {
+	// A rolled back update already says what went wrong, and that the old
+	// container is back.
+	if err != nil && item.Status != bulkError && item.Status != bulkRolledBack {
 		item.Status = bulkError
 		item.Error = err.Error()
 	}
@@ -262,7 +273,7 @@ func (u *bulkUpdater) apply(item *bulkUpdateItem, p container.UpdateProgress) {
 			item.Total += layer[1]
 		}
 	}
-	if p.Status == bulkError {
+	if p.Status == bulkError || p.Status == bulkRolledBack {
 		item.Error = p.Error
 	}
 	self := item.Self

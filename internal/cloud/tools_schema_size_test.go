@@ -1,6 +1,10 @@
 package cloud
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/amir20/dozzle/internal/imagecheck"
+)
 
 // Tool definitions are re-sent on every model call, so their size is a cost on
 // every turn. These bounds catch a definition growing back unnoticed. They
@@ -16,11 +20,13 @@ func TestToolSchemasStayCompact(t *testing.T) {
 		toolRestartContainer:         650,
 		toolRemoveContainer:          800,
 		toolUpdateContainer:          850,
+		toolRollbackContainer:        950,
 		toolCreateLogNotification:    1800,
 		toolCreateMetricNotification: 1950,
 		toolCreateEventNotification:  1800,
+		toolCheckImageUpdates:        1130,
 	}
-	for _, tool := range AvailableTools(true, Principal{}) {
+	for _, tool := range AvailableTools(ToolDeps{EnableActions: true, ImageCheckMode: imagecheck.ModeAutomatic}) {
 		max, ok := budget[tool.Name]
 		if !ok {
 			continue
@@ -32,11 +38,15 @@ func TestToolSchemasStayCompact(t *testing.T) {
 }
 
 func TestWriteToolsUseWriteSchema(t *testing.T) {
-	for _, tool := range AvailableTools(true, Principal{}) {
+	for _, tool := range AvailableTools(ToolDeps{EnableActions: true}) {
 		switch tool.Name {
 		case toolStartContainer, toolStopContainer, toolRestartContainer, toolRemoveContainer, toolUpdateContainer:
 			if tool.ParametersJson != writeTargetedParams {
 				t.Errorf("%s should use writeTargetedParams", tool.Name)
+			}
+		case toolRollbackContainer:
+			if tool.ParametersJson != rollbackContainerParams {
+				t.Errorf("%s should use rollbackContainerParams", tool.Name)
 			}
 		case toolInspectContainer:
 			if tool.ParametersJson != targetedParams {

@@ -1,11 +1,13 @@
 package cloud
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/amir20/dozzle/internal/container"
 	pb "github.com/amir20/dozzle/proto/cloud"
 )
 
@@ -208,5 +210,58 @@ func executeInspectContainer(argsJSON string, deps ToolDeps) (*pb.CallToolRespon
 			OomKilled:     c.OOMKilled,
 			ExitCode:      int32(c.ExitCode),
 		}},
+	}, nil
+}
+
+type checkImageUpdatesArgs struct {
+	Name    string `json:"name"`
+	Image   string `json:"image"`
+	Refresh bool   `json:"refresh"`
+}
+
+// executeCheckImageUpdates answers with every checked container, current ones
+// included, so the cloud can say how many are up to date and why some could
+// not be checked rather than only listing what is outdated.
+func executeCheckImageUpdates(ctx context.Context, argsJSON string, deps ToolDeps) (*pb.CallToolResponse, error) {
+	if !deps.ImageCheckMode.Allows(true) {
+		return nil, fmt.Errorf("image update checks are off on this Dozzle instance (--image-check-mode)")
+	}
+
+	var args checkImageUpdatesArgs
+	if argsJSON != "" {
+		if err := json.Unmarshal([]byte(argsJSON), &args); err != nil {
+			return nil, fmt.Errorf("failed to parse arguments: %w", err)
+		}
+	}
+
+	containers, errs := deps.scoped().ListAllContainers()
+	logHostErrors(errs)
+	var matched []container.Container
+	for _, c := range containers {
+		if (args.Name == "" || containsIgnoreCase(c.Name, args.Name)) &&
+			(args.Image == "" || containsIgnoreCase(c.Image, args.Image)) {
+			matched = append(matched, c)
+		}
+	}
+	// The listing is scoped, so each lookup after it can skip the labels
+	// rather than re-list a host per container.
+	updates := container.CheckImageUpdates(ctx, deps.HostService, matched, args.Refresh)
+	hostNames := buildHostNameMap(deps.HostService)
+
+	result := make([]*pb.ContainerInfo, len(updates))
+	for i, u := range updates {
+		info := containerToProto(u.Container, hostNames)
+		info.ImageUpdate = &pb.ImageUpdate{
+			Status:       string(u.Result.Status),
+			LocalDigest:  u.Result.LocalDigest,
+			RemoteDigest: u.Result.RemoteDigest,
+			Reason:       u.Result.Reason,
+			CheckedAt:    u.Result.CheckedAt.Unix(),
+		}
+		result[i] = info
+	}
+	return &pb.CallToolResponse{
+		Success: true,
+		Result:  &pb.CallToolResponse_ListContainers{ListContainers: &pb.ListContainersResult{Containers: result}},
 	}, nil
 }

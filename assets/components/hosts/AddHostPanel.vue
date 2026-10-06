@@ -1,15 +1,15 @@
 <template>
-  <div>
-    <InlineNotice v-if="!status.dataPersisted" type="warning">{{ $t("setup.error.no-data") }}</InlineNotice>
-    <InlineNotice v-else-if="!status.canWrite" type="info">
-      {{ status.authProvider === "none" ? $t("setup.actions.window-closed") : $t("setup.actions.no-access") }}
-    </InlineNotice>
+  <!-- The wizard and the host list's dialog lead with adding one; Settings → Hosts
+       leads with the agents already there. -->
+  <div class="flex flex-col gap-6">
+    <SetupAccessNotice :status="status" :envs="['DOZZLE_REMOTE_AGENT']" class="order-first -mb-2" />
 
-    <section :class="{ 'mt-4': !canEdit }">
+    <section>
       <FormStepHeading :step="1" :title="$t('setup.hosts.run-title')" />
       <p class="text-base-content/60 mb-3 text-sm">{{ $t("setup.hosts.run-body") }}</p>
 
-      <label v-if="!status.customCert" class="mb-3 flex items-start justify-between gap-3">
+      <!-- The private pair only reaches agents added here, so it goes with the form. -->
+      <label v-if="!status.customCert && canEdit" class="mb-3 flex items-start justify-between gap-3">
         <span class="min-w-0 flex-1">
           <span class="block text-sm font-medium">{{ $t("setup.hosts.private-label") }}</span>
           <span class="text-base-content/60 mt-0.5 block text-xs">{{ $t("setup.hosts.private-desc") }}</span>
@@ -39,9 +39,11 @@
       </p>
     </section>
 
-    <section class="mt-6">
+    <section>
       <FormStepHeading :step="2" :title="$t('setup.hosts.connect-title')" />
-      <form class="grid gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end" @submit.prevent="add">
+      <!-- Read only, the env var is the way in, so show the line to add. -->
+      <SetupSnippet v-if="!canEdit" :code="remoteAgentSnippet" />
+      <form v-else class="grid gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end" @submit.prevent="add">
         <label class="flex flex-col gap-1">
           <span class="text-sm font-medium">{{ $t("setup.hosts.address") }}</span>
           <input
@@ -79,7 +81,7 @@
           {{ $t("setup.hosts.add") }}
         </button>
       </form>
-      <p class="text-base-content/40 mt-2 text-xs">{{ $t("setup.hosts.connect-note") }}</p>
+      <p v-if="canEdit" class="text-base-content/40 mt-2 text-xs">{{ $t("setup.hosts.connect-note") }}</p>
 
       <InlineNotice v-if="error" type="error" class="mt-3">{{ error }}</InlineNotice>
       <InlineNotice v-else-if="added" type="success" class="mt-3">
@@ -87,7 +89,7 @@
       </InlineNotice>
     </section>
 
-    <section v-if="agents.length" class="mt-6">
+    <section v-if="agents.length" :class="{ 'order-first': listFirst }">
       <h3 class="text-base-content/60 mb-2 text-sm font-semibold tracking-wide uppercase">
         {{ $t("setup.hosts.list-title") }}
       </h3>
@@ -112,12 +114,9 @@
               {{ agent.hostId ? $t("setup.hosts.connected") : $t("setup.hosts.offline") }}
             </div>
           </div>
-          <span v-if="agent.locked" class="text-base-content/40 flex shrink-0 items-center gap-1 text-xs">
-            <mdi:lock-outline class="size-3.5" />
-            {{ $t("setup.actions.locked", { env: "DOZZLE_REMOTE_AGENT" }) }}
-          </span>
+          <SetupLocked v-if="agent.locked" env="DOZZLE_REMOTE_AGENT" class="shrink-0" />
           <button
-            v-else
+            v-else-if="canEdit"
             type="button"
             class="btn btn-sm text-error shrink-0"
             :disabled="!canEdit || removing === agent.endpoint"
@@ -135,7 +134,7 @@
 <script lang="ts" setup>
 import { SetupError, type SetupAgent, type SetupAgentCert, type SetupStatus } from "@/composable/setup/setup";
 
-const { status } = defineProps<{ status: SetupStatus }>();
+const { status, listFirst = false } = defineProps<{ status: SetupStatus; listFirst?: boolean }>();
 
 const { t } = useI18n();
 const { addAgent, agentCert, removeAgent } = useSetup();
@@ -149,7 +148,9 @@ const error = ref("");
 const added = ref("");
 
 const agents = computed(() => status.agents ?? []);
-const canEdit = computed(() => status.dataPersisted && status.canWrite);
+const canEdit = computed(() => setupCanEdit(status));
+
+const remoteAgentSnippet = ["environment:", "  DOZZLE_REMOTE_AGENT: <agent-ip>:7007"].join("\n");
 
 // The endpoint grammar is address|name|group, so a pipe in either field would
 // quietly turn into a name or a group.
@@ -211,8 +212,7 @@ const agentSnippet = computed(() =>
 
 function errorMessage(e: unknown) {
   if (!(e instanceof SetupError)) return t("setup.error.generic");
-  if (e.status === 403)
-    return status.authProvider === "none" ? t("setup.actions.window-closed") : t("setup.actions.no-access");
+  if (e.status === 403) return t(setupAccessMessageKey(status));
   switch (e.code) {
     case "exists":
       return t("setup.hosts.error-exists");

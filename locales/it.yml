@@ -19,14 +19,16 @@ toolbar:
   update-service: Aggiorna Servizio
   update-pulling: Download dell'ultima immagine...
   update-recreating: Ricreazione del container...
+  update-verifying: Verifica che il nuovo container resti attivo...
+  update-rolled-back: Il nuovo container non è rimasto attivo, quindi è stato ripristinato quello precedente.
   update-done: Container aggiornato con successo
   update-up-to-date: Già aggiornato
-  update-available: 'Aggiornamento disponibile'
-  check-for-updates: 'Controlla aggiornamenti'
-  checking-for-updates: 'Ricerca aggiornamenti...'
-  no-updates: 'Nessun aggiornamento'
-  dismiss-update: 'Ignora questo aggiornamento'
-  view-release-notes: 'Vedi note di rilascio'
+  update-available: "Aggiornamento disponibile"
+  check-for-updates: "Controlla aggiornamenti"
+  checking-for-updates: "Ricerca aggiornamenti..."
+  no-updates: "Nessun aggiornamento"
+  dismiss-update: "Ignora questo aggiornamento"
+  view-release-notes: "Vedi note di rilascio"
   show-hostname: Mostra nome host
   show-container-name: Mostra nome container
   shell: Shell
@@ -112,6 +114,11 @@ label:
   cpu: CPU
   core: Nessun core | 1 core | {count} core
   disk: Disco
+  reclaimable: Recuperabile
+  unused-images: "Immagini inutilizzate"
+  unused-volumes: "Volumi inutilizzati"
+  stopped-containers: "Container fermi"
+  build-cache: "Cache di build"
   load: Carico
   uptime: Tempo di attività
   mem: MEM
@@ -154,6 +161,9 @@ tooltip:
   disk-io: "Disco: ↑ {write}/s · ↓ {read}/s"
   cpu-usage: "CPU {cpu}% / {cores} core"
   memory-usage: "Memoria {used} / {total}"
+  disk-layer: "Livello scrivibile: {size}"
+  disk-volume-shared: "{name}: {size} (condiviso da {count} container)"
+  reclaimable-source: "Lo stesso totale riportato da {command}."
   volumes: Volumi
   volume-unreachable: non raggiungibile da questo host
   volume-full: "{destination} è pieno al {pct}"
@@ -190,6 +200,7 @@ error:
   unable-to-complete-action: Impossibile completare l'azione
   invalid-action: Azione non valida
   unable-to-update: Impossibile aggiornare il container
+  start-container-first: Avvia prima il container
   something-went-wrong: Qualcosa è andato storto
   unknown-error: Errore sconosciuto
   events-stream:
@@ -202,8 +213,8 @@ error:
       Dozzle UI timed out durante la connessione alle API. Controlla la configurazione di rete e riprova.
 alert:
   image-update:
-    title: 'Aggiornamento disponibile'
-    message: 'È stata pubblicata un''immagine più recente per {image}.'
+    title: "Aggiornamento disponibile"
+    message: "È stata pubblicata un'immagine più recente per {image}."
     enable-actions: '<a href="https://dozzle.dev/guide/actions" target="_blank" rel="noreferrer noopener">Abilita le azioni</a> per scaricarla e ricreare il container da qui.'
   redirected:
     title: Reindirizzamento ad un nuovo container
@@ -239,47 +250,60 @@ placeholder:
   search: Cerca
 settings:
   subtitle: Preferenze per questo browser. Le modifiche vengono salvate automaticamente.
+  subtitle-server: "Impostazioni di questo Dozzle, condivise da tutti quelli che lo usano."
   appearance: Aspetto
   logs: Log
   sidebar: Barra laterale
   behavior: Comportamento
   advanced: Avanzate
-  setup: "Configurazione"
   about: Informazioni
+  general: Generale
+  updates: Aggiornamenti
+  security: "Sicurezza"
+  hosts: "Host"
+  login-desc: "Chi può aprire Dozzle. Senza accesso, chiunque lo raggiunga può leggere i tuoi log."
+  login-off: "Nessun accesso"
+  login-docs: "Guida all'autenticazione"
+  set-by-flags: "In questa modalità si imposta con flag o variabili d'ambiente."
+  hosts-found: "In questa modalità Dozzle trova questi host da solo."
+  after-restart: "Dopo il riavvio"
+  restart-pending: "1 modifica si applica dopo un riavvio | {count} modifiche si applicano dopo un riavvio"
+  run-setup: "Esegui di nuovo la configurazione"
+  run-setup-desc: "Un percorso guidato tra accesso, azioni, host, Dozzle Cloud e aggiornamenti. Tutto ciò che contiene è anche nelle Impostazioni."
   reset: Ripristina predefiniti
   sponsor: Sponsorizza
   new-version: "{version} disponibile"
   update-available: "È disponibile un'immagine più recente"
   auto-update-on: "Dozzle si mantiene aggiornato"
-  auto-update-containers: "I container con l'etichetta restano aggiornati"
-  auto-update-daily: "Controlla ogni giorno alle {time}, ora del server."
-  auto-update-weekly: "Controlla ogni settimana, la domenica alle {time}, ora del server."
-  show-image-update-alert: 'Avvisi aggiornamento immagine'
-  show-image-update-alert-desc: 'Avvisa quando esiste un tag più recente di un''immagine in esecuzione.'
+  show-image-update-alert: "Avvisi aggiornamento immagine"
+  show-image-update-alert-desc: "Avvisa quando esiste un tag più recente di un'immagine in esecuzione."
   cloud-desc: Trasmetti i log a Dozzle Cloud per analisi basate su IA e ricerca tra le istanze.
   locale: Lingua
   small-scrollbars: Barre di scorrimento sottili
-  small-scrollbars-desc: 'Barre di scorrimento più sottili, utili su schermi piccoli.'
+  small-scrollbars-desc: "Barre di scorrimento più sottili, utili su schermi piccoli."
   show-timestamps: Visualizza timestamp
+  show-timestamps-desc: "Mostra quando è stata scritta ogni riga."
   soft-wrap: A capo automatico
+  soft-wrap-desc: "Manda a capo le righe lunghe invece di scorrere di lato."
   highlight-errors: Evidenzia le righe di errore
   highlight-errors-desc: "L'indicatore colorato del livello è sempre visibile."
-  datetime-format: Data e ora
+  date-format: "Formato data"
+  time-format: "Formato ora"
   font-size: Dimensione carattere
   color-scheme: Tema
   show-stopped-containers: Visualizza i container arrestati
   group-containers: Raggruppa container
-  group-containers-desc: 'Per progetto Compose, stack Swarm o dev.dozzle.group.'
-  show-app-icons: 'Icone delle app'
-  show-app-icons-desc: 'Incluse in Dozzle, mai scaricate da internet.'
+  group-containers-desc: "Per progetto Compose, stack Swarm o dev.dozzle.group."
+  show-app-icons: "Icone delle app"
+  show-app-icons-desc: "Incluse in Dozzle, mai scaricate da internet."
   search: Cerca nei log con
-  search-desc: 'Sostituisce la ricerca del browser mentre visualizzi un container.'
+  search-desc: "Sostituisce la ricerca del browser mentre visualizzi un container."
   show-std: Visualizza stdout e stderr
-  show-std-desc: 'Indica se una riga proviene da stdout o da stderr.'
+  show-std-desc: "Indica se una riga proviene da stdout o da stderr."
   automatic-redirect: Segui i container ricreati
-  automatic-redirect-desc: 'Quando un container viene sostituito, passa a quello nuovo.'
+  automatic-redirect-desc: "Quando un container viene sostituito, passa a quello nuovo."
   compact: Modalità compatta
-  compact-desc: 'Spaziatura ridotta per mostrare più righe sullo schermo.'
+  compact-desc: "Spaziatura ridotta per mostrare più righe sullo schermo."
   size:
     small: Piccolo
     medium: Medio
@@ -294,12 +318,12 @@ settings:
     none: Nessuno
   grouping:
     always: Sempre
-    at-least-2: Almeno 2
+    at-least-2: "Gruppi di 2 o più"
     never: Mai
   hour:
     auto: Auto
-    12: "12"
-    24: "24"
+    "12": "12 ore"
+    "24": "24 ore"
   log:
     preview: Questa è un'anteprima dei log
     warning: Un log di avviso appare così
@@ -371,7 +395,9 @@ updates:
     queued: In coda
     pulling: Download
     recreating: Ricreazione
+    verifying: Verifica
     done: Aggiornato
+    rolled-back: Ripristinato
     up-to-date: Attuale
     error: Fallito
 drawer:
@@ -823,12 +849,6 @@ setup:
   finish-later: Termina più tardi
   close: Chiudi
   copy: Copia
-  settings-title: Configura Dozzle
-  settings-desc: "Accesso, azioni sui container, shell, altri host e Dozzle Cloud in pochi passaggi."
-  settings-done-title: "Dozzle è configurato"
-  settings-done-desc: "L'accesso è attivo. Apri la configurazione per rivedere azioni sui container, shell, altri host e Dozzle Cloud."
-  settings-closed-title: "La configurazione è chiusa"
-  settings-closed-desc: "Senza accesso, la configurazione accetta modifiche solo nei primi 15 minuti di una nuova installazione. Usa invece le variabili d'ambiente."
   steps:
     login: Accesso
     login-note: Fai questo per primo
@@ -884,6 +904,7 @@ setup:
     shell-warning: L'accesso shell a un container spesso equivale all'accesso all'host. Lascialo disattivato a meno che non ti serva.
     locked: "Impostato da {env}"
     window-closed: "Senza accesso, la configurazione accetta modifiche solo nei primi 15 minuti di una nuova installazione. Imposta questi valori con variabili d'ambiente, oppure attiva prima l'accesso."
+    window-closed-env: "Senza accesso, la configurazione accetta modifiche solo nei primi 15 minuti di una nuova installazione. Imposta {envs} nel file compose, oppure attiva prima l'accesso."
     no-access: Il tuo account non può modificare queste impostazioni.
     restart-note: Queste modifiche hanno effetto dopo il riavvio di Dozzle.
   hosts:
@@ -937,11 +958,10 @@ setup:
   update:
     pill-on: "Usa le azioni · attivo"
     pill-pending: "Si attiva con le azioni"
-    title: "Mantieni Dozzle aggiornato"
-    subtitle: "Dozzle scarica la nuova immagine e sostituisce il proprio container in un'ora tranquilla. Impostazioni, utenti e avvisi restano."
+    title: "Tieni aggiornati i container"
+    subtitle: "In un'ora tranquilla, Dozzle cerca immagini più recenti e aggiorna se stesso e i container che scegli. Impostazioni, utenti e avvisi restano."
     auto-label: "Aggiorna automaticamente"
-    auto-desc: "Controlla se c'è un'immagine più recente e sostituisce Dozzle solo quando esiste."
-    auto-containers: I container con l'etichetta {label} si aggiornano alla stessa ora.
+    auto-desc: "Controlla se ci sono immagini più recenti e aggiorna Dozzle e i container qui sotto quando esistono."
     when-label: "Quando"
     time-label: "Ora"
     server-time: "Usa il fuso orario del server."
@@ -957,7 +977,6 @@ setup:
     reason-pinned-tag: "Usi un tag di versione fisso, quindi non c'è nulla di più recente da scaricare. Usa un tag come latest per ricevere gli aggiornamenti."
     reason-unsupported: "Dozzle non trova qui il proprio container, quindi non può sostituirsi da solo."
     reason-swarm-worker: "Dozzle è in esecuzione come servizio Swarm su un nodo worker. Solo un manager può aggiornare il servizio: esegui Dozzle su un manager oppure aggiornalo con docker service update."
-    containers-still: I container con l'etichetta {label} si aggiornano comunque secondo questa pianificazione.
     pull-denied: "Impossibile scaricare {image}. Potrebbe esistere solo su questa macchina, oppure il registry richiede docker login."
   restart:
     title: Riavvia Dozzle
@@ -1039,3 +1058,50 @@ time-range:
   jump-before: "Righe precedenti · {time}"
   jump-after: "Righe successive · {time}"
   empty-window: "Nessun log in questa finestra"
+update-marker:
+  updated: "Aggiornato"
+  rolled-back: "Ripristinato"
+  undone: "Aggiornamento annullato"
+  roll-back: "Ripristina"
+  by:
+    schedule: "dalla pianificazione degli aggiornamenti"
+    dozzle: "da Dozzle"
+    cloud: "da Dozzle Cloud"
+  verdict:
+    pending: "Dozzle Cloud sta controllando questo aggiornamento"
+    clean: "Sembra a posto"
+    regressed: "Sembra non funzionare"
+    unsure: "Potrebbe avere un problema"
+    rolled_back_by_dozzle: "Dozzle ha rimesso il container precedente"
+  decision:
+    rolled_back: "Ripristinato"
+    kept: "Mantenuto"
+auto-update:
+  which-label: "Quali container"
+  mode-off: "Solo Dozzle"
+  mode-off-desc: "Gli altri container vengono controllati e aspettano che li aggiorni tu."
+  mode-all: "Tutto"
+  risky: "{count} container conserva dati in un volume con nome. Un database può passare a una versione che non sa leggere i suoi dati. | {count} container conservano dati in volumi con nome. Un database può passare a una versione che non sa leggere i suoi dati."
+  containers-still: "Gli altri container vengono comunque aggiornati con questa pianificazione."
+  needs-actions: "Niente si aggiorna da solo finché le azioni sui container sono disattivate."
+  containers: "Container"
+  status-current: "Aggiornato"
+  status-available: "Aggiornamento disponibile"
+  status-pending: "Non ancora controllato"
+  status-off: "Non controllato"
+  status-pinned: "Fissato a un digest"
+  status-local: "Creato in locale"
+  status-private: "Registry privato"
+  status-unknown: "Impossibile controllare"
+  safety-title: "Rete di sicurezza"
+  safety-verify: "Ogni aggiornamento viene monitorato e annullato se il nuovo container non funziona."
+  safety-cleanup: "La vecchia immagine viene rimossa dopo. Un'immagine precedente resta per tornare indietro."
+  safety-skip: "Le immagini fissate a un digest, create in locale o da un registry privato vengono saltate."
+  learn-more: "Come funziona l'aggiornamento automatico"
+  footnote: "{link} decide quali container si aggiornano da soli."
+  footnote-link: "Impostazioni → Aggiornamenti"
+  mode-labelled: "Container con etichetta"
+  mode-labelled-desc: "Più i container con l'etichetta {label}."
+  mode-all-desc: "Ogni container, tranne quelli con l'etichetta {label}."
+  risky-hint: "Aggiungi l'etichetta {label} a un container per escluderlo."
+  empty: "Nessun container si aggiorna da solo. Aggiungi l'etichetta {label} a un container per includerlo."

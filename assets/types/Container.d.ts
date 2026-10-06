@@ -25,6 +25,14 @@ export interface MountStat {
   readonly lastChecked: string;
 }
 
+export interface VolumeUsage {
+  readonly name: string;
+  readonly destination: string;
+  readonly size: number;
+  // containers using the volume, this one included
+  readonly links: number;
+}
+
 export type ContainerJson = {
   readonly id: string;
   readonly created: string;
@@ -44,6 +52,10 @@ export type ContainerJson = {
   readonly mounts?: ContainerMount[];
   readonly ports?: string[];
   readonly mountStats?: Record<string, MountStat>;
+  // bytes in the writable layer; absent until the server has measured it
+  readonly sizeRw?: number;
+  // Docker-managed volumes the container mounts; absent until measured or when it has none
+  readonly volumes?: VolumeUsage[];
   readonly health?: ContainerHealth;
   readonly group?: string;
 };

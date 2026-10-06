@@ -183,6 +183,7 @@ func main() {
 
 	cloudClient := cloud.NewClient(apiKeyFunc, instanceID, args.Version(), cloud.ToolDeps{
 		EnableActions:       args.EnableActions,
+		ImageCheckMode:      imagecheck.Mode(args.ImageCheckMode),
 		HostService:         cloudHostService,
 		Principal:           cloud.APIKeyPrincipal(args.Filter),
 		NotificationService: notificationService,
@@ -232,6 +233,8 @@ func main() {
 			Setup: web.SetupConfig{
 				AutoUpdateMode: lockedValue(args.Locked.AutoUpdate, args.AutoUpdate),
 				AutoUpdateTime: lockedValue(args.Locked.AutoUpdateTime, args.AutoUpdateTime),
+
+				UpdateContainers: lockedValue(args.Locked.UpdateContainers, args.UpdateContainers),
 			},
 		}, srv.FlushUsage)
 	}
@@ -482,6 +485,7 @@ func createServer(args cli.Args, hostService web.HostService, cloudHooks web.Clo
 			LockedAutoUpdate:    args.Locked.AutoUpdate || args.Locked.AutoUpdateTime,
 			AutoUpdateMode:      lockedValue(args.Locked.AutoUpdate, args.AutoUpdate),
 			AutoUpdateTime:      lockedValue(args.Locked.AutoUpdateTime, args.AutoUpdateTime),
+			UpdateContainers:    lockedValue(args.Locked.UpdateContainers, args.UpdateContainers),
 			StartedAt:           web.SetupWindowStart(time.Now(), freshInstall),
 			EnvAgents:           args.EnvAgents,
 			CustomCert:          customCert(args),

@@ -3,6 +3,7 @@ package container
 import (
 	"context"
 	"errors"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -43,8 +44,11 @@ type Store struct {
 	labels         ContainerLabels
 	statsCollector StatsCollector
 	volumeMonitor  *volumeMonitor
-	ctx            context.Context
-	timing         storeTiming
+	sizeMonitor    *sizeMonitor
+	// reclaimable is the host's, as of the last volume walk; nil before it.
+	reclaimable atomic.Pointer[Reclaimable]
+	ctx         context.Context
+	timing      storeTiming
 
 	// the event loop
 	events chan ContainerEvent
@@ -105,6 +109,8 @@ func newStore(ctx context.Context, client Client, statsCollect StatsCollector, l
 	}
 	s.volumeMonitor = newVolumeMonitor(s)
 	s.volumeMonitor.start(ctx)
+	s.sizeMonitor = newSizeMonitor(s, client)
+	s.sizeMonitor.start(ctx)
 
 	go s.run()
 
@@ -116,6 +122,58 @@ func newStore(ctx context.Context, client Client, statsCollect StatsCollector, l
 func (s *Store) applyMountStats(id string, stats map[string]MountStat) {
 	updated, ok := s.patch(id, func(c *Container) bool {
 		c.MountStats = stats
+		return true
+	})
+	if !ok {
+		return
+	}
+
+	s.broadcast(ContainerEvent{
+		Name:      "update",
+		Host:      updated.Host,
+		ActorID:   updated.ID,
+		Time:      time.Now(),
+		Container: updated,
+	})
+}
+
+// applySize records a container's writable-layer size and broadcasts an "update"
+// when it changed, the same way applyMountStats does.
+func (s *Store) applySize(id string, size int64) {
+	updated, ok := s.patch(id, func(c *Container) bool {
+		if c.SizeRw != nil && *c.SizeRw == size {
+			return false
+		}
+		c.SizeRw = &size
+		return true
+	})
+	if !ok {
+		return
+	}
+
+	s.broadcast(ContainerEvent{
+		Name:      "update",
+		Host:      updated.Host,
+		ActorID:   updated.ID,
+		Time:      time.Now(),
+		Container: updated,
+	})
+}
+
+// Reclaimable is what the host could free as of the last volume walk, or nil when
+// none has run (or the client cannot measure).
+func (s *Store) Reclaimable() *Reclaimable {
+	return s.reclaimable.Load()
+}
+
+// applyVolumes records the volumes a container mounts and broadcasts an "update"
+// when they changed.
+func (s *Store) applyVolumes(id string, volumes []VolumeUsage) {
+	updated, ok := s.patch(id, func(c *Container) bool {
+		if slices.Equal(c.Volumes, volumes) {
+			return false
+		}
+		c.Volumes = volumes
 		return true
 	})
 	if !ok {

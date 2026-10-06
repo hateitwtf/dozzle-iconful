@@ -7,17 +7,15 @@ package selfupdate
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/amir20/dozzle/internal/container"
+	"github.com/amir20/dozzle/internal/container/docker/swap"
 	"github.com/amir20/dozzle/internal/imagecheck"
-	dcontainer "github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 	"github.com/rs/zerolog/log"
 )
@@ -27,11 +25,6 @@ const (
 	ReasonNotServer   = "not-server"
 	ReasonNoContainer = "no-container"
 	ReasonPinnedTag   = "pinned-tag"
-	// ReasonAutoRemove is never returned today. A --rm container is safe to
-	// update because the replacement is created, holding every volume by name,
-	// before the old one is stopped; see Run. It is kept so the web contract
-	// has a name for it should that ever change.
-	ReasonAutoRemove = "auto-remove"
 )
 
 // ErrSwarm is returned by Run for a swarm task: the helper never swaps one,
@@ -42,19 +35,16 @@ var ErrSwarm = errors.New("selfupdate: container is managed by a swarm service")
 // never move, so pulling them again can never produce anything newer.
 var versionTag = regexp.MustCompile(`^v?\d+\.\d+\.\d+([-+].*)?$`)
 
-// imageIDRef matches a container created from a bare image id.
-var imageIDRef = regexp.MustCompile(`^(sha256:)?[0-9a-f]{12,64}$`)
-
 // SwarmTask reports whether a container with these labels belongs to a swarm
 // service, which Start updates through the manager rather than the helper.
 func SwarmTask(labels map[string]string) bool {
-	return labels[swarmLabel] != ""
+	return labels[container.SwarmServiceNameLabel] != ""
 }
 
 // Pinned reports whether pulling ref again can never bring a newer image: a
 // digest, a bare image id, or a full version tag.
 func Pinned(ref string) bool {
-	if imageIDRef.MatchString(ref) {
+	if swap.IsImageID(ref) {
 		return true
 	}
 	parsed, err := imagecheck.ParseReference(ref)
@@ -86,7 +76,7 @@ func support(ctx context.Context, cli dockerAPI, selfID string) (bool, string, s
 	}
 	self := result.Container
 	image := SelfRef(self.Config)
-	if SwarmTask(self.Config.Labels) && !swarmManager(ctx, cli, self.Config.Labels[swarmServiceIDLabel]) {
+	if SwarmTask(self.Config.Labels) && !swarmManager(ctx, cli, self.Config.Labels[container.SwarmServiceIDLabel]) {
 		return false, ReasonSwarmWorker, image
 	}
 	if Pinned(image) {
@@ -105,7 +95,7 @@ func Start(ctx context.Context, selfID string, progress func(container.UpdatePro
 	}
 	cli, err := newClient(ctx)
 	if err != nil {
-		progress(container.UpdateProgress{Status: "error", Error: err.Error()})
+		progress(container.UpdateProgress{Status: container.UpdateError, Error: err.Error()})
 		return false, err
 	}
 	defer cli.Close()
@@ -116,22 +106,10 @@ func Start(ctx context.Context, selfID string, progress func(container.UpdatePro
 // the container update action), so two starts never race over the helper.
 var startMu sync.Mutex
 
-type pullMessage struct {
-	Status         string `json:"status"`
-	ID             string `json:"id"`
-	ProgressDetail struct {
-		Current int64 `json:"current"`
-		Total   int64 `json:"total"`
-	} `json:"progressDetail"`
-	ErrorDetail *struct {
-		Message string `json:"message"`
-	} `json:"errorDetail"`
-}
-
 func start(ctx context.Context, cli dockerAPI, selfID string, progress func(container.UpdateProgress)) (bool, error) {
 	fail := func(format string, args ...any) (bool, error) {
 		err := fmt.Errorf(format, args...)
-		progress(container.UpdateProgress{Status: "error", Error: err.Error()})
+		progress(container.UpdateProgress{Status: container.UpdateError, Error: err.Error()})
 		return false, err
 	}
 
@@ -155,9 +133,9 @@ func start(ctx context.Context, cli dockerAPI, selfID string, progress func(cont
 	swarmTask := SwarmTask(self.Config.Labels)
 
 	ref := SelfRef(self.Config)
-	if imageIDRef.MatchString(ref) {
+	if swap.IsImageID(ref) {
 		// Created from an image id: there is no tag to pull.
-		progress(container.UpdateProgress{Status: "up-to-date"})
+		progress(container.UpdateProgress{Status: container.UpdateUpToDate})
 		return false, nil
 	}
 
@@ -165,27 +143,11 @@ func start(ctx context.Context, cli dockerAPI, selfID string, progress func(cont
 	if err != nil {
 		return fail("pull failed: %w", err)
 	}
-	decoder := json.NewDecoder(reader)
-	for {
-		var msg pullMessage
-		if err := decoder.Decode(&msg); err == io.EOF {
-			break
-		} else if err != nil {
-			reader.Close()
-			return fail("pull decode failed: %w", err)
-		}
-		if msg.ErrorDetail != nil {
-			reader.Close()
-			return fail("pull failed: %s", msg.ErrorDetail.Message)
-		}
-		progress(container.UpdateProgress{
-			Status:  "pulling",
-			Layer:   msg.ID,
-			Current: msg.ProgressDetail.Current,
-			Total:   msg.ProgressDetail.Total,
-		})
-	}
+	err = swap.ReadPull(reader, progress)
 	reader.Close()
+	if err != nil {
+		return fail("%w", err)
+	}
 
 	img, err := cli.ImageInspect(ctx, ref)
 	if err != nil {
@@ -193,22 +155,22 @@ func start(ctx context.Context, cli dockerAPI, selfID string, progress func(cont
 	}
 	if img.ID == self.Image {
 		log.Info().Str("image", ref).Msg("self-update: already running the latest image")
-		progress(container.UpdateProgress{Status: "up-to-date"})
+		progress(container.UpdateProgress{Status: container.UpdateUpToDate})
 		return false, nil
 	}
 
 	if swarmTask {
-		return updateService(ctx, cli, self.Config.Labels[swarmServiceIDLabel], ref, progress)
+		return updateService(ctx, cli, self.Config.Labels[container.SwarmServiceIDLabel], ref, progress)
 	}
 
-	progress(container.UpdateProgress{Status: "recreating"})
+	progress(container.UpdateProgress{Status: container.UpdateRecreating})
 	spec := helperSpec(self, img.ID)
 	if err := launchHelper(ctx, cli, spec); err != nil {
 		return fail("%w", err)
 	}
 
 	log.Info().Str("helper", spec.Name).Str("image", ref).Str("newImage", img.ID).Msg("self-update: helper started, Dozzle will be replaced shortly")
-	progress(container.UpdateProgress{Status: "done"})
+	progress(container.UpdateProgress{Status: container.UpdateDone})
 	return true, nil
 }
 
@@ -274,10 +236,6 @@ func launchHelper(ctx context.Context, cli dockerAPI, spec client.ContainerCreat
 		return fmt.Errorf("start helper failed: %w", err)
 	}
 	return nil
-}
-
-func running(state *dcontainer.State) bool {
-	return state != nil && state.Running && !state.Restarting
 }
 
 func trimName(name string) string {

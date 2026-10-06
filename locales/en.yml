@@ -19,6 +19,8 @@ toolbar:
   update-service: Update Service
   update-pulling: Pulling latest image...
   update-recreating: Recreating container...
+  update-verifying: Checking the new container stays up...
+  update-rolled-back: The new container did not stay up, so the previous one was restored.
   update-done: Container updated successfully
   update-up-to-date: Already up to date
   update-available: Update available
@@ -113,6 +115,11 @@ label:
   core: No cores | 1 core | {count} cores
   mem: MEM
   disk: Disk
+  reclaimable: Reclaimable
+  unused-images: "Unused images"
+  unused-volumes: "Unused volumes"
+  stopped-containers: "Stopped containers"
+  build-cache: "Build cache"
   load: Load
   uptime: Uptime
   pinned: Pinned
@@ -154,6 +161,9 @@ tooltip:
   disk-io: "Disk: ↑ {write}/s · ↓ {read}/s"
   cpu-usage: "CPU {cpu}% / {cores} cores"
   memory-usage: "Memory {used} / {total}"
+  disk-layer: "Writable layer: {size}"
+  disk-volume-shared: "{name}: {size} (shared by {count} containers)"
+  reclaimable-source: "Same total as {command} reports."
   volumes: Volumes
   volume-unreachable: not reachable from this host
   volume-full: "{destination} is {pct} full"
@@ -190,6 +200,7 @@ error:
   unable-to-complete-action: Unable to complete action
   invalid-action: Invalid action
   unable-to-update: Unable to update container
+  start-container-first: Start the container first
   something-went-wrong: Something went wrong
   unknown-error: Unknown error
   events-stream:
@@ -368,30 +379,43 @@ command-palette:
   open-settings: Open settings
 settings:
   subtitle: Preferences for this browser. Changes save automatically.
+  subtitle-server: "Settings for this Dozzle, shared by everyone who uses it."
   appearance: Appearance
   logs: Logs
   sidebar: Sidebar
   behavior: Behavior
   advanced: Advanced
-  setup: Setup
   about: About
+  general: General
+  updates: Updates
+  security: "Security"
+  hosts: "Hosts"
+  login-desc: "Who can open Dozzle. Without login, anyone who reaches it can read your logs."
+  login-off: "No login"
+  login-docs: "Authentication guide"
+  set-by-flags: "Set with flags or environment variables in this mode."
+  hosts-found: "Dozzle finds these hosts by itself in this mode."
+  after-restart: "After restart"
+  restart-pending: "1 change applies after a restart | {count} changes apply after a restart"
+  run-setup: "Run setup again"
+  run-setup-desc: "A guided pass over login, actions, hosts, Dozzle Cloud and updates. Everything in it is also in Settings."
   reset: Reset to defaults
   sponsor: Sponsor
   new-version: "{version} available"
   update-available: A newer image is available
   auto-update-on: Dozzle keeps itself up to date
-  auto-update-containers: Labelled containers stay up to date
-  auto-update-daily: Checks daily at {time}, server time.
-  auto-update-weekly: Checks weekly on Sunday at {time}, server time.
   cloud-desc: Stream logs to Dozzle Cloud for AI-powered investigations and search across instances.
   locale: Language
   small-scrollbars: Thin scrollbars
   small-scrollbars-desc: Thinner scrollbars, handy on smaller displays.
   show-timestamps: Show timestamps
+  show-timestamps-desc: "Show when each line was written."
   soft-wrap: Soft wrap
+  soft-wrap-desc: "Wrap long lines instead of scrolling sideways."
   highlight-errors: Highlight error rows
   highlight-errors-desc: The colored level marker is always shown.
-  datetime-format: Date and time
+  date-format: "Date format"
+  time-format: "Time format"
   font-size: Font size
   color-scheme: Theme
   show-stopped-containers: Show stopped containers
@@ -423,12 +447,12 @@ settings:
     none: None
   grouping:
     always: Always
-    at-least-2: At least 2
+    at-least-2: "Groups of 2 or more"
     never: Never
   hour:
     auto: Auto
-    12: "12"
-    24: "24"
+    "12": "12-hour"
+    "24": "24-hour"
   log:
     preview: This is a preview of the logs
     warning: A warning log looks like this
@@ -500,7 +524,9 @@ updates:
     queued: Queued
     pulling: Pulling
     recreating: Recreating
+    verifying: Verifying
     done: Updated
+    rolled-back: Rolled back
     up-to-date: Current
     error: Failed
 drawer:
@@ -831,12 +857,6 @@ setup:
   finish-later: Finish later
   close: Close
   copy: Copy
-  settings-title: Set up Dozzle
-  settings-desc: "Login, container actions, shell, other hosts and Dozzle Cloud in a few steps."
-  settings-done-title: Dozzle is set up
-  settings-done-desc: "Login is on. Open setup to review container actions, shell, other hosts and Dozzle Cloud."
-  settings-closed-title: Setup is closed
-  settings-closed-desc: Without a login, setup only takes changes in the first 15 minutes of a new install. Use environment variables instead.
   steps:
     login: Login
     login-note: Do this first
@@ -892,6 +912,7 @@ setup:
     shell-warning: Shell access to a container is often as good as access to the host. Leave it off unless you need it.
     locked: "Set by {env}"
     window-closed: "Without a login, setup only takes changes in the first 15 minutes of a new install. Set these with environment variables, or turn on login first."
+    window-closed-env: "Without a login, setup only takes changes in the first 15 minutes of a new install. Set {envs} in your compose file, or turn on login first."
     no-access: Your account can't change these settings.
     restart-note: These take effect after Dozzle restarts.
   hosts:
@@ -945,11 +966,10 @@ setup:
   update:
     pill-on: "Uses actions · on"
     pill-pending: Turns on with actions
-    title: Keep Dozzle up to date
-    subtitle: Dozzle pulls the new image and replaces its own container at a quiet hour. Settings, users and alerts stay.
+    title: "Keep containers up to date"
+    subtitle: "At a quiet hour, Dozzle looks for newer images and updates itself and the containers you choose. Settings, users and alerts stay."
     auto-label: Update automatically
-    auto-desc: Checks for a newer image and replaces Dozzle only when there is one.
-    auto-containers: Containers labelled {label} update at the same time.
+    auto-desc: "Updates Dozzle and the containers below whenever a newer image is out."
     when-label: When
     time-label: Time
     server-time: Uses the server's time zone.
@@ -965,7 +985,6 @@ setup:
     reason-pinned-tag: You run a pinned version tag, so there is nothing newer to pull. Use a tag like latest to get updates.
     reason-unsupported: "Dozzle can't find its own container here, so it can't replace itself."
     reason-swarm-worker: "Dozzle runs as a Swarm service on a worker node. Only a manager can update the service, so run Dozzle on a manager or update it with docker service update."
-    containers-still: Containers labelled {label} still update on this schedule.
     pull-denied: "Couldn't pull {image}. It may only exist on this machine, or the registry needs docker login."
   restart:
     title: Restart Dozzle
@@ -1047,3 +1066,50 @@ time-range:
   jump-before: "Earlier lines · {time}"
   jump-after: "Later lines · {time}"
   empty-window: "No logs in this window"
+update-marker:
+  updated: "Updated"
+  rolled-back: "Rolled back"
+  undone: "Update undone"
+  roll-back: "Roll back"
+  by:
+    schedule: "by the auto-update schedule"
+    dozzle: "from Dozzle"
+    cloud: "from Dozzle Cloud"
+  verdict:
+    pending: "Dozzle Cloud is watching this update"
+    clean: "Looks fine"
+    regressed: "Looks broken"
+    unsure: "May have a problem"
+    rolled_back_by_dozzle: "Dozzle put the previous container back"
+  decision:
+    rolled_back: "Rolled back"
+    kept: "Kept"
+auto-update:
+  which-label: "Which containers"
+  mode-off: "Dozzle only"
+  mode-off-desc: "Other containers are checked and wait for you to update them."
+  mode-all: "Everything"
+  risky: "{count} container keeps data in a named volume. A database can move to a version its data can't read. | {count} containers keep data in named volumes. A database can move to a version its data can't read."
+  containers-still: "Other containers still update on this schedule."
+  needs-actions: "Nothing updates on its own while container actions are off."
+  containers: "Containers"
+  status-current: "Up to date"
+  status-available: "Update available"
+  status-pending: "Not checked yet"
+  status-off: "Not checked"
+  status-pinned: "Pinned to a digest"
+  status-local: "Built locally"
+  status-private: "Private registry"
+  status-unknown: "Can't check"
+  safety-title: "Safety net"
+  safety-verify: "Each update is watched to stay up, and rolled back if the new container fails."
+  safety-cleanup: "The old image is removed afterwards. One previous image is kept for rolling back."
+  safety-skip: "Images pinned to a digest, built locally or from a private registry are skipped."
+  learn-more: "How auto-update works"
+  footnote: "{link} decides which containers update on their own."
+  footnote-link: "Settings → Updates"
+  mode-labelled: "Labelled containers"
+  mode-labelled-desc: "Plus the containers labelled {label}."
+  mode-all-desc: "Every container, unless it is labelled {label}."
+  risky-hint: "Label one {label} to keep it out."
+  empty: "No container updates on its own. Label one {label} to add it."

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/amir20/dozzle/internal/container"
 	"github.com/amir20/dozzle/internal/notification/dispatcher"
 	pb "github.com/amir20/dozzle/proto/cloud"
 	"github.com/rs/zerolog/log"
@@ -58,6 +59,10 @@ type Client struct {
 
 	connMu        sync.Mutex
 	cancelCurrent context.CancelFunc
+
+	// updateRecords is where pushed container updates are read from: nil is
+	// container.Updates. See update_pusher.go.
+	updateRecords *container.UpdateRecords
 
 	// unaryConn / unaryClient are lazily initialized and shared across every
 	// Dozzle-initiated unary call (SearchLogs, GetAlerts) so we don't pay the
@@ -108,6 +113,9 @@ func NewClient(apiKeyFunc func() string, instanceID string, version string, deps
 		startCh:    make(chan struct{}, 1),
 	}
 }
+
+// deploymentAgent is the mode a remote agent passes to SetDeployment.
+const deploymentAgent = "agent"
 
 // SetDeployment records what kind of Dozzle process this is ("server",
 // "swarm", "k8s" or "agent") and, on a swarm node, which swarm it belongs to.
@@ -329,6 +337,20 @@ func (c *Client) connect(ctx context.Context, apiKey string) (wasConnected bool,
 		}
 	}
 
+	// Container updates are not log content, so the log-streaming toggle does
+	// not apply: which updates may be sent is decided in update_pusher.go. An
+	// agent records none (the server that asked for an update records it), so
+	// it has nothing to push.
+	if c.mode != deploymentAgent {
+		records := c.updateRecords
+		if records == nil {
+			records = container.Updates
+		}
+		wg.Go(func() {
+			pushUpdates(streamLifetime, records, sendResp)
+		})
+	}
+
 	defer func() {
 		// Cancel all active log streams before shutting down
 		c.activeStreams.Range(func(key, value any) bool {
@@ -493,13 +515,17 @@ func toolCallTimeout(name string) time.Duration {
 		// takes a long time, and had no bound at all before calls got one.
 		// Still cancellable by request id, which is what frees the slot.
 		return 30 * time.Minute
+	case toolRollbackContainer:
+		// Pulls nothing, but the swap waits for the previous image to stay up
+		// and, with a healthcheck, healthy, which can take minutes.
+		return 10 * time.Minute
 	}
 	return 2 * time.Minute
 }
 
 func (c *Client) tools() []*pb.ToolDefinition {
 	c.toolsOnce.Do(func() {
-		c.cachedTools = AvailableTools(c.deps.EnableActions, c.deps.Principal)
+		c.cachedTools = AvailableTools(c.deps)
 	})
 	return c.cachedTools
 }

@@ -19,14 +19,16 @@ toolbar:
   update-service: Service Bijwerken
   update-pulling: Laatste image ophalen...
   update-recreating: Container opnieuw aanmaken...
+  update-verifying: Controleren of de nieuwe container blijft draaien...
+  update-rolled-back: De nieuwe container bleef niet draaien, dus de vorige is hersteld.
   update-done: Container succesvol bijgewerkt
   update-up-to-date: Al bijgewerkt
-  update-available: 'Update beschikbaar'
-  check-for-updates: 'Controleren op updates'
-  checking-for-updates: 'Bezig met controleren op updates...'
-  no-updates: 'Geen updates'
-  dismiss-update: 'Deze update negeren'
-  view-release-notes: 'Release-opmerkingen bekijken'
+  update-available: "Update beschikbaar"
+  check-for-updates: "Controleren op updates"
+  checking-for-updates: "Bezig met controleren op updates..."
+  no-updates: "Geen updates"
+  dismiss-update: "Deze update negeren"
+  view-release-notes: "Release-opmerkingen bekijken"
   show-hostname: Toon hostnaam
   show-container-name: Toon containernaam
   shell: Shell
@@ -112,6 +114,11 @@ label:
   cpu: CPU
   core: Geen kernen | 1 kern | {count} kernen
   disk: Schijf
+  reclaimable: Vrij te maken
+  unused-images: "Ongebruikte images"
+  unused-volumes: "Ongebruikte volumes"
+  stopped-containers: "Gestopte containers"
+  build-cache: "Buildcache"
   load: Belasting
   uptime: Uptime
   mem: MEM
@@ -154,6 +161,9 @@ tooltip:
   disk-io: "Schijf: ↑ {write}/s · ↓ {read}/s"
   cpu-usage: "CPU {cpu}% / {cores} kernen"
   memory-usage: "Geheugen {used} / {total}"
+  disk-layer: "Beschrijfbare laag: {size}"
+  disk-volume-shared: "{name}: {size} (gedeeld door {count} containers)"
+  reclaimable-source: "Hetzelfde totaal als {command} meldt."
   volumes: Volumes
   volume-unreachable: niet bereikbaar vanaf deze host
   volume-full: "{destination} is {pct} vol"
@@ -190,6 +200,7 @@ error:
   unable-to-complete-action: Kan actie niet voltooien
   invalid-action: Ongeldige actie
   unable-to-update: Kan container niet bijwerken
+  start-container-first: Start eerst de container
   something-went-wrong: Er is iets misgegaan
   unknown-error: Onbekende fout
   events-stream:
@@ -203,8 +214,8 @@ error:
       De verbinding met de API is verlopen. Controleer je netwerkverbinding en probeer het opnieuw.
 alert:
   image-update:
-    title: 'Update beschikbaar'
-    message: 'Er is een nieuwere image gepubliceerd voor {image}.'
+    title: "Update beschikbaar"
+    message: "Er is een nieuwere image gepubliceerd voor {image}."
     enable-actions: '<a href="https://dozzle.dev/guide/actions" target="_blank" rel="noreferrer noopener">Schakel acties in</a> om deze hier op te halen en opnieuw aan te maken.'
   redirected:
     title: Doorgestuurd naar nieuwe container
@@ -240,47 +251,60 @@ placeholder:
   search: Zoeken
 settings:
   subtitle: Voorkeuren voor deze browser. Wijzigingen worden automatisch opgeslagen.
+  subtitle-server: "Instellingen voor deze Dozzle, gedeeld door iedereen die hem gebruikt."
   appearance: Weergave
   logs: Logs
   sidebar: Zijbalk
   behavior: Gedrag
   advanced: Geavanceerd
-  setup: "Instellen"
   about: Over
+  general: Algemeen
+  updates: Updates
+  security: "Beveiliging"
+  hosts: "Hosts"
+  login-desc: "Wie Dozzle kan openen. Zonder login kan iedereen die het bereikt je logs lezen."
+  login-off: "Geen login"
+  login-docs: "Handleiding authenticatie"
+  set-by-flags: "In deze modus ingesteld met flags of omgevingsvariabelen."
+  hosts-found: "In deze modus vindt Dozzle deze hosts zelf."
+  after-restart: "Na herstart"
+  restart-pending: "1 wijziging geldt na een herstart | {count} wijzigingen gelden na een herstart"
+  run-setup: "Installatie opnieuw doorlopen"
+  run-setup-desc: "Een begeleide ronde langs login, acties, hosts, Dozzle Cloud en updates. Alles daarin staat ook in Instellingen."
   reset: Standaardwaarden herstellen
   sponsor: Sponsoren
   new-version: "{version} beschikbaar"
   update-available: "Er is een nieuwere image beschikbaar"
   auto-update-on: "Dozzle houdt zichzelf up-to-date"
-  auto-update-containers: "Containers met het label blijven up-to-date"
-  auto-update-daily: "Controleert dagelijks om {time}, servertijd."
-  auto-update-weekly: "Controleert wekelijks op zondag om {time}, servertijd."
-  show-image-update-alert: 'Image-updatemeldingen'
-  show-image-update-alert-desc: 'Melden wanneer er een nieuwere tag van een draaiende image bestaat.'
+  show-image-update-alert: "Image-updatemeldingen"
+  show-image-update-alert-desc: "Melden wanneer er een nieuwere tag van een draaiende image bestaat."
   cloud-desc: Stream logs naar Dozzle Cloud voor AI-gestuurde analyses en zoeken over instanties heen.
   locale: Taal
   small-scrollbars: Smalle scrollbalken
-  small-scrollbars-desc: 'Dunnere schuifbalken, handig op kleinere schermen.'
+  small-scrollbars-desc: "Dunnere schuifbalken, handig op kleinere schermen."
   show-timestamps: Tijdstempel tonen
+  show-timestamps-desc: "Toon wanneer elke regel is geschreven."
   soft-wrap: Regelafbreking
+  soft-wrap-desc: "Lange regels afbreken in plaats van zijwaarts te scrollen."
   highlight-errors: Foutregels markeren
-  highlight-errors-desc: 'De gekleurde niveaumarkering wordt altijd getoond.'
-  datetime-format: Datum en tijd
+  highlight-errors-desc: "De gekleurde niveaumarkering wordt altijd getoond."
+  date-format: "Datumnotatie"
+  time-format: "Tijdnotatie"
   font-size: Lettergrootte
   color-scheme: Thema
   show-stopped-containers: Gestopte containers tonen
   group-containers: Containers groeperen
-  group-containers-desc: 'Op Compose-project, Swarm-stack of dev.dozzle.group.'
-  show-app-icons: 'App-pictogrammen'
-  show-app-icons-desc: 'Meegeleverd met Dozzle, nooit van internet opgehaald.'
+  group-containers-desc: "Op Compose-project, Swarm-stack of dev.dozzle.group."
+  show-app-icons: "App-pictogrammen"
+  show-app-icons-desc: "Meegeleverd met Dozzle, nooit van internet opgehaald."
   search: Logs doorzoeken met
-  search-desc: 'Vervangt het zoeken van de browser tijdens het bekijken van een container.'
+  search-desc: "Vervangt het zoeken van de browser tijdens het bekijken van een container."
   show-std: Toon stdout- en stderr-labels
-  show-std-desc: 'Geef aan of een regel van stdout of stderr komt.'
+  show-std-desc: "Geef aan of een regel van stdout of stderr komt."
   automatic-redirect: Opnieuw gemaakte containers volgen
-  automatic-redirect-desc: 'Wanneer een container wordt vervangen, spring naar de nieuwe.'
+  automatic-redirect-desc: "Wanneer een container wordt vervangen, spring naar de nieuwe."
   compact: Compacte modus
-  compact-desc: 'Kleinere tussenruimte zodat er meer regels op het scherm passen.'
+  compact-desc: "Kleinere tussenruimte zodat er meer regels op het scherm passen."
   size:
     small: Klein
     medium: Middel
@@ -295,12 +319,12 @@ settings:
     none: Geen
   grouping:
     always: Altijd
-    at-least-2: Minimaal 2
+    at-least-2: "Groepen van 2 of meer"
     never: Nooit
   hour:
     auto: Auto
-    12: "12"
-    24: "24"
+    "12": "12-uurs"
+    "24": "24-uurs"
   log:
     preview: Voorbeeld van de logweergave
     warning: Een waarschuwingslog ziet er zo uit
@@ -372,7 +396,9 @@ updates:
     queued: Wachtrij
     pulling: Ophalen
     recreating: Opnieuw maken
+    verifying: Controleren
     done: Bijgewerkt
+    rolled-back: Teruggedraaid
     up-to-date: Actueel
     error: Mislukt
 drawer:
@@ -824,12 +850,6 @@ setup:
   finish-later: Later afronden
   close: Sluiten
   copy: Kopiëren
-  settings-title: Dozzle instellen
-  settings-desc: "Inloggen, containeracties, shell, andere hosts en Dozzle Cloud in een paar stappen."
-  settings-done-title: "Dozzle is ingesteld"
-  settings-done-desc: "Inloggen staat aan. Open de installatie om containeracties, shell, andere hosts en Dozzle Cloud te bekijken."
-  settings-closed-title: "De installatie is gesloten"
-  settings-closed-desc: "Zonder login accepteert de installatie alleen wijzigingen in de eerste 15 minuten van een nieuwe installatie. Gebruik in plaats daarvan omgevingsvariabelen."
   steps:
     login: Inloggen
     login-note: Doe dit eerst
@@ -885,6 +905,7 @@ setup:
     shell-warning: Shelltoegang tot een container staat vaak gelijk aan toegang tot de host. Laat het uit, tenzij je het nodig hebt.
     locked: "Ingesteld door {env}"
     window-closed: "Zonder inloggen accepteert de installatie alleen wijzigingen in de eerste 15 minuten van een nieuwe installatie. Stel dit in met omgevingsvariabelen, of zet eerst inloggen aan."
+    window-closed-env: "Zonder inloggen accepteert de installatie alleen wijzigingen in de eerste 15 minuten van een nieuwe installatie. Stel {envs} in je compose-bestand in, of zet eerst inloggen aan."
     no-access: Je account kan deze instellingen niet wijzigen.
     restart-note: Deze worden actief nadat Dozzle is herstart.
   hosts:
@@ -938,11 +959,10 @@ setup:
   update:
     pill-on: "Gebruikt acties · aan"
     pill-pending: "Gaat aan met acties"
-    title: "Houd Dozzle up-to-date"
-    subtitle: "Dozzle haalt de nieuwe image op en vervangt zijn eigen container op een rustig uur. Instellingen, gebruikers en meldingen blijven behouden."
+    title: "Houd containers up-to-date"
+    subtitle: "Op een rustig uur zoekt Dozzle naar nieuwere images en werkt het zichzelf en de containers die jij kiest bij. Instellingen, gebruikers en meldingen blijven."
     auto-label: "Automatisch bijwerken"
-    auto-desc: "Controleert op een nieuwere image en vervangt Dozzle alleen als die er is."
-    auto-containers: Containers met het label {label} worden op hetzelfde moment bijgewerkt.
+    auto-desc: "Controleert op nieuwere images en werkt Dozzle en de containers hieronder bij als die er zijn."
     when-label: "Wanneer"
     time-label: "Tijd"
     server-time: "Gebruikt de tijdzone van de server."
@@ -958,7 +978,6 @@ setup:
     reason-pinned-tag: "Je gebruikt een vaste versietag, dus er is niets nieuwers om op te halen. Gebruik een tag zoals latest om updates te krijgen."
     reason-unsupported: "Dozzle kan hier zijn eigen container niet vinden en kan zichzelf dus niet vervangen."
     reason-swarm-worker: "Dozzle draait als Swarm-service op een worker-node. Alleen een manager kan de service bijwerken, dus draai Dozzle op een manager of werk het bij met docker service update."
-    containers-still: Containers met het label {label} worden nog steeds volgens dit schema bijgewerkt.
     pull-denied: "{image} kon niet worden opgehaald. Misschien bestaat het alleen op deze machine, of vraagt de registry om docker login."
   restart:
     title: Dozzle herstarten
@@ -1040,3 +1059,50 @@ time-range:
   jump-before: "Eerdere regels · {time}"
   jump-after: "Latere regels · {time}"
   empty-window: "Geen logs in dit venster"
+update-marker:
+  updated: "Bijgewerkt"
+  rolled-back: "Teruggezet"
+  undone: "Update ongedaan gemaakt"
+  roll-back: "Terugzetten"
+  by:
+    schedule: "door het automatische updateschema"
+    dozzle: "vanuit Dozzle"
+    cloud: "vanuit Dozzle Cloud"
+  verdict:
+    pending: "Dozzle Cloud houdt deze update in de gaten"
+    clean: "Ziet er goed uit"
+    regressed: "Lijkt kapot"
+    unsure: "Kan een probleem hebben"
+    rolled_back_by_dozzle: "Dozzle heeft de vorige container teruggezet"
+  decision:
+    rolled_back: "Teruggezet"
+    kept: "Behouden"
+auto-update:
+  which-label: "Welke containers"
+  mode-off: "Alleen Dozzle"
+  mode-off-desc: "Andere containers worden gecontroleerd en wachten tot jij ze bijwerkt."
+  mode-all: "Alles"
+  risky: "{count} container bewaart data in een benoemd volume. Een database kan naar een versie gaan die zijn data niet kan lezen. | {count} containers bewaren data in benoemde volumes. Een database kan naar een versie gaan die zijn data niet kan lezen."
+  containers-still: "Andere containers worden nog steeds volgens dit schema bijgewerkt."
+  needs-actions: "Niets wordt vanzelf bijgewerkt zolang containeracties uit staan."
+  containers: "Containers"
+  status-current: "Up-to-date"
+  status-available: "Update beschikbaar"
+  status-pending: "Nog niet gecontroleerd"
+  status-off: "Niet gecontroleerd"
+  status-pinned: "Vastgezet op een digest"
+  status-local: "Lokaal gebouwd"
+  status-private: "Privéregistry"
+  status-unknown: "Kan niet controleren"
+  safety-title: "Vangnet"
+  safety-verify: "Elke update wordt gevolgd en teruggedraaid als de nieuwe container faalt."
+  safety-cleanup: "Het oude image wordt daarna verwijderd. Eén vorig image blijft bewaard om terug te draaien."
+  safety-skip: "Images vastgezet op een digest, lokaal gebouwd of uit een privéregistry worden overgeslagen."
+  learn-more: "Zo werkt automatisch bijwerken"
+  footnote: "{link} bepaalt welke containers zichzelf bijwerken."
+  footnote-link: "Instellingen → Updates"
+  mode-labelled: "Containers met label"
+  mode-labelled-desc: "Plus de containers met het label {label}."
+  mode-all-desc: "Elke container, behalve met het label {label}."
+  risky-hint: "Geef een container het label {label} om hem uit te sluiten."
+  empty: "Geen enkele container werkt zichzelf bij. Geef een container het label {label} om hem toe te voegen."

@@ -217,7 +217,7 @@ func (c *Client) chatToolResponse(ctx context.Context, req *pb.ToolRequest, deps
 		// Scoped to the person asking rather than the instance-wide cache, so
 		// the assistant is never offered a tool this user would be denied.
 		resp.Type = &pb.ToolResponse_ListTools{ListTools: &pb.ListToolsResponse{
-			Tools:   AvailableTools(deps.EnableActions, deps.Principal),
+			Tools:   AvailableTools(deps),
 			Version: c.version,
 		}}
 
@@ -267,7 +267,7 @@ func toolActivity(name string) string {
 		return "inspect"
 	case toolListNotifications, toolCreateLogNotification, toolCreateMetricNotification, toolCreateEventNotification:
 		return "notifications"
-	case toolStartContainer, toolStopContainer, toolRestartContainer, toolRemoveContainer, toolUpdateContainer:
+	case toolStartContainer, toolStopContainer, toolRestartContainer, toolRemoveContainer, toolUpdateContainer, toolRollbackContainer:
 		return "action"
 	default:
 		return "working"

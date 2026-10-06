@@ -2,19 +2,23 @@ package cloud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/amir20/dozzle/internal/auth"
 	"github.com/amir20/dozzle/internal/container"
 	"github.com/amir20/dozzle/internal/imagecheck"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAvailableTools_WithActionsEnabled(t *testing.T) {
-	tools := AvailableTools(true, Principal{})
+	tools := AvailableTools(ToolDeps{EnableActions: true})
 
 	names := make([]string, len(tools))
 	for i, tool := range tools {
@@ -35,11 +39,12 @@ func TestAvailableTools_WithActionsEnabled(t *testing.T) {
 	assert.Contains(t, names, "create_log_notification")
 	assert.Contains(t, names, "create_metric_notification")
 	assert.Contains(t, names, "create_event_notification")
-	assert.Len(t, tools, 18)
+	assert.Contains(t, names, "rollback_container")
+	assert.Len(t, tools, 19)
 }
 
 func TestAvailableTools_WithActionsDisabled(t *testing.T) {
-	tools := AvailableTools(false, Principal{})
+	tools := AvailableTools(ToolDeps{})
 
 	names := make([]string, len(tools))
 	for i, tool := range tools {
@@ -57,7 +62,7 @@ func TestAvailableTools_WithActionsDisabled(t *testing.T) {
 }
 
 func TestAvailableTools_ParametersAreValid(t *testing.T) {
-	tools := AvailableTools(true, Principal{})
+	tools := AvailableTools(ToolDeps{EnableActions: true})
 
 	for _, tool := range tools {
 		assert.NotEmpty(t, tool.Name)
@@ -112,6 +117,18 @@ func withResolver(m *MockHostService, containers ...container.Container) {
 
 type MockClientService struct {
 	mock.Mock
+	// imageResults answers CheckImageUpdate by container ID; anything absent
+	// is up to date.
+	imageResults map[string]imagecheck.Result
+	// imageForced records the force flag of the last CheckImageUpdate.
+	imageForced atomic.Bool
+	// updateProgress is what UpdateContainer reports, and updateErr what it returns.
+	updateProgress []container.UpdateProgress
+	updateErr      error
+	// rollbackOpts records the options of the last RollbackContainer, and
+	// rollbackErr is what it returns.
+	rollbackOpts container.RollbackOptions
+	rollbackErr  error
 }
 
 func (m *MockClientService) FindContainer(_ context.Context, _ string, _ container.ContainerLabels) (container.Container, error) {
@@ -152,13 +169,123 @@ func (m *MockClientService) Exec(_ context.Context, _ container.Container, _ []s
 	return nil
 }
 
-func (m *MockClientService) CheckImageUpdate(_ context.Context, _ container.Container, _ bool) (imagecheck.Result, error) {
-	return imagecheck.Result{Status: imagecheck.StatusUpToDate}, nil
+func (m *MockClientService) CheckImageUpdate(_ context.Context, c container.Container, force bool) (imagecheck.Result, error) {
+	m.imageForced.Store(force)
+	if r, ok := m.imageResults[c.ID]; ok {
+		return r, nil
+	}
+	return imagecheck.Result{Image: c.Image, Status: imagecheck.StatusUpToDate}, nil
 }
 
 func (m *MockClientService) UpdateContainer(_ context.Context, _ container.Container, progressCh chan<- container.UpdateProgress) (bool, error) {
-	close(progressCh)
-	return false, nil
+	defer close(progressCh)
+	for _, p := range m.updateProgress {
+		progressCh <- p
+	}
+	return false, m.updateErr
+}
+
+func (m *MockClientService) RollbackContainer(_ context.Context, _ container.Container, opts container.RollbackOptions, progressCh chan<- container.UpdateProgress) error {
+	defer close(progressCh)
+	m.rollbackOpts = opts
+	if m.rollbackErr != nil {
+		progressCh <- container.UpdateProgress{Status: container.UpdateError, Error: m.rollbackErr.Error()}
+		return m.rollbackErr
+	}
+	progressCh <- container.UpdateProgress{Status: container.UpdateDone, Result: &container.UpdateResult{OldID: "abc123", NewID: "rolled123456", FromImageID: "sha256:new", ToImageID: "sha256:old"}}
+	return nil
+}
+
+func TestExecuteTool_RollbackContainer(t *testing.T) {
+	mockClient := &MockClientService{}
+	mockHost := &MockHostService{}
+	c := container.Container{ID: "abc123", Name: "immich", Host: "rollback-host", State: "running"}
+	withResolver(mockHost, c)
+	mockHost.On("FindContainer", "rollback-host", "abc123", container.ContainerLabels(nil)).Return(container.NewContainerService(mockClient, c), nil)
+
+	deps := ToolDeps{HostService: mockHost, EnableActions: true}
+
+	// The confirmation is in code: no digest, no rollback.
+	resp := ExecuteTool(context.Background(), toolRollbackContainer, `{"container_id":"abc123"}`, deps)
+	assert.False(t, resp.Success)
+	assert.Contains(t, resp.Error, "expected_from_digest")
+	assert.Empty(t, mockClient.rollbackOpts.ExpectedFromDigest, "nothing reached the container")
+
+	resp = ExecuteTool(context.Background(), toolRollbackContainer, `{"container_id":"abc123","expected_from_digest":"ghcr.io/immich@sha256:new"}`, deps)
+	require.True(t, resp.Success, resp.Error)
+	assert.Equal(t, container.RollbackOptions{ExpectedFromDigest: "ghcr.io/immich@sha256:new"}, mockClient.rollbackOpts)
+	action := resp.GetAction()
+	require.NotNil(t, action)
+	assert.Equal(t, "rollback", action.Action)
+	assert.Equal(t, "abc123", action.ContainerId)
+	assert.Contains(t, action.Message, "immich")
+
+	record, ok := container.Updates.Latest("rollback-host", "rolled123456")
+	require.True(t, ok, "the rollback is recorded, for the log marker and Dozzle Cloud")
+	assert.Equal(t, container.UpdateSourceRollback, record.Source)
+	assert.Equal(t, "immich", record.Name)
+
+	// A container that moved on since is refused.
+	mockClient.rollbackErr = fmt.Errorf("%w: it runs ghcr.io/immich@sha256:newer", container.ErrDigestMismatch)
+	resp = ExecuteTool(context.Background(), toolRollbackContainer, `{"container_id":"abc123","expected_from_digest":"ghcr.io/immich@sha256:new"}`, deps)
+	assert.False(t, resp.Success)
+	assert.Contains(t, resp.Error, "no longer runs the expected image")
+}
+
+func TestRollbackContainerNeedsActions(t *testing.T) {
+	assert.Equal(t, auth.Actions, mutatingTools[toolRollbackContainer])
+	assert.Error(t, APIKeyPrincipal(nil).mayCall(toolRollbackContainer, false), "gated behind --enable-actions")
+	assert.Error(t, InstancePrincipal(nil).mayCall(toolRollbackContainer, true), "never background work")
+	assert.Error(t, Principal{Kind: PrincipalUser}.mayCall(toolRollbackContainer, true), "a user without the actions role")
+	assert.NoError(t, Principal{Kind: PrincipalUser, Roles: auth.Actions}.mayCall(toolRollbackContainer, true))
+
+	var names []string
+	for _, tool := range AvailableTools(ToolDeps{EnableActions: true}) {
+		names = append(names, tool.Name)
+	}
+	assert.Contains(t, names, toolRollbackContainer)
+	for _, tool := range AvailableTools(ToolDeps{}) {
+		assert.NotEqual(t, toolRollbackContainer, tool.Name, "hidden without actions")
+	}
+}
+
+func TestExecuteTool_UpdateContainerRolledBackFails(t *testing.T) {
+	mockClient := &MockClientService{}
+	mockHost := &MockHostService{}
+	c := container.Container{ID: "abc123", Name: "nginx", Host: "local", State: "running"}
+	withResolver(mockHost, c)
+	mockHost.On("FindContainer", "local", "abc123", container.ContainerLabels(nil)).Return(container.NewContainerService(mockClient, c), nil)
+
+	deps := ToolDeps{HostService: mockHost, EnableActions: true}
+	resp := ExecuteTool(context.Background(), "update_container", `{"container_id":"abc123"}`, deps)
+	assert.True(t, resp.Success, resp.Error)
+
+	// A rolled back update is a failure, and says so.
+	mockClient.updateProgress = []container.UpdateProgress{{Status: container.UpdateRolledBack, Error: "replacement is unhealthy"}}
+	mockClient.updateErr = errors.New("update rolled back: replacement is unhealthy")
+	resp = ExecuteTool(context.Background(), "update_container", `{"container_id":"abc123"}`, deps)
+	assert.False(t, resp.Success)
+	assert.Contains(t, resp.Error, "rolled back")
+}
+
+// A stopped container is refused before the host is asked, for an update and
+// a rollback alike.
+func TestExecuteTool_UpdateAndRollbackRefuseStoppedContainer(t *testing.T) {
+	mockClient := &MockClientService{updateErr: errors.New("the host was asked")}
+	mockHost := &MockHostService{}
+	c := container.Container{ID: "abc123", Name: "backup", Host: "local", State: "exited"}
+	withResolver(mockHost, c)
+	mockHost.On("FindContainer", "local", "abc123", container.ContainerLabels(nil)).Return(container.NewContainerService(mockClient, c), nil)
+
+	deps := ToolDeps{HostService: mockHost, EnableActions: true}
+	resp := ExecuteTool(context.Background(), toolUpdateContainer, `{"container_id":"abc123"}`, deps)
+	assert.False(t, resp.Success)
+	assert.Contains(t, resp.Error, "Start the container first")
+
+	resp = ExecuteTool(context.Background(), toolRollbackContainer, `{"container_id":"abc123","expected_from_digest":"backup@sha256:new"}`, deps)
+	assert.False(t, resp.Success)
+	assert.Contains(t, resp.Error, "Start the container first")
+	assert.Empty(t, mockClient.rollbackOpts.ExpectedFromDigest, "nothing reached the container")
 }
 
 func TestExecuteTool_ListRunningContainers(t *testing.T) {

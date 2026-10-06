@@ -13,11 +13,13 @@ import (
 	"encoding/json"
 
 	"github.com/amir20/dozzle/internal/container"
+	"github.com/amir20/dozzle/internal/container/docker/swap"
 	"github.com/amir20/dozzle/internal/selfupdate"
 	"github.com/amir20/dozzle/internal/utils"
 	docker "github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/events"
 	"github.com/moby/moby/api/types/image"
+	"github.com/moby/moby/api/types/mount"
 	"github.com/moby/moby/api/types/system"
 	"github.com/moby/moby/client"
 
@@ -44,9 +46,12 @@ type CLI interface {
 	ImageInspect(ctx context.Context, imageID string, opts ...client.ImageInspectOption) (client.ImageInspectResult, error)
 	ContainerRemove(ctx context.Context, containerID string, options client.ContainerRemoveOptions) (client.ContainerRemoveResult, error)
 	ContainerCreate(ctx context.Context, options client.ContainerCreateOptions) (client.ContainerCreateResult, error)
+	ContainerRename(ctx context.Context, containerID string, options client.ContainerRenameOptions) (client.ContainerRenameResult, error)
+	ImageRemove(ctx context.Context, imageID string, options client.ImageRemoveOptions) (client.ImageRemoveResult, error)
 	ServiceInspect(ctx context.Context, serviceID string, opts client.ServiceInspectOptions) (client.ServiceInspectResult, error)
 	ServiceList(ctx context.Context, options client.ServiceListOptions) (client.ServiceListResult, error)
 	ServiceUpdate(ctx context.Context, serviceID string, options client.ServiceUpdateOptions) (client.ServiceUpdateResult, error)
+	DiskUsage(ctx context.Context, options client.DiskUsageOptions) (client.DiskUsageResult, error)
 }
 
 type Client struct {
@@ -130,7 +135,7 @@ func NewClient(cli CLI, host container.Host, hostIDs container.HostIDResolver) *
 
 // NewLocalClient creates a new instance of Client with docker filters.
 func NewLocalClient(hostname string, hostIDs container.HostIDResolver) (*Client, error) {
-	cli, err := client.New(client.FromEnv, client.WithUserAgent("Docker-Client/Dozzle"), client.WithResponseHook(healthEventCompat))
+	cli, err := client.New(client.FromEnv, client.WithUserAgent("Docker-Client/Dozzle"))
 
 	if err != nil {
 		return nil, err
@@ -183,7 +188,7 @@ func NewRemoteClient(host container.Host, hostIDs container.HostIDResolver) (*Cl
 		log.Debug().Msg("Not using TLS for remote client")
 	}
 
-	opts = append(opts, client.WithUserAgent("Docker-Client/Dozzle"), client.WithResponseHook(healthEventCompat))
+	opts = append(opts, client.WithUserAgent("Docker-Client/Dozzle"))
 
 	cli, err := client.New(opts...)
 
@@ -279,9 +284,97 @@ func (d *Client) ImageID(ctx context.Context, ref string) (string, error) {
 	return result.ID, nil
 }
 
+// ImageInspect returns the local image ref resolves to.
+func (d *Client) ImageInspect(ctx context.Context, ref string) (image.InspectResponse, error) {
+	result, err := d.cli.ImageInspect(ctx, ref)
+	return result.InspectResponse, err
+}
+
+// SwapAPI is the engine client a container swap, and the image cleanup after
+// it, run against.
+func (d *Client) SwapAPI() swap.API {
+	return d.cli
+}
+
 func (d *Client) ContainerInspect(ctx context.Context, containerID string) (docker.InspectResponse, error) {
 	result, err := d.cli.ContainerInspect(ctx, containerID, client.ContainerInspectOptions{})
 	return result.Container, err
+}
+
+// the store type-asserts for it, so a changed signature would silently turn sizes off
+var _ container.SizeReader = (*Client)(nil)
+
+// ContainerSizes lists every container with its writable layer measured. The
+// daemon walks each layer to answer, so this is for the one batch at startup.
+func (d *Client) ContainerSizes(ctx context.Context) (map[string]int64, error) {
+	list, err := d.cli.ContainerList(ctx, client.ContainerListOptions{All: true, Size: true})
+	if err != nil {
+		return nil, err
+	}
+	sizes := make(map[string]int64, len(list.Items))
+	for _, c := range list.Items {
+		// keyed like the store, by the short ID
+		sizes[c.ID[:12]] = c.SizeRw
+	}
+	return sizes, nil
+}
+
+// ContainerSize measures one container's writable layer.
+func (d *Client) ContainerSize(ctx context.Context, id string) (int64, error) {
+	result, err := d.cli.ContainerInspect(ctx, id, client.ContainerInspectOptions{Size: true})
+	if err != nil {
+		return 0, err
+	}
+	if result.Container.SizeRw == nil {
+		return 0, fmt.Errorf("daemon did not report a size for %s", id)
+	}
+	return *result.Container.SizeRw, nil
+}
+
+// DiskUsage measures every volume, the same walk as `docker system df -v`, and
+// matches them to the containers that mount them. The match comes from a plain
+// list, since a stopped container that was never inspected has no mounts in the store.
+// Images and build cache ride along: their sizes are stored, so they add no walk.
+// Containers are left out, since that would walk every layer again.
+func (d *Client) DiskUsage(ctx context.Context) (container.DiskUsage, error) {
+	du, err := d.cli.DiskUsage(ctx, client.DiskUsageOptions{Volumes: true, Images: true, BuildCache: true, Verbose: true})
+	if err != nil {
+		return container.DiskUsage{}, err
+	}
+	reclaimable := container.Reclaimable{
+		Images:         du.Images.TotalCount - du.Images.ActiveCount,
+		ImagesSize:     du.Images.Reclaimable,
+		BuildCacheSize: du.BuildCache.Reclaimable,
+	}
+	byName := make(map[string]container.VolumeUsage, len(du.Volumes.Items))
+	for _, v := range du.Volumes.Items {
+		// -1 is a driver that cannot say, such as most volume plugins
+		if v.UsageData == nil || v.UsageData.Size < 0 {
+			continue
+		}
+		byName[v.Name] = container.VolumeUsage{Name: v.Name, Size: v.UsageData.Size, Links: v.UsageData.RefCount}
+		if v.UsageData.RefCount == 0 {
+			reclaimable.Volumes++
+			reclaimable.VolumesSize += v.UsageData.Size
+		}
+	}
+
+	list, err := d.cli.ContainerList(ctx, client.ContainerListOptions{All: true})
+	if err != nil {
+		return container.DiskUsage{}, err
+	}
+	volumes := make(map[string][]container.VolumeUsage)
+	for _, c := range list.Items {
+		for _, m := range c.Mounts {
+			v, ok := byName[m.Name]
+			if m.Type != mount.TypeVolume || !ok {
+				continue
+			}
+			v.Destination = m.Destination
+			volumes[c.ID[:12]] = append(volumes[c.ID[:12]], v)
+		}
+	}
+	return container.DiskUsage{Volumes: volumes, Reclaimable: reclaimable}, nil
 }
 
 func (d *Client) ContainerRemove(ctx context.Context, containerID string) error {
@@ -320,7 +413,7 @@ func (d *Client) ContainerCreate(ctx context.Context, inspectResp docker.Inspect
 		log.Warn().Err(err).Str("image", inspectResp.Image).Msg("could not inspect the old image, keeping its settings on the replacement")
 	}
 
-	resp, err := d.cli.ContainerCreate(ctx, selfupdate.ReplacementSpec(inspectResp, oldImage, name))
+	resp, err := d.cli.ContainerCreate(ctx, swap.ReplacementSpec(inspectResp, oldImage, name))
 	if err != nil {
 		return "", err
 	}
@@ -482,7 +575,7 @@ func (d *Client) ContainerEvents(ctx context.Context, messages chan<- container.
 				select {
 				case messages <- container.ContainerEvent{
 					ActorID:         message.Actor.ID[:12],
-					Name:            string(message.Action),
+					Name:            d.healthAction(ctx, string(message.Action), message.Actor.ID),
 					Host:            d.host.ID,
 					ActorAttributes: message.Actor.Attributes,
 					Time:            time.Now(),

@@ -44,6 +44,11 @@ func containerToProto(c container.Container) pb.Container {
 		})
 	}
 
+	var pbVolumes []*pb.VolumeUsage
+	for _, v := range c.Volumes {
+		pbVolumes = append(pbVolumes, &pb.VolumeUsage{Name: v.Name, Destination: v.Destination, Size: v.Size, Links: v.Links})
+	}
+
 	return pb.Container{
 		Id:            c.ID,
 		Name:          c.Name,
@@ -71,6 +76,8 @@ func containerToProto(c container.Container) pb.Container {
 		RestartCount:  int32(c.RestartCount),
 		OomKilled:     c.OOMKilled,
 		ExitCode:      int32(c.ExitCode),
+		SizeRw:        c.SizeRw,
+		Volumes:       pbVolumes,
 	}
 }
 
@@ -124,6 +131,11 @@ func containerFromProto(c *pb.Container) container.Container {
 		}
 	}
 
+	var volumes []container.VolumeUsage
+	for _, v := range c.Volumes {
+		volumes = append(volumes, container.VolumeUsage{Name: v.Name, Destination: v.Destination, Size: v.Size, Links: v.Links})
+	}
+
 	return container.Container{
 		ID:            c.Id,
 		Name:          c.Name,
@@ -151,6 +163,8 @@ func containerFromProto(c *pb.Container) container.Container {
 		RestartCount:  int(c.RestartCount),
 		OOMKilled:     c.OomKilled,
 		ExitCode:      int(c.ExitCode),
+		SizeRw:        c.SizeRw,
+		Volumes:       volumes,
 	}
 }
 
@@ -163,6 +177,14 @@ func setHostMetricsProto(dst *pb.Host, h container.Host) {
 	dst.DiskTotal, dst.DiskFree = h.DiskTotal, h.DiskFree
 	for _, d := range h.Disks {
 		dst.Disks = append(dst.Disks, &pb.Disk{Name: d.Name, Total: d.Total, Free: d.Free})
+	}
+	if r := h.Reclaimable; r != nil {
+		dst.Reclaimable = &pb.Reclaimable{
+			Images: r.Images, ImagesSize: r.ImagesSize,
+			Volumes: r.Volumes, VolumesSize: r.VolumesSize,
+			Containers: r.Containers, ContainersSize: r.ContainersSize,
+			BuildCacheSize: r.BuildCacheSize,
+		}
 	}
 }
 
@@ -180,5 +202,53 @@ func hostMetricsFromProto(src *pb.Host) (container.HostMetrics, bool) {
 	for _, d := range src.GetDisks() {
 		m.Disks = append(m.Disks, container.Disk{Name: d.GetName(), Total: d.GetTotal(), Free: d.GetFree()})
 	}
+	if r := src.GetReclaimable(); r != nil {
+		m.Reclaimable = &container.Reclaimable{
+			Images: r.GetImages(), ImagesSize: r.GetImagesSize(),
+			Volumes: r.GetVolumes(), VolumesSize: r.GetVolumesSize(),
+			Containers: r.GetContainers(), ContainersSize: r.GetContainersSize(),
+			BuildCacheSize: r.GetBuildCacheSize(),
+		}
+	}
 	return m, src.GetMetricsAvailable()
+}
+
+func updateResultToProto(r *container.UpdateResult) *pb.UpdateResult {
+	if r == nil {
+		return nil
+	}
+	out := &pb.UpdateResult{
+		OldId:       r.OldID,
+		NewId:       r.NewID,
+		FromImageId: r.FromImageID,
+		ToImageId:   r.ToImageID,
+		FromDigest:  r.FromDigest,
+		ToDigest:    r.ToDigest,
+		RolledBack:  r.RolledBack,
+	}
+	// A zero time is left unset, so it reads back as zero rather than as the
+	// Unix epoch.
+	if !r.OldStartedAt.IsZero() {
+		out.OldStartedAt = timestamppb.New(r.OldStartedAt)
+	}
+	return out
+}
+
+func updateResultFromProto(r *pb.UpdateResult) *container.UpdateResult {
+	if r == nil {
+		return nil
+	}
+	out := &container.UpdateResult{
+		OldID:       r.GetOldId(),
+		NewID:       r.GetNewId(),
+		FromImageID: r.GetFromImageId(),
+		ToImageID:   r.GetToImageId(),
+		FromDigest:  r.GetFromDigest(),
+		ToDigest:    r.GetToDigest(),
+		RolledBack:  r.GetRolledBack(),
+	}
+	if t := r.GetOldStartedAt(); t != nil {
+		out.OldStartedAt = t.AsTime()
+	}
+	return out
 }

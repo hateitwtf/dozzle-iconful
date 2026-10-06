@@ -19,14 +19,16 @@ toolbar:
   update-service: Servisi Güncelle
   update-pulling: En son imaj indiriliyor...
   update-recreating: Konteyner yeniden oluşturuluyor...
+  update-verifying: Yeni konteynerin çalışmaya devam ettiği kontrol ediliyor...
+  update-rolled-back: Yeni konteyner çalışmaya devam etmedi, bu yüzden önceki geri yüklendi.
   update-done: Konteyner başarıyla güncellendi
   update-up-to-date: Zaten güncel
-  update-available: 'Güncelleme mevcut'
-  check-for-updates: 'Güncellemeleri denetle'
-  checking-for-updates: 'Güncellemeler denetleniyor...'
-  no-updates: 'Güncelleme yok'
-  dismiss-update: 'Bu güncellemeyi yoksay'
-  view-release-notes: 'Sürüm notlarını görüntüle'
+  update-available: "Güncelleme mevcut"
+  check-for-updates: "Güncellemeleri denetle"
+  checking-for-updates: "Güncellemeler denetleniyor..."
+  no-updates: "Güncelleme yok"
+  dismiss-update: "Bu güncellemeyi yoksay"
+  view-release-notes: "Sürüm notlarını görüntüle"
   show-hostname: Sunucu adını göster
   show-container-name: Konteyner adını göster
   shell: Kabuk
@@ -112,6 +114,11 @@ label:
   cpu: CPU
   core: Çekirdek yok | 1 çekirdek | {count} çekirdek
   disk: Disk
+  reclaimable: Geri kazanılabilir
+  unused-images: "Kullanılmayan imajlar"
+  unused-volumes: "Kullanılmayan birimler"
+  stopped-containers: "Durdurulmuş konteynerler"
+  build-cache: "Derleme önbelleği"
   load: Yük
   uptime: Çalışma süresi
   mem: MEM
@@ -154,6 +161,9 @@ tooltip:
   disk-io: "Disk: ↑ {write}/sn · ↓ {read}/sn"
   cpu-usage: "CPU {cpu}% / {cores} çekirdek"
   memory-usage: "Bellek {used} / {total}"
+  disk-layer: "Yazılabilir katman: {size}"
+  disk-volume-shared: "{name}: {size} ({count} konteyner tarafından paylaşılıyor)"
+  reclaimable-source: "{command} komutunun gösterdiği toplamla aynı."
   volumes: Birimler
   volume-unreachable: bu sunucudan erişilemiyor
   volume-full: "{destination} {pct} dolu"
@@ -190,6 +200,7 @@ error:
   unable-to-complete-action: İşlem tamamlanamadı
   invalid-action: Geçersiz işlem
   unable-to-update: Konteyner güncellenemedi
+  start-container-first: Önce konteyneri başlatın
   something-went-wrong: Bir şeyler ters gitti
   unknown-error: Bilinmeyen hata
   events-stream:
@@ -204,8 +215,8 @@ error:
       bağlantısını kontrol edin ve tekrar deneyin.
 alert:
   image-update:
-    title: 'Güncelleme mevcut'
-    message: '{image} için daha yeni bir imaj yayımlandı.'
+    title: "Güncelleme mevcut"
+    message: "{image} için daha yeni bir imaj yayımlandı."
     enable-actions: 'Buradan indirip yeniden oluşturmak için <a href="https://dozzle.dev/guide/actions" target="_blank" rel="noreferrer noopener">eylemleri etkinleştirin</a>.'
   redirected:
     title: Yeni konteynere yönlendirildi
@@ -242,47 +253,60 @@ placeholder:
   search: Ara
 settings:
   subtitle: Bu tarayıcı için tercihler. Değişiklikler otomatik olarak kaydedilir.
+  subtitle-server: "Bu Dozzle'ın ayarları, onu kullanan herkes için ortaktır."
   appearance: Görünüm
   logs: Loglar
   sidebar: Kenar çubuğu
   behavior: Davranış
   advanced: Gelişmiş
-  setup: "Kurulum"
   about: Hakkında
+  general: Genel
+  updates: Güncellemeler
+  security: "Güvenlik"
+  hosts: "Sunucular"
+  login-desc: "Dozzle'ı kimin açabileceği. Giriş olmadan ona ulaşan herkes loglarınızı okuyabilir."
+  login-off: "Giriş yok"
+  login-docs: "Kimlik doğrulama rehberi"
+  set-by-flags: "Bu modda bayraklar veya ortam değişkenleriyle ayarlanır."
+  hosts-found: "Bu modda Dozzle bu sunucuları kendisi bulur."
+  after-restart: "Yeniden başlatmadan sonra"
+  restart-pending: "1 değişiklik yeniden başlatmadan sonra geçerli olur | {count} değişiklik yeniden başlatmadan sonra geçerli olur"
+  run-setup: "Kurulumu yeniden çalıştır"
+  run-setup-desc: "Giriş, eylemler, sunucular, Dozzle Cloud ve güncellemeler üzerinden adım adım geçiş. İçindeki her şey Ayarlar'da da var."
   reset: Varsayılanlara sıfırla
   sponsor: Sponsor ol
   new-version: "{version} mevcut"
   update-available: "Daha yeni bir imaj mevcut"
   auto-update-on: "Dozzle kendini güncel tutar"
-  auto-update-containers: "Etiketli container'lar güncel kalır"
-  auto-update-daily: "Her gün {time} saatinde kontrol eder (sunucu saati)."
-  auto-update-weekly: "Her hafta pazar günü {time} saatinde kontrol eder (sunucu saati)."
-  show-image-update-alert: 'İmaj güncelleme uyarıları'
-  show-image-update-alert-desc: 'Çalışan bir imajın daha yeni bir etiketi olduğunda bildir.'
+  show-image-update-alert: "İmaj güncelleme uyarıları"
+  show-image-update-alert-desc: "Çalışan bir imajın daha yeni bir etiketi olduğunda bildir."
   cloud-desc: AI destekli incelemeler ve örnekler arasında arama için logları Dozzle Cloud'a aktarın.
   locale: Dil
   small-scrollbars: İnce kaydırma çubukları
-  small-scrollbars-desc: 'Daha ince kaydırma çubukları, küçük ekranlarda kullanışlıdır.'
+  small-scrollbars-desc: "Daha ince kaydırma çubukları, küçük ekranlarda kullanışlıdır."
   show-timestamps: Zaman damgalarını göster
+  show-timestamps-desc: "Her satırın ne zaman yazıldığını gösterir."
   soft-wrap: Satır kaydırma
+  soft-wrap-desc: "Yana kaydırmak yerine uzun satırları kaydırır."
   highlight-errors: Hata satırlarını vurgula
-  highlight-errors-desc: 'Renkli seviye işareti her zaman gösterilir.'
-  datetime-format: Tarih ve saat
+  highlight-errors-desc: "Renkli seviye işareti her zaman gösterilir."
+  date-format: "Tarih biçimi"
+  time-format: "Saat biçimi"
   font-size: Yazı boyutu
   color-scheme: Tema
   show-stopped-containers: Durdurulan konteynerleri göster
   group-containers: Konteynerleri grupla
-  group-containers-desc: 'Compose projesi, Swarm yığını veya dev.dozzle.group ile.'
-  show-app-icons: 'Uygulama simgeleri'
-  show-app-icons-desc: 'Dozzle ile birlikte gelir, asla internetten indirilmez.'
+  group-containers-desc: "Compose projesi, Swarm yığını veya dev.dozzle.group ile."
+  show-app-icons: "Uygulama simgeleri"
+  show-app-icons-desc: "Dozzle ile birlikte gelir, asla internetten indirilmez."
   search: Loglarda ara
-  search-desc: 'Bir konteyner görüntülenirken tarayıcının bulma özelliğinin yerini alır.'
+  search-desc: "Bir konteyner görüntülenirken tarayıcının bulma özelliğinin yerini alır."
   show-std: stdout ve stderr etiketlerini göster
-  show-std-desc: 'Satırın stdout''tan mı stderr''den mi geldiğini gösterir.'
+  show-std-desc: "Satırın stdout'tan mı stderr'den mi geldiğini gösterir."
   automatic-redirect: Yeniden oluşturulan konteynerleri takip et
-  automatic-redirect-desc: 'Bir konteyner değiştirildiğinde yenisine geç.'
+  automatic-redirect-desc: "Bir konteyner değiştirildiğinde yenisine geç."
   compact: Kompakt mod
-  compact-desc: 'Ekrana daha fazla satır sığması için daha sıkı aralık.'
+  compact-desc: "Ekrana daha fazla satır sığması için daha sıkı aralık."
   size:
     small: Küçük
     medium: Orta
@@ -297,12 +321,12 @@ settings:
     none: Hiçbiri
   grouping:
     always: Her zaman
-    at-least-2: En az 2
+    at-least-2: "2 veya daha fazla grup"
     never: Asla
   hour:
     auto: Otomatik
-    12: "12"
-    24: "24"
+    "12": "12 saat"
+    "24": "24 saat"
   log:
     preview: Bu, logların bir önizlemesidir
     warning: Bir uyarı logu böyle görünür
@@ -374,7 +398,9 @@ updates:
     queued: Sırada
     pulling: İndiriliyor
     recreating: Yeniden oluşturuluyor
+    verifying: Doğrulanıyor
     done: Güncellendi
+    rolled-back: Geri alındı
     up-to-date: Güncel
     error: Başarısız
 drawer:
@@ -826,12 +852,6 @@ setup:
   finish-later: Daha sonra bitir
   close: Kapat
   copy: Kopyala
-  settings-title: Dozzle kurulumu
-  settings-desc: "Giriş, konteyner işlemleri, kabuk, diğer sunucular ve Dozzle Cloud birkaç adımda."
-  settings-done-title: "Dozzle kuruldu"
-  settings-done-desc: "Giriş açık. Konteyner işlemlerini, kabuğu, diğer sunucuları ve Dozzle Cloud'u gözden geçirmek için kurulumu açın."
-  settings-closed-title: "Kurulum kapandı"
-  settings-closed-desc: "Giriş olmadan kurulum, yalnızca yeni bir kurulumun ilk 15 dakikasında değişiklik kabul eder. Bunun yerine ortam değişkenlerini kullanın."
   steps:
     login: Giriş
     login-note: Önce bunu yapın
@@ -887,6 +907,7 @@ setup:
     shell-warning: Bir konteynerin kabuğuna erişim çoğu zaman sunucuya erişim kadar güçlüdür. İhtiyacınız yoksa kapalı bırakın.
     locked: "{env} ile ayarlandı"
     window-closed: "Giriş olmadan kurulum, yeni bir kurulumun yalnızca ilk 15 dakikasında değişiklik kabul eder. Bunları ortam değişkenleriyle ayarlayın veya önce girişi açın."
+    window-closed-env: "Giriş olmadan kurulum, yeni bir kurulumun yalnızca ilk 15 dakikasında değişiklik kabul eder. Compose dosyanızda {envs} ayarlayın veya önce girişi açın."
     no-access: Hesabınız bu ayarları değiştiremez.
     restart-note: Bunlar Dozzle yeniden başladıktan sonra geçerli olur.
   hosts:
@@ -940,11 +961,10 @@ setup:
   update:
     pill-on: "Eylemleri kullanır · açık"
     pill-pending: "Eylemlerle birlikte açılır"
-    title: "Dozzle'ı güncel tutun"
-    subtitle: "Dozzle sakin bir saatte yeni imajı çeker ve kendi konteynerini değiştirir. Ayarlar, kullanıcılar ve uyarılar korunur."
+    title: "Konteynerleri güncel tutun"
+    subtitle: "Sakin bir saatte Dozzle daha yeni imajları arar, kendini ve seçtiğiniz konteynerleri günceller. Ayarlar, kullanıcılar ve uyarılar korunur."
     auto-label: "Otomatik güncelle"
-    auto-desc: "Daha yeni bir imaj olup olmadığını kontrol eder ve yalnızca varsa Dozzle'ı değiştirir."
-    auto-containers: "{label} etiketli container'lar da aynı saatte güncellenir."
+    auto-desc: "Daha yeni imajlar olup olmadığını kontrol eder ve varsa Dozzle'ı ve aşağıdaki konteynerleri günceller."
     when-label: "Ne zaman"
     time-label: "Saat"
     server-time: "Sunucunun saat dilimini kullanır."
@@ -960,7 +980,6 @@ setup:
     reason-pinned-tag: "Sabitlenmiş bir sürüm etiketi kullanıyorsunuz, bu yüzden çekilecek daha yeni bir şey yok. Güncelleme almak için latest gibi bir etiket kullanın."
     reason-unsupported: "Dozzle burada kendi konteynerini bulamıyor, bu yüzden kendini değiştiremez."
     reason-swarm-worker: "Dozzle bir worker düğümünde Swarm servisi olarak çalışıyor. Servisi yalnızca bir manager güncelleyebilir; Dozzle'ı bir manager üzerinde çalıştırın veya docker service update ile güncelleyin."
-    containers-still: "{label} etiketli container'lar yine de bu zamanlamaya göre güncellenir."
     pull-denied: "{image} çekilemedi. Yalnızca bu makinede bulunuyor olabilir ya da kayıt defteri docker login gerektiriyor."
   restart:
     title: Dozzle'ı yeniden başlat
@@ -1042,3 +1061,50 @@ time-range:
   jump-before: "Önceki satırlar · {time}"
   jump-after: "Sonraki satırlar · {time}"
   empty-window: "Bu pencerede log yok"
+update-marker:
+  updated: "Güncellendi"
+  rolled-back: "Geri alındı"
+  undone: "Güncelleme geri alındı"
+  roll-back: "Geri al"
+  by:
+    schedule: "otomatik güncelleme zamanlamasıyla"
+    dozzle: "Dozzle'dan"
+    cloud: "Dozzle Cloud'dan"
+  verdict:
+    pending: "Dozzle Cloud bu güncellemeyi izliyor"
+    clean: "Sorunsuz görünüyor"
+    regressed: "Bozuk görünüyor"
+    unsure: "Bir sorun olabilir"
+    rolled_back_by_dozzle: "Dozzle önceki konteyneri geri getirdi"
+  decision:
+    rolled_back: "Geri alındı"
+    kept: "Tutuldu"
+auto-update:
+  which-label: "Hangi konteynerler"
+  mode-off: "Yalnızca Dozzle"
+  mode-off-desc: "Diğer konteynerler kontrol edilir ve sizin güncellemenizi bekler."
+  mode-all: "Hepsi"
+  risky: "{count} konteyner verilerini adlandırılmış bir birimde tutuyor. Bir veritabanı, verilerini okuyamayan bir sürüme geçebilir. | {count} konteyner verilerini adlandırılmış birimlerde tutuyor. Bir veritabanı, verilerini okuyamayan bir sürüme geçebilir."
+  containers-still: "Diğer konteynerler bu zamanlamayla güncellenmeye devam eder."
+  needs-actions: "Konteyner eylemleri kapalıyken hiçbir şey kendiliğinden güncellenmez."
+  containers: "Konteynerler"
+  status-current: "Güncel"
+  status-available: "Güncelleme var"
+  status-pending: "Henüz kontrol edilmedi"
+  status-off: "Kontrol edilmiyor"
+  status-pinned: "Bir digest'e sabitlenmiş"
+  status-local: "Yerelde derlenmiş"
+  status-private: "Özel kayıt defteri"
+  status-unknown: "Kontrol edilemiyor"
+  safety-title: "Güvenlik ağı"
+  safety-verify: "Her güncelleme izlenir ve yeni konteyner başarısız olursa geri alınır."
+  safety-cleanup: "Eski imaj sonra kaldırılır. Geri almak için bir önceki imaj saklanır."
+  safety-skip: "Bir digest'e sabitlenmiş, yerelde derlenmiş ya da özel kayıt defterinden gelen imajlar atlanır."
+  learn-more: "Otomatik güncelleme nasıl çalışır"
+  footnote: "{link} hangi konteynerlerin kendiliğinden güncelleneceğini belirler."
+  footnote-link: "Ayarlar → Güncellemeler"
+  mode-labelled: "Etiketli konteynerler"
+  mode-labelled-desc: "Ayrıca {label} etiketli konteynerler."
+  mode-all-desc: "{label} etiketli olanlar dışında her konteyner."
+  risky-hint: "Bir konteyneri dışarıda tutmak için ona {label} etiketini ekleyin."
+  empty: "Hiçbir konteyner kendi kendine güncellenmiyor. Eklemek için bir konteynere {label} etiketini ekleyin."
