@@ -14,9 +14,10 @@
          to announce, since there is nothing here to pull it with. -->
     <SetupSelfUpdateStatus v-if="status && running?.supported" :status="status" :auto-update="running" />
 
-    <!-- With actions off, the notice above is the one thing to fix, so the form stays quiet. -->
-    <SetupAutoUpdateForm v-if="status" :status="status" :notices="status.enableActions" autosave />
-    <SetupStatusMissing v-else :loading="loading" />
+    <!-- With actions off nothing updates on its own, so there is nothing to choose: the
+         notice above is the one thing on the page. -->
+    <SetupAutoUpdateForm v-if="status?.enableActions" :status="status" autosave />
+    <SetupStatusMissing v-else-if="!status" :loading="loading" />
   </SettingsSection>
 
   <!-- With the schedule off, or actions off, nothing updates on its own, whatever the
@@ -56,7 +57,13 @@
       <p v-if="!rows.length && mode === 'off'" class="text-base-content/60 p-4 text-sm">
         {{ $t("auto-update.mode-off-desc") }}
       </p>
-      <i18n-t v-else-if="!rows.length" keypath="auto-update.empty" tag="p" class="text-base-content/60 p-4 text-sm">
+      <i18n-t
+        scope="global"
+        v-else-if="!rows.length"
+        keypath="auto-update.empty"
+        tag="p"
+        class="text-base-content/60 p-4 text-sm"
+      >
         <template #label>
           <code class="font-mono">{{ UPDATE_LABEL }}=auto</code>
         </template>
@@ -73,7 +80,7 @@
       </li>
       <li>
         <a
-          href="https://dozzle.dev/guide/actions#auto-updating-containers"
+          href="https://dozzle.dev/guide/updates#auto-updating-containers"
           target="_blank"
           rel="noopener"
           class="hover:text-base-content inline-flex items-center gap-2 transition-colors"

@@ -33,6 +33,7 @@ toolbar:
   show-container-name: 컨테이너 이름 보기
   shell: 셸
   attach: 연결
+  inspect: "검사"
   copy-permalink: 영구 링크 복사
   copy-image: "이미지 태그 복사"
   pin: "고정"
@@ -72,6 +73,13 @@ log-details:
   chart-field: "SQL 분석에서 {field} 차트 보기"
   toggle-all: 모든 필드 토글
   toggle-field: 로그 스트림에서 표시 또는 숨기기
+  memory-title: "이 컨테이너에서 새로 발생"
+  memory-explain: "Dozzle Cloud가 이 컨테이너에서 이 패턴을 본 적이 없습니다. 숫자, ID, 주소만 다른 줄은 하나의 패턴으로 계산됩니다."
+  memory-pattern: "패턴"
+  memory-first-seen: "처음 발견"
+  memory-first-seen-now: "이 줄에서"
+  memory-last-hour: "지난 1시간"
+  memory-lines: "줄 없음 | 1줄 | {count}줄"
 label:
   hide-sidebar: "사이드바 숨기기"
   show-sidebar: "사이드바 표시"
@@ -807,6 +815,7 @@ cloud-search:
   open-container: "컨테이너 열기"
   search-logs-shortcut: "로그 검색"
   cloud-connected: "Cloud 연결됨"
+  cloud-error: "Cloud 연결 오류"
   results-page-title: "로그 검색"
   no-results: "일치하는 로그 라인이 없습니다."
   search-failed: "Cloud 검색 실패."
@@ -1107,3 +1116,26 @@ auto-update:
   mode-all-desc: "{label} 라벨이 있는 컨테이너를 제외한 모든 컨테이너."
   risky-hint: "제외하려면 컨테이너에 {label} 라벨을 붙이세요."
   empty: "스스로 업데이트되는 컨테이너가 없습니다. 추가하려면 컨테이너에 {label} 라벨을 붙이세요."
+inspect:
+  overview: "개요"
+  ports: "포트"
+  mounts: "마운트"
+  env: "환경 변수"
+  labels: "라벨"
+  id: "ID"
+  command: "명령"
+  created: "생성됨"
+  started: "시작됨"
+  finished: "종료됨"
+  restart-policy: "재시작 정책"
+  network: "네트워크"
+  memory-limit: "메모리 제한"
+  cpu-limit: "CPU 제한"
+  unlimited: "제한 없음"
+  oom-killed: "OOM으로 종료됨"
+  exit-code: "종료 코드 {code}"
+  restarts: "재시작: {count}"
+  show-value: "값 보기"
+  hide-value: "값 숨기기"
+  env-hidden: "값이 숨겨져 있습니다. 보려면 셸 권한이 필요합니다."
+  load-failed: "컨테이너 정보를 불러오지 못했습니다."

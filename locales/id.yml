@@ -33,6 +33,7 @@ toolbar:
   show-container-name: Tampilkan nama kontainer
   shell: Shell
   attach: Lampirkan
+  inspect: "Inspeksi"
   copy-permalink: Salin tautan permanen
   copy-image: "Salin tag image"
   pin: "Sematkan"
@@ -73,6 +74,13 @@ log-details:
   chart-field: "Buat grafik {field} di Analitik SQL"
   toggle-all: Alihkan semua bidang
   toggle-field: Tampilkan atau sembunyikan di aliran log
+  memory-title: "Baru untuk kontainer ini"
+  memory-explain: "Dozzle Cloud belum pernah melihat pola ini di kontainer ini. Baris yang hanya berbeda pada angka, ID, atau alamat dihitung sebagai satu pola."
+  memory-pattern: "Pola"
+  memory-first-seen: "Pertama terlihat"
+  memory-first-seen-now: "Dengan baris ini"
+  memory-last-hour: "Satu jam terakhir"
+  memory-lines: "Tidak ada baris | 1 baris | {count} baris"
 label:
   hide-sidebar: "Sembunyikan bilah sisi"
   show-sidebar: "Tampilkan bilah sisi"
@@ -817,6 +825,7 @@ cloud-search:
   open-container: "buka kontainer"
   search-logs-shortcut: "cari log"
   cloud-connected: "Cloud terhubung"
+  cloud-error: "Kesalahan koneksi Cloud"
   results-page-title: "Pencarian log"
   no-results: "Tidak ada baris log yang cocok."
   search-failed: "Pencarian Cloud gagal."
@@ -1117,3 +1126,26 @@ auto-update:
   mode-all-desc: "Setiap kontainer, kecuali yang berlabel {label}."
   risky-hint: "Beri label {label} pada kontainer untuk mengecualikannya."
   empty: "Tidak ada kontainer yang diperbarui sendiri. Beri label {label} pada kontainer untuk menambahkannya."
+inspect:
+  overview: "Ringkasan"
+  ports: "Port"
+  mounts: "Mount"
+  env: "Lingkungan"
+  labels: "Label"
+  id: "ID"
+  command: "Perintah"
+  created: "Dibuat"
+  started: "Dimulai"
+  finished: "Selesai"
+  restart-policy: "Kebijakan restart"
+  network: "Jaringan"
+  memory-limit: "Batas memori"
+  cpu-limit: "Batas CPU"
+  unlimited: "Tanpa batas"
+  oom-killed: "Dihentikan OOM"
+  exit-code: "Keluar {code}"
+  restarts: "Restart: {count}"
+  show-value: "Tampilkan nilai"
+  hide-value: "Sembunyikan nilai"
+  env-hidden: "Nilai disembunyikan. Membacanya memerlukan akses shell."
+  load-failed: "Gagal memuat detail kontainer."

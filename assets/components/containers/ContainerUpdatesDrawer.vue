@@ -94,12 +94,12 @@
       <p class="text-base-content/40 text-xs">
         <!-- In server mode Settings → Updates holds the whole answer; elsewhere only the
              label does. -->
-        <i18n-t v-if="config.mode === 'server'" keypath="auto-update.footnote">
+        <i18n-t scope="global" v-if="config.mode === 'server'" keypath="auto-update.footnote">
           <template #link>
             <router-link to="/settings/updates" class="link">{{ $t("auto-update.footnote-link") }}</router-link>
           </template>
         </i18n-t>
-        <i18n-t v-else keypath="updates.auto-footnote">
+        <i18n-t scope="global" v-else keypath="updates.auto-footnote">
           <template #label>
             <code class="font-mono">{{ UPDATE_LABEL }}=auto</code>
           </template>
@@ -108,7 +108,7 @@
     </div>
 
     <div
-      class="bg-base-100 border-base-content/10 sticky bottom-0 z-10 -mx-4 mt-auto flex flex-wrap items-center gap-2 border-t p-4"
+      class="bg-base-100 border-base-content/10 sticky -bottom-6 z-10 -mx-6 mt-auto -mb-6 flex flex-wrap items-center gap-2 border-t px-10 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
     >
       <span v-if="!showingJob && selfSelected" class="text-base-content/60 mr-auto text-xs">
         {{ $t("updates.self-last") }}

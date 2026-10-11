@@ -124,6 +124,32 @@ describe("SetupAutoUpdateForm", () => {
     expect(wrapper.findAll("input[type=radio]")).toHaveLength(3);
   });
 
+  test("a schedule pinned only by its time names the time variable and its flag", () => {
+    const s = status({
+      locked: { authProvider: false, enableActions: false, enableShell: false, autoUpdate: true, autoUpdateTime: true },
+    });
+    s.autoUpdate = { ...s.autoUpdate!, zone: "UTC" };
+    const named = createI18n({
+      legacy: false,
+      locale: "en",
+      missingWarn: false,
+      fallbackWarn: false,
+      messages: { en: { setup: { actions: { locked: "Set by {env}" } } } },
+    });
+    const wrapper = mount(SetupAutoUpdateForm, { props: { status: s }, global: { plugins: [named] } });
+    expect(wrapper.text()).toContain("Set by DOZZLE_AUTO_UPDATE_TIME / --auto-update-time");
+    expect(wrapper.text()).toContain("UTC");
+  });
+
+  test("a Dozzle that can't replace itself still says why the schedule is read-only", () => {
+    const s = status({ canWrite: false, authProvider: "simple" });
+    s.autoUpdate = { ...s.autoUpdate!, supported: false, reason: "no-container" };
+    const wrapper = mountForm(s);
+    expect(wrapper.text()).toContain("setup.update.reason-unsupported");
+    expect(wrapper.text()).toContain("setup.actions.no-access");
+    expect(wrapper.find("input").exists()).toBe(false);
+  });
+
   test("which containers pinned by DOZZLE_UPDATE_CONTAINERS is read-only text and says so", () => {
     const s = status({
       locked: { authProvider: false, enableActions: false, enableShell: false, updateContainers: true },
@@ -132,6 +158,13 @@ describe("SetupAutoUpdateForm", () => {
     expect(wrapper.find("input[type=radio]").exists()).toBe(false);
     expect(wrapper.text()).toContain("auto-update.mode-labelled");
     expect(wrapper.find("input[type=checkbox]").exists()).toBe(true);
+  });
+
+  test("without a login the schedule stays editable after the window closes", () => {
+    const wrapper = mountForm(status({ canWrite: false, canWriteUpdates: true, authProvider: "none" }));
+    expect(wrapper.find("input[type=checkbox]").exists()).toBe(true);
+    expect(wrapper.findAll("input[type=radio]")).toHaveLength(3);
+    expect(wrapper.text()).not.toContain("setup.actions.window-closed");
   });
 
   test("with the no-login window closed, everything is text and the notice names the env vars", () => {

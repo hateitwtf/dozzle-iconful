@@ -33,6 +33,7 @@ toolbar:
   show-container-name: Mostrar nombre del contenedor
   shell: Shell
   attach: Conectar
+  inspect: "Inspeccionar"
   copy-permalink: Copiar enlace permanente
   copy-image: "Copiar etiqueta de imagen"
   pin: "Fijar"
@@ -72,6 +73,13 @@ log-details:
   chart-field: "Graficar {field} en Análisis SQL"
   toggle-all: Alternar todos los campos
   toggle-field: Mostrar u ocultar en el flujo de registros
+  memory-title: "Nuevo en este contenedor"
+  memory-explain: "Dozzle Cloud no había visto este patrón en este contenedor. Las líneas que solo difieren en números, IDs o direcciones cuentan como un mismo patrón."
+  memory-pattern: "Patrón"
+  memory-first-seen: "Visto por primera vez"
+  memory-first-seen-now: "Con esta línea"
+  memory-last-hour: "Última hora"
+  memory-lines: "Ninguna línea | 1 línea | {count} líneas"
 label:
   hide-sidebar: "Ocultar la barra lateral"
   show-sidebar: "Mostrar la barra lateral"
@@ -332,6 +340,7 @@ cloud-search:
   open-container: "abrir contenedor"
   search-logs-shortcut: "buscar logs"
   cloud-connected: "Cloud conectado"
+  cloud-error: "Error de conexión con Cloud"
   results-page-title: "Búsqueda de logs"
   no-results: "No hay líneas de log coincidentes."
   search-failed: "La búsqueda en Cloud falló."
@@ -1105,3 +1114,26 @@ auto-update:
   mode-all-desc: "Todos los contenedores, salvo los que tengan la etiqueta {label}."
   risky-hint: "Ponle a uno la etiqueta {label} para dejarlo fuera."
   empty: "Ningún contenedor se actualiza solo. Ponle a uno la etiqueta {label} para añadirlo."
+inspect:
+  overview: "Resumen"
+  ports: "Puertos"
+  mounts: "Montajes"
+  env: "Entorno"
+  labels: "Etiquetas"
+  id: "ID"
+  command: "Comando"
+  created: "Creado"
+  started: "Iniciado"
+  finished: "Finalizado"
+  restart-policy: "Política de reinicio"
+  network: "Red"
+  memory-limit: "Límite de memoria"
+  cpu-limit: "Límite de CPU"
+  unlimited: "Ilimitado"
+  oom-killed: "Terminado por OOM"
+  exit-code: "Salida {code}"
+  restarts: "Reinicios: {count}"
+  show-value: "Mostrar valor"
+  hide-value: "Ocultar valor"
+  env-hidden: "Los valores están ocultos. Leerlos requiere acceso a la shell."
+  load-failed: "No se pudieron cargar los detalles del contenedor."

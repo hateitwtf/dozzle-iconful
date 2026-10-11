@@ -1,13 +1,98 @@
 package swap
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
+	"strings"
+	"time"
 
 	"github.com/amir20/dozzle/internal/container"
+	"github.com/rs/zerolog/log"
 )
+
+const (
+	// pullAttempts bounds a pull the registry keeps rate-limiting. With the
+	// backoff below the last attempt comes over two minutes after the first.
+	pullAttempts = 6
+	// minRetryAfter is the first wait, doubled on every attempt after. ghcr.io
+	// answers with a retry-after well under a millisecond, but its limit is
+	// shared by every client and counted per minute: at a busy time it keeps
+	// refusing for well over a minute, so the waits have to outlast that.
+	minRetryAfter = 5 * time.Second
+	// maxRetryAfter is the longest wait honoured, and the backoff stops growing
+	// there. A longer retry-after fails the pull rather than holding up the
+	// rest of the run.
+	maxRetryAfter = time.Minute
+)
+
+var retryAfterPattern = regexp.MustCompile(`retry-after:\s*([0-9.]+[a-zµμ]+)`)
+
+// wait sleeps for d or until ctx is done. A variable so tests need not sleep.
+var wait = func(ctx context.Context, d time.Duration) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(d):
+		return nil
+	}
+}
+
+// Pull starts a pull with start and reads it to the end like ReadPull. When
+// the registry answers toomanyrequests it waits the retry-after the error
+// gives, floored at a backoff that starts at minRetryAfter and doubles up to
+// maxRetryAfter, and pulls again, up to pullAttempts times.
+// Any other error, or a retry-after over maxRetryAfter, fails at once.
+func Pull(ctx context.Context, start func() (io.ReadCloser, error), progress func(container.UpdateProgress)) error {
+	for attempt := 1; ; attempt++ {
+		err := pullOnce(start, progress)
+		if err == nil {
+			return nil
+		}
+		delay, ok := retryAfter(err)
+		delay = max(delay, backoff(attempt))
+		if !ok || attempt == pullAttempts || delay > maxRetryAfter {
+			return err
+		}
+		log.Warn().Err(err).Int("attempt", attempt).Dur("retry_in", delay).Msg("pull rate-limited, retrying")
+		if werr := wait(ctx, delay); werr != nil {
+			return err
+		}
+	}
+}
+
+func pullOnce(start func() (io.ReadCloser, error), progress func(container.UpdateProgress)) error {
+	reader, err := start()
+	if err != nil {
+		return fmt.Errorf("pull failed: %w", err)
+	}
+	defer reader.Close()
+	return ReadPull(reader, progress)
+}
+
+// backoff is the shortest wait after the given failed attempt: minRetryAfter,
+// doubled for every attempt before it, capped at maxRetryAfter.
+func backoff(attempt int) time.Duration {
+	return min(minRetryAfter<<(attempt-1), maxRetryAfter)
+}
+
+// retryAfter reports whether err is a registry rate limit and how long to wait.
+// A rate limit without a parseable retry-after waits minRetryAfter.
+func retryAfter(err error) (time.Duration, bool) {
+	msg := err.Error()
+	if !strings.Contains(msg, "toomanyrequests") {
+		return 0, false
+	}
+	if m := retryAfterPattern.FindStringSubmatch(msg); m != nil {
+		if d, perr := time.ParseDuration(m[1]); perr == nil {
+			return max(d, minRetryAfter), true
+		}
+	}
+	return minRetryAfter, true
+}
 
 type pullMessage struct {
 	Status         string `json:"status"`

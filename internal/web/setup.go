@@ -41,7 +41,12 @@ type setupLocked struct {
 	AuthProvider  bool `json:"authProvider"`
 	EnableActions bool `json:"enableActions"`
 	EnableShell   bool `json:"enableShell"`
-	AutoUpdate    bool `json:"autoUpdate"`
+	// AutoUpdate is true when the schedule is fixed by either of its flags;
+	// AutoUpdateMode and AutoUpdateTime say which, so the page names the right
+	// one.
+	AutoUpdate     bool `json:"autoUpdate"`
+	AutoUpdateMode bool `json:"autoUpdateMode"`
+	AutoUpdateTime bool `json:"autoUpdateTime"`
 	// UpdateContainers is which containers the schedule updates.
 	UpdateContainers bool `json:"updateContainers"`
 }
@@ -62,20 +67,26 @@ type setupAutoUpdate struct {
 	// Containers is which containers the schedule updates besides Dozzle:
 	// off, labelled or all.
 	Containers updatepolicy.Mode `json:"containers"`
+	// Zone names the time zone Time is in: this process's local zone, which in
+	// a container is UTC unless TZ is set. E.g. "UTC" or "PDT".
+	Zone string `json:"zone"`
 }
 
 type setupState struct {
-	Mode            string          `json:"mode"`
-	DataPersisted   bool            `json:"dataPersisted"`
-	AuthProvider    string          `json:"authProvider"`
-	UsersFileExists bool            `json:"usersFileExists"`
-	EnableActions   bool            `json:"enableActions"`
-	EnableShell     bool            `json:"enableShell"`
-	Locked          setupLocked     `json:"locked"`
-	Pending         setupPending    `json:"pending"`
-	CanRestart      bool            `json:"canRestart"`
-	WindowOpen      bool            `json:"windowOpen"`
-	CanWrite        bool            `json:"canWrite"`
+	Mode            string       `json:"mode"`
+	DataPersisted   bool         `json:"dataPersisted"`
+	AuthProvider    string       `json:"authProvider"`
+	UsersFileExists bool         `json:"usersFileExists"`
+	EnableActions   bool         `json:"enableActions"`
+	EnableShell     bool         `json:"enableShell"`
+	Locked          setupLocked  `json:"locked"`
+	Pending         setupPending `json:"pending"`
+	CanRestart      bool         `json:"canRestart"`
+	WindowOpen      bool         `json:"windowOpen"`
+	CanWrite        bool         `json:"canWrite"`
+	// CanWriteUpdates is CanWrite for the update schedule and which containers
+	// it updates, which stay writable after the no-login window closes.
+	CanWriteUpdates bool            `json:"canWriteUpdates"`
 	AutoUpdate      setupAutoUpdate `json:"autoUpdate"`
 	Agents          []setupAgent    `json:"agents"`
 	CanAddAgents    bool            `json:"canAddAgents"`
@@ -135,6 +146,20 @@ func (h *handler) setupCanWrite(r *http.Request) bool {
 	return user != nil && user.Roles&auth.All == auth.All
 }
 
+// setupCanWriteUpdates is setupCanWrite for the auto-update settings. Without
+// a login, and with actions on, they stay writable after the window closes:
+// they only decide when Dozzle does what it may already do, and anyone
+// reaching it can already update a container by hand. With actions off that
+// is not true, and a schedule saved now would start unseen once actions are
+// turned on, so the window applies. Login, actions and shell always keep it.
+// With a login, it is the same admin rule as everything else.
+func (h *handler) setupCanWriteUpdates(r *http.Request) bool {
+	if h.config.Authorization.Provider == NONE {
+		return h.config.EnableActions || h.setupCanWrite(r)
+	}
+	return h.setupCanWrite(r)
+}
+
 func (h *handler) setupCanRestart() bool {
 	return h.config.Mode == "server" && setupSelfID() != ""
 }
@@ -180,10 +205,12 @@ func (h *handler) getSetup(w http.ResponseWriter, r *http.Request) {
 		EnableActions:   h.config.EnableActions,
 		EnableShell:     h.config.EnableShell,
 		Locked: setupLocked{
-			AuthProvider:  h.config.Setup.LockedAuthProvider,
-			EnableActions: h.config.Setup.LockedEnableActions,
-			EnableShell:   h.config.Setup.LockedEnableShell,
-			AutoUpdate:    h.config.Setup.LockedAutoUpdate,
+			AuthProvider:   h.config.Setup.LockedAuthProvider,
+			EnableActions:  h.config.Setup.LockedEnableActions,
+			EnableShell:    h.config.Setup.LockedEnableShell,
+			AutoUpdate:     h.config.Setup.LockedAutoUpdate,
+			AutoUpdateMode: h.config.Setup.AutoUpdateMode != nil,
+			AutoUpdateTime: h.config.Setup.AutoUpdateTime != nil,
 
 			UpdateContainers: h.config.Setup.UpdateContainers != nil,
 		},
@@ -191,6 +218,8 @@ func (h *handler) getSetup(w http.ResponseWriter, r *http.Request) {
 		CanRestart: h.setupCanRestart(),
 		WindowOpen: h.setupWindowOpen(),
 		CanWrite:   h.setupCanWrite(r),
+
+		CanWriteUpdates: h.setupCanWriteUpdates(r),
 		AutoUpdate: setupAutoUpdate{
 			Mode:           settings.Mode,
 			Time:           settings.Time,
@@ -199,6 +228,7 @@ func (h *handler) getSetup(w http.ResponseWriter, r *http.Request) {
 			Image:          support.Image,
 			CurrentVersion: h.config.Version,
 			Containers:     updateModeFrom(h.config.Setup, file),
+			Zone:           serverZone(time.Now()),
 		},
 		Agents:       h.setupAgents(file),
 		CanAddAgents: canAddAgents,
@@ -209,6 +239,13 @@ func (h *handler) getSetup(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(state); err != nil {
 		log.Error().Err(err).Msg("error encoding setup state")
 	}
+}
+
+// serverZone names the time zone the schedule runs in, this process's local
+// zone.
+func serverZone(now time.Time) string {
+	name, _ := now.Zone()
+	return name
 }
 
 // isJSONRequest reports whether r declares a JSON body. A cross-site form can
@@ -376,7 +413,14 @@ type setupConfigRequest struct {
 // at startup, so nothing here turns them on without a restart. The auto-update
 // schedule is the exception: the scheduler re-reads the file every minute.
 func (h *handler) updateSetupConfig(w http.ResponseWriter, r *http.Request) {
-	if !h.setupCanWrite(r) {
+	// The body decides which rule applies: only the auto-update settings may be
+	// changed outside the no-login window.
+	var req setupConfigRequest
+	if !decodeSetupBody(w, r, &req) {
+		return
+	}
+	onlyUpdates := req.EnableActions == nil && req.EnableShell == nil
+	if !h.setupCanWrite(r) && !(onlyUpdates && h.setupCanWriteUpdates(r)) {
 		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		return
 	}
@@ -385,11 +429,6 @@ func (h *handler) updateSetupConfig(w http.ResponseWriter, r *http.Request) {
 	// recreate, and the setting with it.
 	if !setupPersisted() {
 		http.Error(w, "data directory is not persisted", http.StatusPreconditionFailed)
-		return
-	}
-
-	var req setupConfigRequest
-	if !decodeSetupBody(w, r, &req) {
 		return
 	}
 	if (req.EnableActions != nil && h.config.Setup.LockedEnableActions) ||

@@ -15,6 +15,7 @@ toolbar:
   show-container-name: Prikaži ime zabojnika
   shell: Lupina
   attach: Priloži
+  inspect: "Preglej"
   copy-permalink: Kopiraj trajno povezavo
   copy-image: "Kopiraj oznako slike"
   pin: "Pripni"
@@ -72,6 +73,13 @@ log-details:
   chart-field: "Prikaži {field} v grafu v analitiki SQL"
   toggle-all: Preklopi vsa polja
   toggle-field: Prikaži ali skrij v toku dnevnikov
+  memory-title: "Novo za ta zabojnik"
+  memory-explain: "Dozzle Cloud tega vzorca na tem zabojniku še ni videl. Vrstice, ki se razlikujejo le po številkah, ID-jih ali naslovih, štejejo kot en vzorec."
+  memory-pattern: "Vzorec"
+  memory-first-seen: "Prvič viden"
+  memory-first-seen-now: "S to vrstico"
+  memory-last-hour: "Zadnja ura"
+  memory-lines: "Ni vrstic | 1 vrstica | {count} vrstic"
 label:
   hide-sidebar: "Skrij stransko vrstico"
   show-sidebar: "Prikaži stransko vrstico"
@@ -810,6 +818,7 @@ cloud-search:
   open-container: "odpri vsebnik"
   search-logs-shortcut: "išči po dnevnikih"
   cloud-connected: "Cloud povezan"
+  cloud-error: "Napaka povezave s Cloud"
   results-page-title: "Iskanje dnevnikov"
   no-results: "Ni ujemajočih se vrstic dnevnika."
   search-failed: "Iskanje v Cloudu ni uspelo."
@@ -1110,3 +1119,26 @@ auto-update:
   mode-all-desc: "Vsak vsebnik, razen tistih z oznako {label}."
   risky-hint: "Vsebniku dodajte oznako {label}, da ga izključite."
   empty: "Noben vsebnik se ne posodablja sam. Vsebniku dodajte oznako {label}, da ga vključite."
+inspect:
+  overview: "Pregled"
+  ports: "Vrata"
+  mounts: "Priklopi"
+  env: "Okolje"
+  labels: "Oznake"
+  id: "ID"
+  command: "Ukaz"
+  created: "Ustvarjeno"
+  started: "Zagnano"
+  finished: "Končano"
+  restart-policy: "Pravilo ponovnega zagona"
+  network: "Omrežje"
+  memory-limit: "Omejitev pomnilnika"
+  cpu-limit: "Omejitev CPU"
+  unlimited: "Neomejeno"
+  oom-killed: "Ustavljen zaradi OOM"
+  exit-code: "Izhod {code}"
+  restarts: "Ponovni zagoni: {count}"
+  show-value: "Pokaži vrednost"
+  hide-value: "Skrij vrednost"
+  env-hidden: "Vrednosti so skrite. Za branje je potreben dostop do lupine."
+  load-failed: "Podrobnosti vsebnika ni bilo mogoče naložiti."

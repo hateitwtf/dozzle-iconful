@@ -36,7 +36,7 @@ export const SECTIONS: Section[] = [
         items: ["container-names", "container-groups", "container-links", "app-icons", "container-disk-usage"],
       },
       { group: "hosts", items: ["agent", "remote-hosts", "hostname", "host-metrics"] },
-      { group: "control", items: ["actions", "moving-from-watchtower", "shell"] },
+      { group: "control", items: ["actions", "updates", "moving-from-watchtower", "shell"] },
       { group: "logs", items: ["sql-engine", "log-files-on-disk"] },
       { group: "tools", items: ["dtop", "mcp"] },
       "alerts-and-webhooks",
@@ -124,7 +124,7 @@ export function buildThemeConfig(base: string, t: Labels, version: string) {
       },
     ],
     editLink: {
-      pattern: "https://github.com/amir20/dozzle/edit/master/docs/:path",
+      pattern: "https://github.com/amir20/dozzle/edit/main/docs/:path",
       text: t.ui.editLink,
     },
     footer: {

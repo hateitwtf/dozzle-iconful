@@ -140,8 +140,12 @@ ul {
       background-color: color-mix(in oklab, var(--color-base-content) 2.5%, transparent);
     }
 
-    &:hover {
-      background-color: color-mix(in oklab, var(--color-base-content) 8%, transparent);
+    /* Only where a pointer can rest: a tap sticks :hover on until the next tap,
+       which left a highlighted row behind every scroll on a phone. */
+    @media (hover: hover) {
+      &:hover {
+        background-color: color-mix(in oklab, var(--color-base-content) 8%, transparent);
+      }
     }
 
     &.log-permalink-target {
@@ -160,9 +164,11 @@ ul {
       background-color: color-mix(in oklab, var(--color-red) 5%, transparent);
     }
 
-    &[data-log-level="error"]:hover,
-    &[data-log-level="fatal"]:hover {
-      background-color: color-mix(in oklab, var(--color-red) 12%, transparent);
+    @media (hover: hover) {
+      &[data-log-level="error"]:hover,
+      &[data-log-level="fatal"]:hover {
+        background-color: color-mix(in oklab, var(--color-red) 12%, transparent);
+      }
     }
   }
 
@@ -196,8 +202,11 @@ ul {
     text-indent: -1.5ch;
   }
 
+  /* An inline-block inherits the hanging indent above, which drew the match 1.5ch to the
+     left of its own highlight. */
   :deep(mark) {
     @apply bg-secondary inline-block rounded-xs;
+    text-indent: 0;
     animation: pops 200ms ease-out;
   }
 

@@ -359,7 +359,7 @@ func TestSetup_AutoUpdateStatus(t *testing.T) {
 	require.Equal(t, http.StatusOK, rr.Code)
 	var raw map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &raw))
-	assert.JSONEq(t, `{"mode":"off","time":"03:00","supported":true,"image":"amir20/dozzle:latest","currentVersion":"v8.12.0","containers":"labelled"}`, string(raw["autoUpdate"]))
+	assert.JSONEq(t, `{"mode":"off","time":"03:00","supported":true,"image":"amir20/dozzle:latest","currentVersion":"v8.12.0","containers":"labelled","zone":"`+serverZone(time.Now())+`"}`, string(raw["autoUpdate"]))
 
 	state := getSetupState(t, setupNoneHandler(time.Now(), SetupConfig{}))
 	assert.False(t, state.AutoUpdate.Supported)
@@ -410,14 +410,31 @@ func TestSetup_AutoUpdatePatch(t *testing.T) {
 	assert.Equal(t, "04:15", state.AutoUpdate.Time)
 	assert.Equal(t, setupPending{}, state.Pending, "auto update applies live")
 
-	closed := setupNoneHandler(time.Now().Add(-time.Hour), SetupConfig{})
-	assert.Equal(t, http.StatusForbidden, doSetup(closed, "PATCH", "/api/setup/config", `{"autoUpdate":{"mode":"daily","time":"04:15"}}`).Code)
+	// Without a login and with actions on, the schedule stays changeable after
+	// the window closes; actions and shell do not.
+	closed := createHandler(nil, nil, Config{Base: "/", Mode: "server", EnableActions: true, Authorization: Authorization{Provider: NONE}, Setup: SetupConfig{StartedAt: time.Now().Add(-time.Hour)}})
+	assert.Equal(t, http.StatusNoContent, doSetup(closed, "PATCH", "/api/setup/config", `{"autoUpdate":{"mode":"daily","time":"04:15"},"updateContainers":"all"}`).Code)
+	assert.Equal(t, http.StatusForbidden, doSetup(closed, "PATCH", "/api/setup/config", `{"enableActions":true}`).Code)
+	assert.Equal(t, http.StatusForbidden, doSetup(closed, "PATCH", "/api/setup/config", `{"autoUpdate":{"mode":"weekly","time":"04:15"},"enableShell":true}`).Code)
+	closedState := getSetupState(t, closed)
+	assert.False(t, closedState.CanWrite)
+	assert.True(t, closedState.CanWriteUpdates)
+
+	// With actions off a saved schedule would start unseen once actions are
+	// turned on, so the window still applies.
+	actionsOff := setupNoneHandler(time.Now().Add(-time.Hour), SetupConfig{})
+	assert.Equal(t, http.StatusForbidden, doSetup(actionsOff, "PATCH", "/api/setup/config", `{"autoUpdate":{"mode":"daily","time":"04:15"},"updateContainers":"all"}`).Code)
+	assert.False(t, getSetupState(t, actionsOff).CanWriteUpdates)
+	require.Equal(t, http.StatusNoContent, doSetup(h, "PATCH", "/api/setup/config", `{"autoUpdate":{"mode":"weekly","time":"04:15"}}`).Code)
 
 	mode := "daily"
 	locked := setupNoneHandler(time.Now(), SetupConfig{LockedAutoUpdate: true, AutoUpdateMode: &mode})
 	assert.Equal(t, http.StatusConflict, doSetup(locked, "PATCH", "/api/setup/config", `{"autoUpdate":{"mode":"off","time":"04:15"}}`).Code)
 	state = getSetupState(t, locked)
 	assert.True(t, state.Locked.AutoUpdate)
+	assert.True(t, state.Locked.AutoUpdateMode)
+	assert.False(t, state.Locked.AutoUpdateTime, "only the mode came from a flag")
+	assert.NotEmpty(t, state.AutoUpdate.Zone, "the time says which zone it is in")
 	assert.Equal(t, "daily", state.AutoUpdate.Mode, "flag wins over the file")
 	assert.Equal(t, "04:15", state.AutoUpdate.Time, "unlocked time still comes from the file")
 	assert.False(t, state.Locked.UpdateContainers)

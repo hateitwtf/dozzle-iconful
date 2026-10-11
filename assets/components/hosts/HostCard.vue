@@ -61,26 +61,16 @@
         :title="$t('label.host')"
       >
         <ph:pulse class="size-3.5 opacity-60" />
+        <!-- A mono space is a whole cell wide, so "3d 4h" read as two values; the
+             negative word-spacing pulls it back to a normal gap. -->
         <span v-if="uptimeLabel">
-          {{ $t("label.uptime") }} <span class="text-base-content/80 font-mono">{{ uptimeLabel }}</span>
+          {{ $t("label.uptime") }}
+          <span class="text-base-content/80 font-mono [word-spacing:-0.4ch]">{{ uptimeLabel }}</span>
         </span>
         <span v-if="host.metricsAvailable" :title="loadTitle">
           {{ $t("label.load") }} <span class="font-mono" :class="loadClass">{{ loadLabel }}</span>
         </span>
-        <!-- UsageMeter's track and thresholds, inline: the component is a labelled
-             block sized for a panel row, too tall for a header fact. The fill stays
-             neutral below 70% so the bar only takes color when disk needs a look. -->
-        <span v-if="diskPercent !== undefined" class="flex items-center gap-1.5" :title="diskTitle">
-          {{ $t("label.disk") }}
-          <span class="bg-base-content/10 h-1.5 w-10 overflow-hidden rounded-full">
-            <span
-              class="block h-full rounded-full transition-[width] duration-500"
-              :class="diskPercent > 90 ? 'bg-error' : diskPercent > 70 ? 'bg-warning' : 'bg-base-content/40'"
-              :style="{ width: `${Math.min(diskPercent, 100)}%` }"
-            ></span>
-          </span>
-          <span class="text-base-content/80 font-mono">{{ diskPercent }}%</span>
-        </span>
+        <HostDisks v-if="drives.length" :drives="drives" />
         <HostReclaimable v-if="host.reclaimable" :reclaimable="host.reclaimable" />
       </div>
     </div>
@@ -92,7 +82,7 @@
       class="bg-base-content/5.5 text-base-content/50 flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs"
     >
       <mdi:lan-disconnect class="size-3.5 shrink-0 opacity-60" />
-      <i18n-t keypath="label.agent-unreachable" tag="span" class="truncate">
+      <i18n-t scope="global" keypath="label.agent-unreachable" tag="span" class="truncate">
         <template #endpoint>
           <span class="font-mono">{{ host.endpoint }}</span>
         </template>
@@ -175,7 +165,8 @@
       <ph:pulse class="size-3.5 opacity-60" :title="$t('label.host')" />
       <template v-if="uptimeLabel">
         <span>
-          {{ $t("label.uptime") }} <span class="text-base-content/80 font-mono">{{ uptimeLabel }}</span>
+          {{ $t("label.uptime") }}
+          <span class="text-base-content/80 font-mono [word-spacing:-0.4ch]">{{ uptimeLabel }}</span>
         </span>
       </template>
       <template v-if="host.metricsAvailable">
@@ -299,7 +290,7 @@ const loadClass = computed(() => {
 const uptimeLabel = computed(() => (props.host.metricsAvailable ? formatUptime(props.host.uptime) : undefined));
 
 // Docker's own disk first, then any drive mounted under /host/disks. The bar shows
-// the fullest one, since that is the one that will run out; the tooltip lists all.
+// the fullest one, since that is the one that will run out; the popover lists all.
 const drives = computed(() => {
   const list = (props.host.disks ?? []).map(({ name, total, free }) => ({ name, total, used: total - free }));
   const total = props.host.diskTotal ?? 0;

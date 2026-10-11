@@ -2,14 +2,9 @@
   <!-- When and which containers: the same two questions in the setup wizard and on
        Settings → Updates. The wizard saves on Next; Settings saves as you change it. -->
   <div class="flex flex-col gap-4">
-    <template v-if="!notices" />
-    <InlineNotice v-else-if="blockedReason" type="info">
-      {{ blockedReason }}
-      <span v-if="scheduleEditable && containers !== 'off'" class="text-base-content/60 mt-1 block text-xs">
-        {{ $t("auto-update.containers-still") }}
-      </span>
-    </InlineNotice>
-    <SetupAccessNotice v-else :status="status" :envs="unlockedEnvs" />
+    <!-- Only why the form below can't be changed. That Dozzle can't replace itself is a
+         note inside the card: the schedule still runs for the other containers. -->
+    <SetupAccessNotice v-if="notices && !editable" :status="status" :envs="unlockedEnvs" />
 
     <div class="border-base-content/15 bg-base-200/40 divide-base-content/10 divide-y rounded-lg border">
       <template v-if="canEditSchedule">
@@ -51,6 +46,7 @@
             >
               <option v-for="option in times" :key="option" :value="option">{{ option }}</option>
             </select>
+            <span v-if="autoUpdate.zone" class="text-base-content/60 font-mono text-xs">{{ autoUpdate.zone }}</span>
           </span>
         </div>
       </template>
@@ -60,14 +56,14 @@
         <span class="min-w-0 flex-1">
           <span class="block text-sm font-medium">{{ $t("setup.update.auto-label") }}</span>
           <span class="text-base-content/60 mt-0.5 block text-xs">{{ $t("setup.update.auto-desc") }}</span>
-          <SetupLocked v-if="status.locked.autoUpdate" env="DOZZLE_AUTO_UPDATE" class="mt-1" />
+          <SetupLocked v-if="status.locked.autoUpdate" :env="scheduleLockedBy" class="mt-1" />
         </span>
         <span v-if="autoUpdate.mode === 'off'" class="text-base-content/60 shrink-0 text-sm">
           {{ $t("setup.restart.off") }}
         </span>
         <span v-else class="shrink-0 text-right text-sm">
           {{ $t(`setup.update.${autoUpdate.mode}`) }}
-          <span class="text-base-content/60 block font-mono text-xs">{{ autoUpdate.time }}</span>
+          <span class="text-base-content/60 block font-mono text-xs">{{ scheduleTime }}</span>
         </span>
       </div>
 
@@ -91,6 +87,7 @@
             <span class="min-w-0 flex-1">
               <span class="block text-sm">{{ $t(`auto-update.mode-${option}`) }}</span>
               <i18n-t
+                scope="global"
                 :keypath="`auto-update.mode-${option}-desc`"
                 tag="span"
                 class="text-base-content/60 block text-xs"
@@ -108,6 +105,7 @@
         <span class="min-w-0 flex-1">
           <span class="block text-sm font-medium">{{ $t("auto-update.which-label") }}</span>
           <i18n-t
+            scope="global"
             :keypath="`auto-update.mode-${savedContainers}-desc`"
             tag="span"
             class="text-base-content/60 mt-0.5 block text-xs"
@@ -123,6 +121,16 @@
         </span>
       </div>
 
+      <div v-if="blockedReason" class="text-base-content/60 flex items-start gap-2 p-4 text-xs">
+        <mdi:information-outline class="mt-px size-3.5 shrink-0" />
+        <span>
+          {{ blockedReason }}
+          <template v-if="scheduleEditable && containers !== 'off'">{{
+            " " + $t("auto-update.containers-still")
+          }}</template>
+        </span>
+      </div>
+
       <!-- Everything reaches the databases too, which is the one way it goes badly. -->
       <div v-if="containers === 'all' && risky.length" class="flex items-start gap-3 p-4">
         <div class="bg-warning/10 text-warning shrink-0 rounded-full p-1.5">
@@ -133,7 +141,7 @@
           <p class="text-base-content/60 mt-1 truncate font-mono text-xs">
             {{ risky.map((c) => c.name).join(", ") }}
           </p>
-          <i18n-t keypath="auto-update.risky-hint" tag="p" class="text-base-content/60 mt-2 text-xs">
+          <i18n-t scope="global" keypath="auto-update.risky-hint" tag="p" class="text-base-content/60 mt-2 text-xs">
             <template #label>
               <code class="font-mono">{{ OFF_LABEL }}</code>
             </template>
@@ -216,7 +224,8 @@ const scheduleEditable = computed(() => autoUpdate.value.reason !== "not-server"
 
 // dozzle.yml outside a volume is lost on the next recreate, so nothing is saved there.
 // The schedule and which containers have their own env vars, so each has its own lock.
-const canEdit = computed(() => setupCanEdit(status) && scheduleEditable.value);
+const editable = computed(() => setupCanEditUpdates(status));
+const canEdit = computed(() => editable.value && scheduleEditable.value);
 const canEditSchedule = computed(() => canEdit.value && !status.locked.autoUpdate);
 const canEditContainers = computed(() => canEdit.value && !status.locked.updateContainers);
 
@@ -225,6 +234,16 @@ const unlockedEnvs = computed(() => [
   ...(status.locked.autoUpdate ? [] : ["DOZZLE_AUTO_UPDATE"]),
   ...(status.locked.updateContainers ? [] : ["DOZZLE_UPDATE_CONTAINERS"]),
 ]);
+
+// The schedule has two variables; name the ones that fixed it. An older server only says
+// that one of them did.
+const scheduleLockedBy = computed(() => {
+  const { autoUpdateMode, autoUpdateTime } = status.locked;
+  if (autoUpdateMode === undefined && autoUpdateTime === undefined) return "DOZZLE_AUTO_UPDATE";
+  return [...(autoUpdateMode ? ["DOZZLE_AUTO_UPDATE"] : []), ...(autoUpdateTime ? ["DOZZLE_AUTO_UPDATE_TIME"] : [])];
+});
+
+const scheduleTime = computed(() => [autoUpdate.value.time, autoUpdate.value.zone].filter(Boolean).join(" "));
 
 const mode = computed<AutoUpdateMode>(() => (enabled.value ? schedule.value : "off"));
 

@@ -33,6 +33,7 @@ toolbar:
   show-container-name: Pokaż nazwę kontenera
   shell: Shell
   attach: Dołącz
+  inspect: "Inspekcja"
   copy-permalink: Kopiuj link stały
   copy-image: "Kopiuj tag obrazu"
   pin: "Przypnij"
@@ -72,6 +73,13 @@ log-details:
   chart-field: "Pokaż wykres {field} w analizie SQL"
   toggle-all: Przełącz wszystkie pola
   toggle-field: Pokaż lub ukryj w strumieniu logów
+  memory-title: "Nowe dla tego kontenera"
+  memory-explain: "Dozzle Cloud nie widział wcześniej tego wzorca w tym kontenerze. Wiersze różniące się tylko liczbami, identyfikatorami lub adresami liczą się jako jeden wzorzec."
+  memory-pattern: "Wzorzec"
+  memory-first-seen: "Pierwsze wystąpienie"
+  memory-first-seen-now: "W tym wierszu"
+  memory-last-hour: "Ostatnia godzina"
+  memory-lines: "Brak wierszy | 1 wiersz | {count} wierszy"
 label:
   hide-sidebar: "Ukryj pasek boczny"
   show-sidebar: "Pokaż pasek boczny"
@@ -807,6 +815,7 @@ cloud-search:
   open-container: "otwórz kontener"
   search-logs-shortcut: "przeszukaj logi"
   cloud-connected: "Cloud połączony"
+  cloud-error: "Błąd połączenia z Cloud"
   results-page-title: "Wyszukiwanie logów"
   no-results: "Brak pasujących linii logu."
   search-failed: "Wyszukiwanie Cloud nie powiodło się."
@@ -1107,3 +1116,26 @@ auto-update:
   mode-all-desc: "Każdy kontener, chyba że ma etykietę {label}."
   risky-hint: "Dodaj kontenerowi etykietę {label}, aby go pominąć."
   empty: "Żaden kontener nie aktualizuje się sam. Dodaj kontenerowi etykietę {label}, aby go dołączyć."
+inspect:
+  overview: "Przegląd"
+  ports: "Porty"
+  mounts: "Montowania"
+  env: "Środowisko"
+  labels: "Etykiety"
+  id: "ID"
+  command: "Polecenie"
+  created: "Utworzono"
+  started: "Uruchomiono"
+  finished: "Zakończono"
+  restart-policy: "Zasady restartu"
+  network: "Sieć"
+  memory-limit: "Limit pamięci"
+  cpu-limit: "Limit CPU"
+  unlimited: "Bez limitu"
+  oom-killed: "Zabity przez OOM"
+  exit-code: "Kod wyjścia {code}"
+  restarts: "Restarty: {count}"
+  show-value: "Pokaż wartość"
+  hide-value: "Ukryj wartość"
+  env-hidden: "Wartości są ukryte. Ich odczyt wymaga dostępu do powłoki."
+  load-failed: "Nie udało się wczytać szczegółów kontenera."
