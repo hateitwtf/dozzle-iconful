@@ -1,7 +1,7 @@
 package web
 
 import (
-	"net/http"
+	"net/url"
 	"regexp"
 
 	"github.com/amir20/dozzle/internal/container"
@@ -9,12 +9,12 @@ import (
 	"github.com/amir20/dozzle/internal/web/search"
 )
 
-func parseStdTypes(r *http.Request) container.StdType {
+func parseStdTypes(q url.Values) container.StdType {
 	var stdTypes container.StdType
-	if r.URL.Query().Has("stdout") {
+	if q.Has("stdout") {
 		stdTypes |= container.STDOUT
 	}
-	if r.URL.Query().Has("stderr") {
+	if q.Has("stderr") {
 		stdTypes |= container.STDERR
 	}
 	return stdTypes
@@ -27,8 +27,7 @@ type logFilter struct {
 	inverse bool
 }
 
-func parseLogFilter(r *http.Request) (logFilter, error) {
-	q := r.URL.Query()
+func parseLogFilter(q url.Values) (logFilter, error) {
 	f := logFilter{
 		levels:  make(map[string]struct{}),
 		inverse: q.Get("inverse") == "true",
@@ -46,6 +45,12 @@ func parseLogFilter(r *http.Request) (logFilter, error) {
 	return f, nil
 }
 
+// empty reports whether the filter keeps every line, so the raw stream can be
+// copied as is instead of parsed line by line.
+func (f logFilter) empty() bool {
+	return f.regex == nil && len(f.levels) == 0
+}
+
 func (f logFilter) matchesText(event *container.LogEvent) bool {
 	return f.regex == nil || f.inverse != search.Search(f.regex, event)
 }
@@ -57,6 +62,12 @@ func (f logFilter) matchesLevel(event *container.LogEvent) bool {
 
 func (f logFilter) matches(event *container.LogEvent) bool {
 	return f.matchesText(event) && f.matchesLevel(event)
+}
+
+// keeps is matches for a whole-log read (a copy, a download, the SQL view), where
+// an empty level set means every level rather than none.
+func (f logFilter) keeps(event *container.LogEvent) bool {
+	return f.matchesText(event) && (len(f.levels) == 0 || f.matchesLevel(event))
 }
 
 // narrowing reports whether the filter hides anything, in which case the live

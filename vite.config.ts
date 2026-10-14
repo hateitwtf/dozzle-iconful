@@ -2,19 +2,23 @@ import { statSync } from "node:fs";
 import path from "node:path";
 import { defineConfig } from "vite";
 import Vue from "@vitejs/plugin-vue";
-import VueMacros from "unplugin-vue-macros/vite";
 import Icons from "unplugin-icons/vite";
 import Components from "unplugin-vue-components/vite";
 import AutoImport from "unplugin-auto-import/vite";
 import IconsResolver from "unplugin-icons/resolver";
 import VueRouter from "vue-router/vite";
-import Layouts from "vite-plugin-vue-layouts";
+import Layouts from "vite-plugin-vue-layouts-next";
 import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
 import svgLoader from "vite-svg-loader";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig(() => ({
   base: "./",
+  server: {
+    // `make dev` opens the Go server's page; `make dev-auto` is mostly started by an
+    // agent in a background shell, where a browser tab popping up is just noise.
+    open: process.env.DEV_NO_OPEN ? false : `http://localhost:${process.env.DOZZLE_PORT ?? 3100}/`,
+  },
   define: {
     // No component uses the options API, so drop that half of the Vue runtime.
     __VUE_OPTIONS_API__: false,
@@ -26,8 +30,8 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@/": `${path.resolve(import.meta.dirname, "assets")}/`,
-      // ansi-to-html drags in the full `entities` HTML entity table (~135 KB raw). We build
-      // the converter with escapeXML: false, so only encodeXML is reachable. See the shim.
+      // markdown-it drags in the full `entities` HTML entity table (~135 KB raw) for one
+      // function, decodeHTMLStrict. See the shim.
       entities: path.resolve(import.meta.dirname, "assets/shims/entities.ts"),
     },
   },
@@ -77,11 +81,7 @@ export default defineConfig(() => ({
       // against import.meta.url, so this works under a custom base too.
       importMode: "async",
     }),
-    VueMacros({
-      plugins: {
-        vue: Vue(),
-      },
-    }),
+    Vue(),
     Icons({
       autoInstall: true,
     }),

@@ -15,6 +15,16 @@ toolbar:
   restart: Restart
   rollout-restart: "Restart {kind}"
   rollout-restart-done: "{workload} is rolling out new pods."
+  section-containers: "Containers"
+  restart-all: "Restart all"
+  stop-all: "Stop all"
+  start-all: "Start all"
+  bulk-confirm-restart: "Restart 1 container? | Restart {count} containers?"
+  bulk-confirm-stop: "Stop 1 container? | Stop {count} containers?"
+  bulk-confirm-start: "Start 1 container? | Start {count} containers?"
+  bulk-self-skipped: "Dozzle's own container is skipped."
+  bulk-more: "and {count} more"
+  bulk-failed: "Did not complete for {names}"
   update: Update
   update-service: Update Service
   update-pulling: Pulling latest image...
@@ -123,6 +133,7 @@ label:
   core: No cores | 1 core | {count} cores
   mem: MEM
   disk: Disk
+  network: Network
   reclaimable: Reclaimable
   unused-images: "Unused images"
   unused-volumes: "Unused volumes"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: Unpin column
   merge-stream: Merge into stream
   merge-stream-hint: Open a container to merge it with
-  merge-stream-other-host: "Only containers on the same host can be merged"
   unmerge-stream: Remove from stream
   merge-all: Merge all into one stream
   network-io: "Network: ↑ {tx}/s · ↓ {rx}/s"
@@ -341,6 +351,8 @@ cloud-search:
   no-matches: No containers or commands match
   nav-hint: navigate
   pin-shortcut: pin column
+  merge-shortcut: merge into stream
+  unmerge-shortcut: remove from stream
   search-logs-for: Search logs for "{query}"
   across-containers: indexed across all your containers
   connect-to-enable: Connect Dozzle Cloud to search logs
@@ -499,6 +511,9 @@ analytics:
   example_all: All logs
   example_count: Row count
   example_group: Count by {column}
+  example_by_container: By container
+  include_previous: "Include 1 older container | Include {count} older containers"
+  containers_count: "{count} containers"
   export: Export
   export_csv: Download CSV
   export_json: Download JSON
@@ -510,6 +525,7 @@ analytics:
   max: Max
   p50: P50
   p95: P95
+  distribution_of: "Distribution of {column}"
   rows: 1 row | {count} rows
 updates:
   title: Updates
@@ -1145,3 +1161,17 @@ inspect:
   hide-value: "Hide value"
   env-hidden: "Values are hidden. Reading them needs shell access."
   load-failed: "Could not load container details."
+reclaim:
+  clean-up: "Clean up"
+  free-up: "Free up {size}"
+  confirm-title: "Free up {size} on {host}?"
+  cannot-undo: "This can't be undone."
+  images-repull: "A stopped stack pulls its images again on its next start."
+  volumes-warning: "1 volume holds data no container uses right now. Deleting it erases that data, like a database whose container was removed. | {count} volumes hold data no container uses right now. Deleting them erases that data, like a database whose container was removed."
+  volumes-confirm: "I understand, delete the volumes"
+  delete: "Delete"
+  deleting: "Freeing up {size}…"
+  freed: "Freed {size}"
+  failed: "Clean up failed"
+  agent-too-old: "This agent can't clean up yet. Update it to the latest version."
+  enable-actions: "Enable container actions to clean up from here."

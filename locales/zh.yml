@@ -15,6 +15,16 @@ toolbar:
   restart: 重启
   rollout-restart: "重启 {kind}"
   rollout-restart-done: "{workload} 正在滚动部署新的 Pod。"
+  section-containers: "容器"
+  restart-all: "全部重启"
+  stop-all: "全部停止"
+  start-all: "全部启动"
+  bulk-confirm-restart: "要重启 1 个容器吗？ | 要重启 {count} 个容器吗？"
+  bulk-confirm-stop: "要停止 1 个容器吗？ | 要停止 {count} 个容器吗？"
+  bulk-confirm-start: "要启动 1 个容器吗？ | 要启动 {count} 个容器吗？"
+  bulk-self-skipped: "将跳过 Dozzle 自身的容器。"
+  bulk-more: "还有 {count} 个"
+  bulk-failed: "未完成：{names}"
   update: 更新
   update-service: 更新服务
   update-pulling: 正在拉取最新镜像...
@@ -137,6 +147,7 @@ label:
   cpu: CPU
   core: 无核心 | 1 个核心 | {count} 个核心
   disk: 磁盘
+  network: 网络
   reclaimable: 可回收
   unused-images: "未使用的镜像"
   unused-volumes: "未使用的卷"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: 取消固定列
   merge-stream: 合并到日志流
   merge-stream-hint: 打开一个容器以进行合并
-  merge-stream-other-host: "只能合并同一主机上的容器"
   unmerge-stream: 从日志流移除
   merge-all: 将所有内容合并到一个流中
   network-io: "网络：↑ {tx}/s · ↓ {rx}/s"
@@ -369,6 +379,9 @@ analytics:
   example_all: 所有日志
   example_count: 行数
   example_group: 按 {column} 计数
+  example_by_container: 按容器
+  include_previous: "包含 {count} 个较旧的容器"
+  containers_count: "{count} 个容器"
   export: 导出
   export_csv: 下载 CSV
   export_json: 下载 JSON
@@ -380,6 +393,7 @@ analytics:
   max: 最大
   p50: P50
   p95: P95
+  distribution_of: "{column} 的分布"
   rows: 1 行 | {count} 行
 updates:
   title: 更新
@@ -806,6 +820,8 @@ cloud-search:
   no-matches: "没有匹配的容器或命令"
   nav-hint: "导航"
   pin-shortcut: "固定列"
+  merge-shortcut: "合并到日志流"
+  unmerge-shortcut: "从日志流中移除"
   search-logs-for: '搜索日志 "{query}"'
   across-containers: "已在所有容器中建立索引"
   connect-to-enable: "连接 Dozzle Cloud 以搜索日志"
@@ -1137,3 +1153,17 @@ inspect:
   hide-value: "隐藏值"
   env-hidden: "值已隐藏。查看需要 shell 权限。"
   load-failed: "无法加载容器详情。"
+reclaim:
+  clean-up: "清理"
+  free-up: "释放 {size}"
+  confirm-title: "要在 {host} 上释放 {size} 吗？"
+  cannot-undo: "此操作无法撤销。"
+  images-repull: "已停止的 stack 下次启动时会重新拉取镜像。"
+  volumes-warning: "有 1 个卷存放着当前没有容器使用的数据。删除后这些数据会丢失，例如容器已被移除的数据库。 | 有 {count} 个卷存放着当前没有容器使用的数据。删除后这些数据会丢失，例如容器已被移除的数据库。"
+  volumes-confirm: "我明白，删除这些卷"
+  delete: "删除"
+  deleting: "正在释放 {size}…"
+  freed: "已释放 {size}"
+  failed: "清理失败"
+  agent-too-old: "此 agent 还不能清理，请更新到最新版本。"
+  enable-actions: "启用容器操作即可在此清理。"

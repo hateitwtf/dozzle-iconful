@@ -29,11 +29,20 @@ import {
 } from "./updateMarkers";
 import { showAllContainers } from "@/stores/settings";
 
-const { isSearching, appliedSearchFilter, inverseFilter } = useSearchFilter();
+const { isSearching } = useSearchFilter();
+
+// One container, or many on any hosts, each named as `container=<host>/<id>`.
+function containersStreamUrl(containers: Container[]) {
+  const query = new URLSearchParams();
+  appendContainerRefs(query, containers);
+  return `/api/containers/logs/stream?${query}`;
+}
 
 export function useContainerStream(container: Ref<Container>): LogStreamSource {
-  const url = computed(() => `/api/hosts/${container.value.host}/containers/${container.value.id}/logs/stream`);
-  return useLogStream(url, container);
+  return useLogStream(
+    computed(() => containersStreamUrl([container.value])),
+    container,
+  );
 }
 
 export function useHostStream(host: Ref<Host>): LogStreamSource {
@@ -57,12 +66,7 @@ export function useGroupedStream(group: Ref<GroupedContainers>): LogStreamSource
 }
 
 export function useMergedStream(containers: Ref<Container[]>): LogStreamSource {
-  const url = computed(() => {
-    const ids = containers.value.map((c) => c.id).join(",");
-    return `/api/hosts/${containers.value[0].host}/logs/mergedStream/${ids}`;
-  });
-
-  return useLogStream(url);
+  return useLogStream(computed(() => containersStreamUrl(containers.value)));
 }
 
 export function useServiceStream(service: Ref<Service>): LogStreamSource {
@@ -88,6 +92,8 @@ export type SearchStatus = {
   done: boolean;
   matches: number;
   scannedTo?: string;
+  /** Share of the long read done so far, from 0 to 1. */
+  progress?: number;
   reason?: "capped" | "exhausted";
 };
 
@@ -104,7 +110,7 @@ function useLogStream(url: Ref<string>, container?: Ref<Container>) {
   const error = ref(false);
   const searchStatus = ref<SearchStatus>({ active: false, done: false, matches: 0 });
   const { paused: scrollingPaused } = useScrollContext();
-  const { streamConfig, hasComplexLogs, levels, loadingMore, containers, timeRange } = useLoggingContext();
+  const { hasComplexLogs, loadingMore, containers, timeRange } = useLoggingContext();
   const router = useRouter();
   // "Live, from 15 minutes ago": the tail starts there and loading older stops there.
   // Only a single container's view carries one.
@@ -120,19 +126,7 @@ function useLogStream(url: Ref<string>, container?: Ref<Container>) {
   // its update are loaded.
   let pendingMarkers: DeployLogEntry[] = [];
 
-  const params = computed(() => {
-    const params = new URLSearchParams();
-    if (streamConfig.value.stdout) params.append("stdout", "1");
-    if (streamConfig.value.stderr) params.append("stderr", "1");
-    if (isSearching.value) {
-      params.append("filter", appliedSearchFilter.value);
-      if (inverseFilter.value) params.append("inverse", "true");
-    }
-    for (const level of levels.value) {
-      params.append("levels", level);
-    }
-    return params;
-  });
+  const params = useLogFilterParams();
 
   const allContainers = computed(() => (container ? [container.value] : containers.value));
   // The alert layer — dedupe state, the 15s poll, and the merge itself — lives
@@ -353,6 +347,7 @@ function useLogStream(url: Ref<string>, container?: Ref<Container>) {
         done: data.done,
         matches: data.matches,
         scannedTo: data.scannedTo,
+        progress: data.progress,
         reason: data.reason,
       };
     });

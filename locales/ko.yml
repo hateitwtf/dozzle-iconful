@@ -15,6 +15,16 @@ toolbar:
   restart: 다시 시작
   rollout-restart: "{kind} 다시 시작"
   rollout-restart-done: "{workload}에서 새 파드를 배포하는 중입니다."
+  section-containers: "컨테이너"
+  restart-all: "모두 재시작"
+  stop-all: "모두 중지"
+  start-all: "모두 시작"
+  bulk-confirm-restart: "컨테이너 1개를 재시작할까요? | 컨테이너 {count}개를 재시작할까요?"
+  bulk-confirm-stop: "컨테이너 1개를 중지할까요? | 컨테이너 {count}개를 중지할까요?"
+  bulk-confirm-start: "컨테이너 1개를 시작할까요? | 컨테이너 {count}개를 시작할까요?"
+  bulk-self-skipped: "Dozzle 자체 컨테이너는 건너뜁니다."
+  bulk-more: "외 {count}개"
+  bulk-failed: "완료되지 않음: {names}"
   update: 업데이트
   update-service: 서비스 업데이트
   update-pulling: 최신 이미지 가져오는 중...
@@ -122,6 +132,7 @@ label:
   cpu: CPU
   core: 코어 없음 | 코어 1개 | 코어 {count}개
   disk: 디스크
+  network: 네트워크
   reclaimable: 회수 가능
   unused-images: "사용하지 않는 이미지"
   unused-volumes: "사용하지 않는 볼륨"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: 열 고정 해제
   merge-stream: 스트림에 병합
   merge-stream-hint: 병합하려면 먼저 컨테이너를 여세요
-  merge-stream-other-host: "같은 호스트의 컨테이너만 병합할 수 있습니다"
   unmerge-stream: 스트림에서 제거
   merge-all: 모두 하나의 스트림으로 병합
   network-io: "네트워크: ↑ {tx}/s · ↓ {rx}/s"
@@ -371,6 +381,9 @@ analytics:
   example_all: 모든 로그
   example_count: 행 수
   example_group: "{column}별 개수"
+  example_by_container: 컨테이너별
+  include_previous: "이전 컨테이너 {count}개 포함"
+  containers_count: 컨테이너 {count}개
   export: 내보내기
   export_csv: CSV 다운로드
   export_json: JSON 다운로드
@@ -382,6 +395,7 @@ analytics:
   max: 최대
   p50: P50
   p95: P95
+  distribution_of: "{column} 분포"
   rows: 1개 행 | {count}개 행
 updates:
   title: 업데이트
@@ -808,6 +822,8 @@ cloud-search:
   no-matches: "일치하는 컨테이너나 명령이 없습니다"
   nav-hint: "이동"
   pin-shortcut: "열로 고정"
+  merge-shortcut: "스트림에 병합"
+  unmerge-shortcut: "스트림에서 제거"
   search-logs-for: '"{query}" 로그 검색'
   across-containers: "모든 컨테이너에서 색인됨"
   connect-to-enable: "로그를 검색하려면 Dozzle Cloud에 연결하세요"
@@ -1139,3 +1155,17 @@ inspect:
   hide-value: "값 숨기기"
   env-hidden: "값이 숨겨져 있습니다. 보려면 셸 권한이 필요합니다."
   load-failed: "컨테이너 정보를 불러오지 못했습니다."
+reclaim:
+  clean-up: "정리"
+  free-up: "{size} 확보"
+  confirm-title: "{host}에서 {size}를 확보할까요?"
+  cannot-undo: "되돌릴 수 없습니다."
+  images-repull: "중지된 스택은 다음에 시작할 때 이미지를 다시 받아옵니다."
+  volumes-warning: "볼륨 1개에 지금 어떤 컨테이너도 쓰지 않는 데이터가 있습니다. 삭제하면 컨테이너가 제거된 데이터베이스처럼 그 데이터가 사라집니다. | 볼륨 {count}개에 지금 어떤 컨테이너도 쓰지 않는 데이터가 있습니다. 삭제하면 컨테이너가 제거된 데이터베이스처럼 그 데이터가 사라집니다."
+  volumes-confirm: "이해했습니다. 볼륨을 삭제합니다"
+  delete: "삭제"
+  deleting: "{size} 확보 중…"
+  freed: "{size} 확보됨"
+  failed: "정리 실패"
+  agent-too-old: "이 에이전트는 아직 정리할 수 없습니다. 최신 버전으로 업데이트하세요."
+  enable-actions: "여기서 정리하려면 컨테이너 작업을 활성화하세요."

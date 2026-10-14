@@ -16,22 +16,9 @@ export function useHistoricalContainerLog(historicalContainer: Ref<HistoricalCon
   const searchStatus = ref<SearchStatus>({ active: false, done: false, matches: 0 });
   const container = toRef(() => historicalContainer.value.container);
 
-  const { streamConfig, levels, loadingMore } = useLoggingContext();
-  const { isSearching, appliedSearchFilter, inverseFilter } = useSearchFilter();
+  const { loadingMore } = useLoggingContext();
 
-  const params = computed(() => {
-    const params = new URLSearchParams();
-    if (streamConfig.value.stdout) params.append("stdout", "1");
-    if (streamConfig.value.stderr) params.append("stderr", "1");
-    if (isSearching.value) {
-      params.append("filter", appliedSearchFilter.value);
-      if (inverseFilter.value) params.append("inverse", "true");
-    }
-    for (const level of levels.value) {
-      params.append("levels", level);
-    }
-    return params;
-  });
+  const params = useLogFilterParams();
 
   // Same alert layer the live stream uses: without it a deep link to an alert
   // landed on the one view that could not draw it.
@@ -84,7 +71,7 @@ export function useHistoricalContainerLog(historicalContainer: Ref<HistoricalCon
   // read of the log from its beginning on Docker's side: pages are as large as
   // a fetch allows so a range takes as few of them as it can.
   async function loadRange(end: Date) {
-    const { logs } = await loadBetween(container, params, historicalContainer.value.date, end, {
+    const { logs } = await loadBetween([container.value], params, historicalContainer.value.date, end, {
       maxStart: FETCH_PAGE,
     });
     const bottom = logs.length < FETCH_PAGE ? endEdge() : new LoadMoreLogEntry(new Date(), loadNewerLogs, false);
@@ -114,7 +101,7 @@ export function useHistoricalContainerLog(historicalContainer: Ref<HistoricalCon
       const lastSeenId = route.query.logId ? +route.query.logId : undefined;
       const [{ logs: before }, { logs: after }] = await Promise.all([
         loadBetween(
-          container,
+          [container.value],
           params,
           new Date(historicalContainer.value.date.getTime() - 1000 * 60 * 5),
           new Date(historicalContainer.value.date.getTime() + 1000),
@@ -123,7 +110,7 @@ export function useHistoricalContainerLog(historicalContainer: Ref<HistoricalCon
             lastSeenId,
           },
         ),
-        loadBetween(container, params, historicalContainer.value.date, new Date(), {
+        loadBetween([container.value], params, historicalContainer.value.date, new Date(), {
           maxStart: 50,
         }),
       ]);
@@ -156,7 +143,7 @@ export function useHistoricalContainerLog(historicalContainer: Ref<HistoricalCon
       const item = messages.value.find(isStreamLog);
       if (!item) return;
       const { logs, signal } = await loadBetween(
-        container,
+        [container.value],
         params,
         new Date(item.date.getTime() - 1000 * 60 * 5),
         item.date,
@@ -193,7 +180,7 @@ export function useHistoricalContainerLog(historicalContainer: Ref<HistoricalCon
       // An empty range has no line to continue from, only its start.
       if (!item && !end) return;
       const { logs, signal } = await loadBetween(
-        container,
+        [container.value],
         params,
         item?.date ?? historicalContainer.value.date,
         end ?? new Date(),

@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -11,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"encoding/json"
 	"strings"
 
 	"github.com/amir20/dozzle/internal/container"
@@ -19,7 +17,6 @@ import (
 	"github.com/amir20/dozzle/internal/imagecheck"
 	"github.com/amir20/dozzle/types"
 	"github.com/rs/zerolog/log"
-	orderedmap "github.com/wk8/go-ordered-map/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -259,7 +256,7 @@ func sendLogs(stream pb.AgentService_StreamLogsClient, events chan<- *container.
 			logType = container.LogTypeGroup
 
 		case *pb.ComplexMessage:
-			message = jsonBytesToOrderedMap(m.Data)
+			message = jsonBytesToFields(m.Data)
 			logType = container.LogTypeComplex
 
 		default:
@@ -286,7 +283,7 @@ func sendLogs(stream pb.AgentService_StreamLogsClient, events chan<- *container.
 }
 
 func (c *Client) StreamRawBytes(ctx context.Context, containerID string, since time.Time, until time.Time, std container.StdType) (io.ReadCloser, error) {
-	out, err := c.client.StreamRawBytes(context.Background(), &pb.StreamRawBytesRequest{
+	out, err := c.client.StreamRawBytes(ctx, &pb.StreamRawBytesRequest{
 		ContainerId: containerID,
 		Since:       timestamppb.New(since),
 		Until:       timestamppb.New(until),
@@ -300,18 +297,20 @@ func (c *Client) StreamRawBytes(ctx context.Context, containerID string, since t
 	r, w := io.Pipe()
 
 	go func() {
-		defer w.Close()
 		for {
 			resp, err := out.Recv()
 			if err != nil {
 				err = rpcErrToErr(err)
-				e := errors.Unwrap(err)
-				if e == io.EOF || e == context.Canceled {
-					return
-				} else {
-					log.Error().Err(err).Msg("agent client: failed to receive raw bytes")
+				if errors.Is(err, io.EOF) {
+					w.Close()
 					return
 				}
+				if !errors.Is(err, context.Canceled) {
+					log.Error().Err(err).Msg("agent client: failed to receive raw bytes")
+				}
+				// The reader sees the error, so a cut-off download does not pass for a complete one.
+				w.CloseWithError(err)
+				return
 			}
 
 			w.Write(resp.Data)
@@ -502,6 +501,23 @@ func (c *Client) ContainerAction(ctx context.Context, containerId string, action
 	_, err := c.client.ContainerAction(ctx, &pb.ContainerActionRequest{ContainerId: containerId, Action: containerAction})
 
 	return err
+}
+
+// PruneHost returns errors.ErrUnsupported from an agent too old to know the call.
+func (c *Client) PruneHost(ctx context.Context, opts container.PruneOptions) (container.PruneResult, error) {
+	resp, err := c.client.PruneHost(ctx, &pb.PruneHostRequest{
+		Images:     opts.Images,
+		Volumes:    opts.Volumes,
+		Containers: opts.Containers,
+		BuildCache: opts.BuildCache,
+	})
+	if status.Code(err) == codes.Unimplemented {
+		return container.PruneResult{}, fmt.Errorf("agent cannot prune: %w", errors.ErrUnsupported)
+	}
+	if err != nil {
+		return container.PruneResult{}, err
+	}
+	return container.PruneResult{SpaceReclaimed: resp.SpaceReclaimed}, nil
 }
 
 func (c *Client) UpdateContainer(ctx context.Context, containerID string, progressCh chan<- container.UpdateProgress) (bool, error) {
@@ -838,9 +854,7 @@ func (c *Client) GetNotificationStats(ctx context.Context) ([]types.Subscription
 	return stats, nil
 }
 
-func jsonBytesToOrderedMap(b []byte) *orderedmap.OrderedMap[string, any] {
-	var data *orderedmap.OrderedMap[string, any]
-	reader := bytes.NewReader(b)
-	json.NewDecoder(reader).Decode(&data)
+func jsonBytesToFields(b []byte) container.Fields[any] {
+	data, _ := container.ParseFields(b)
 	return data
 }

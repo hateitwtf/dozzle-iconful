@@ -15,6 +15,16 @@ toolbar:
   restart: Herstarten
   rollout-restart: "{kind} herstarten"
   rollout-restart-done: "{workload} rolt nieuwe pods uit."
+  section-containers: "Containers"
+  restart-all: "Alles herstarten"
+  stop-all: "Alles stoppen"
+  start-all: "Alles starten"
+  bulk-confirm-restart: "1 container herstarten? | {count} containers herstarten?"
+  bulk-confirm-stop: "1 container stoppen? | {count} containers stoppen?"
+  bulk-confirm-start: "1 container starten? | {count} containers starten?"
+  bulk-self-skipped: "De eigen container van Dozzle wordt overgeslagen."
+  bulk-more: "en nog {count}"
+  bulk-failed: "Niet gelukt voor {names}"
   update: Bijwerken
   update-service: Service Bijwerken
   update-pulling: Laatste image ophalen...
@@ -122,6 +132,7 @@ label:
   cpu: CPU
   core: Geen kernen | 1 kern | {count} kernen
   disk: Schijf
+  network: Netwerk
   reclaimable: Vrij te maken
   unused-images: "Ongebruikte images"
   unused-volumes: "Ongebruikte volumes"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: Kolom losmaken
   merge-stream: Samenvoegen met stream
   merge-stream-hint: Open een container om mee samen te voegen
-  merge-stream-other-host: "Alleen containers op dezelfde host kunnen worden samengevoegd"
   unmerge-stream: Verwijderen uit stream
   merge-all: Voeg alles samen in één stream
   network-io: "Netwerk: ↑ {tx}/s · ↓ {rx}/s"
@@ -370,6 +380,9 @@ analytics:
   example_all: Alle logs
   example_count: Aantal rijen
   example_group: Aantal per {column}
+  example_by_container: Per container
+  include_previous: "1 oudere container meenemen | {count} oudere containers meenemen"
+  containers_count: "{count} containers"
   export: Exporteren
   export_csv: CSV downloaden
   export_json: JSON downloaden
@@ -381,6 +394,7 @@ analytics:
   max: Max
   p50: P50
   p95: P95
+  distribution_of: "Verdeling van {column}"
   rows: 1 rij | {count} rijen
 updates:
   title: Updates
@@ -807,6 +821,8 @@ cloud-search:
   no-matches: "Geen containers of commando's gevonden"
   nav-hint: "navigeren"
   pin-shortcut: "kolom vastzetten"
+  merge-shortcut: "samenvoegen in stream"
+  unmerge-shortcut: "uit stream verwijderen"
   search-logs-for: 'Logs zoeken op "{query}"'
   across-containers: "geïndexeerd over al je containers"
   connect-to-enable: "Dozzle Cloud verbinden om logs te zoeken"
@@ -1138,3 +1154,17 @@ inspect:
   hide-value: "Waarde verbergen"
   env-hidden: "Waarden zijn verborgen. Om ze te lezen is shell-toegang nodig."
   load-failed: "Containerdetails konden niet worden geladen."
+reclaim:
+  clean-up: "Opruimen"
+  free-up: "{size} vrijmaken"
+  confirm-title: "{size} vrijmaken op {host}?"
+  cannot-undo: "Dit kan niet ongedaan worden gemaakt."
+  images-repull: "Een gestopte stack haalt zijn images opnieuw op bij de volgende start."
+  volumes-warning: "1 volume bevat data die nu door geen enkele container wordt gebruikt. Verwijderen wist die data, zoals een database waarvan de container is verwijderd. | {count} volumes bevatten data die nu door geen enkele container wordt gebruikt. Verwijderen wist die data, zoals een database waarvan de container is verwijderd."
+  volumes-confirm: "Ik begrijp het, verwijder de volumes"
+  delete: "Verwijderen"
+  deleting: "{size} vrijmaken…"
+  freed: "{size} vrijgemaakt"
+  failed: "Opruimen mislukt"
+  agent-too-old: "Deze agent kan nog niet opruimen. Werk hem bij naar de nieuwste versie."
+  enable-actions: "Schakel containeracties in om hier op te ruimen."

@@ -15,6 +15,16 @@ toolbar:
   restart: Genstart
   rollout-restart: "Genstart {kind}"
   rollout-restart-done: "{workload} ruller nye pods ud."
+  section-containers: "Containere"
+  restart-all: "Genstart alle"
+  stop-all: "Stop alle"
+  start-all: "Start alle"
+  bulk-confirm-restart: "Genstart 1 container? | Genstart {count} containere?"
+  bulk-confirm-stop: "Stop 1 container? | Stop {count} containere?"
+  bulk-confirm-start: "Start 1 container? | Start {count} containere?"
+  bulk-self-skipped: "Dozzles egen container springes over."
+  bulk-more: "og {count} mere"
+  bulk-failed: "Blev ikke gennemført for {names}"
   update: Opdater
   update-service: Opdater Tjeneste
   update-pulling: Henter seneste image...
@@ -122,6 +132,7 @@ label:
   cpu: CPU
   core: Ingen kerner | 1 kerne | {count} kerner
   disk: Disk
+  network: Netværk
   reclaimable: Kan frigøres
   unused-images: "Ubrugte images"
   unused-volumes: "Ubrugte volumes"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: Frigør kolonne
   merge-stream: Flet ind i strømmen
   merge-stream-hint: Åbn en container for at flette med den
-  merge-stream-other-host: "Kun containere på samme vært kan flettes"
   unmerge-stream: Fjern fra strømmen
   merge-all: Sammenlæg alt i én stream
   network-io: "Netværk: ↑ {tx}/s · ↓ {rx}/s"
@@ -369,6 +379,9 @@ analytics:
   example_all: Alle logfiler
   example_count: Antal rækker
   example_group: Antal efter {column}
+  example_by_container: Efter container
+  include_previous: "Medtag 1 ældre container | Medtag {count} ældre containere"
+  containers_count: "{count} containere"
   export: Eksporter
   export_csv: Download CSV
   export_json: Download JSON
@@ -380,6 +393,7 @@ analytics:
   max: Maks
   p50: P50
   p95: P95
+  distribution_of: "Fordeling af {column}"
   rows: 1 række | {count} rækker
 updates:
   title: Opdateringer
@@ -806,6 +820,8 @@ cloud-search:
   no-matches: "Ingen containere eller kommandoer matcher"
   nav-hint: "naviger"
   pin-shortcut: "fastgør kolonne"
+  merge-shortcut: "flet ind i strømmen"
+  unmerge-shortcut: "fjern fra strømmen"
   search-logs-for: 'Søg logs efter "{query}"'
   across-containers: "indekseret på tværs af alle dine containere"
   connect-to-enable: "Tilslut Dozzle Cloud for at søge i logs"
@@ -1137,3 +1153,17 @@ inspect:
   hide-value: "Skjul værdi"
   env-hidden: "Værdierne er skjult. Det kræver shell-adgang at læse dem."
   load-failed: "Kunne ikke indlæse containerdetaljer."
+reclaim:
+  clean-up: "Ryd op"
+  free-up: "Frigør {size}"
+  confirm-title: "Frigør {size} på {host}?"
+  cannot-undo: "Dette kan ikke fortrydes."
+  images-repull: "En stoppet stack henter sine images igen ved næste start."
+  volumes-warning: "1 volume indeholder data, som ingen container bruger lige nu. Sletning fjerner de data, fx en database hvis container blev fjernet. | {count} volumes indeholder data, som ingen container bruger lige nu. Sletning fjerner de data, fx en database hvis container blev fjernet."
+  volumes-confirm: "Jeg forstår, slet volumes"
+  delete: "Slet"
+  deleting: "Frigør {size}…"
+  freed: "Frigjort {size}"
+  failed: "Oprydning mislykkedes"
+  agent-too-old: "Denne agent kan ikke rydde op endnu. Opdater den til nyeste version."
+  enable-actions: "Slå containerhandlinger til for at rydde op herfra."

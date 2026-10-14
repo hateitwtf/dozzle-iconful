@@ -289,13 +289,11 @@ func createRouter(h *handler) *chi.Mux {
 				}
 
 				// Log streams
-				r.Get("/hosts/{host}/containers/{id}/logs/stream", h.streamContainerLogs)
 				r.Get("/hosts/{host}/logs/stream", h.streamHostLogs)
-				r.Get("/hosts/{host}/containers/{id}/logs", h.fetchLogsBetweenDates)
 				r.Get("/hosts/{host}/containers/{id}/logs/histogram", h.fetchLogHistogram)
 				r.Get("/hosts/{host}/containers/{id}/inspect", h.inspectContainer)
-				r.Get("/hosts/{host}/logs/mergedStream/{ids}", h.streamLogsMerged)
-				r.Get("/containers/{hostIds}/download", h.downloadLogs) // formatted as host:container,host:container
+				r.Get("/containers/logs/stream", h.streamContainerLogs) // ?container=<host>/<id>, repeated
+				r.Post("/containers/logs", h.containerLogs)             // form body: container=<host>/<id>, repeated; text, format=jsonl, or format=zip
 				r.Get("/labels/{labels}/logs/stream", h.streamLogsWithLabels)
 				r.Get("/groups/{group}/logs/stream", h.streamGroupedLogs)
 				r.Get("/host-groups/{group}/logs/stream", h.streamHostGroupLogs)
@@ -319,6 +317,9 @@ func createRouter(h *handler) *chi.Mux {
 				if h.config.EnableActions {
 					r.Post("/hosts/{host}/containers/{id}/actions/update", h.containerUpdate)
 					r.Post("/hosts/{host}/containers/{id}/actions/{action}", h.containerActions)
+					if h.config.Mode != "k8s" {
+						r.Post("/hosts/{host}/prune", h.pruneHost)
+					}
 					r.Post("/updates", h.startBulkUpdate)
 					r.Get("/updates/stream", h.streamBulkUpdate)
 					if h.config.Mode == "server" {

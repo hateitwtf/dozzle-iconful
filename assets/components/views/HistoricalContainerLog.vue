@@ -30,7 +30,7 @@
             <mdi:chevron-left />
           </button>
           <!-- The toolbar is hidden on a phone here, so the chip stays. -->
-          <TimeRangeMenu :container="container" :range="timeRange" :anchor="until ? undefined : date" />
+          <LogFilterMenu :container="container" :range="timeRange" :anchor="until ? undefined : date" />
           <TimeRangeDialog />
           <button
             v-if="timeRange.kind === 'range'"
@@ -105,7 +105,8 @@ const {
   until?: Date;
 }>();
 
-const close = defineEmit();
+const emit = defineEmits<{ close: [] }>();
+const close = () => emit("close");
 
 const store = useContainerStore();
 const container = store.currentContainer(toRef(() => id));

@@ -15,6 +15,16 @@ toolbar:
   restart: Redémarrer
   rollout-restart: "Redémarrer {kind}"
   rollout-restart-done: "{workload} déploie de nouveaux pods."
+  section-containers: "Conteneurs"
+  restart-all: "Tout redémarrer"
+  stop-all: "Tout arrêter"
+  start-all: "Tout démarrer"
+  bulk-confirm-restart: "Redémarrer 1 conteneur ? | Redémarrer {count} conteneurs ?"
+  bulk-confirm-stop: "Arrêter 1 conteneur ? | Arrêter {count} conteneurs ?"
+  bulk-confirm-start: "Démarrer 1 conteneur ? | Démarrer {count} conteneurs ?"
+  bulk-self-skipped: "Le conteneur de Dozzle lui-même est ignoré."
+  bulk-more: "et {count} de plus"
+  bulk-failed: "Échec pour {names}"
   update: Mettre à jour
   update-service: Mettre à jour le Service
   update-pulling: Téléchargement de la dernière image...
@@ -122,6 +132,7 @@ label:
   cpu: CPU
   core: Aucun cœur | 1 cœur | {count} cœurs
   disk: Disque
+  network: Réseau
   reclaimable: Récupérable
   unused-images: "Images inutilisées"
   unused-volumes: "Volumes inutilisés"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: Détacher la colonne
   merge-stream: Fusionner dans le flux
   merge-stream-hint: Ouvrez un conteneur pour fusionner avec lui
-  merge-stream-other-host: "Seuls les conteneurs d'un même hôte peuvent être fusionnés"
   unmerge-stream: Retirer du flux
   merge-all: Fusionner tout dans un flux
   network-io: "Réseau : ↑ {tx}/s · ↓ {rx}/s"
@@ -369,6 +379,9 @@ analytics:
   example_all: Tous les journaux
   example_count: Nombre de lignes
   example_group: Nombre par {column}
+  example_by_container: Par conteneur
+  include_previous: "Inclure 1 conteneur précédent | Inclure {count} conteneurs précédents"
+  containers_count: "{count} conteneurs"
   export: Exporter
   export_csv: Télécharger le CSV
   export_json: Télécharger le JSON
@@ -380,6 +393,7 @@ analytics:
   max: Max
   p50: P50
   p95: P95
+  distribution_of: "Distribution de {column}"
   rows: 1 ligne | {count} lignes
 updates:
   title: Mises à jour
@@ -806,6 +820,8 @@ cloud-search:
   no-matches: "Aucun conteneur ou commande ne correspond"
   nav-hint: "naviguer"
   pin-shortcut: "épingler en colonne"
+  merge-shortcut: "fusionner dans le flux"
+  unmerge-shortcut: "retirer du flux"
   search-logs-for: 'Rechercher des logs pour "{query}"'
   across-containers: "indexés sur tous vos conteneurs"
   connect-to-enable: "Connecter Dozzle Cloud pour rechercher des logs"
@@ -1137,3 +1153,17 @@ inspect:
   hide-value: "Masquer la valeur"
   env-hidden: "Les valeurs sont masquées. Les lire nécessite l'accès shell."
   load-failed: "Impossible de charger les détails du conteneur."
+reclaim:
+  clean-up: "Nettoyer"
+  free-up: "Libérer {size}"
+  confirm-title: "Libérer {size} sur {host} ?"
+  cannot-undo: "Cette action est irréversible."
+  images-repull: "Une stack arrêtée retélécharge ses images à son prochain démarrage."
+  volumes-warning: "1 volume contient des données qu'aucun conteneur n'utilise en ce moment. Le supprimer efface ces données, comme une base de données dont le conteneur a été supprimé. | {count} volumes contiennent des données qu'aucun conteneur n'utilise en ce moment. Les supprimer efface ces données, comme une base de données dont le conteneur a été supprimé."
+  volumes-confirm: "Je comprends, supprimer les volumes"
+  delete: "Supprimer"
+  deleting: "Libération de {size}…"
+  freed: "{size} libérés"
+  failed: "Échec du nettoyage"
+  agent-too-old: "Cet agent ne peut pas encore nettoyer. Mettez-le à jour vers la dernière version."
+  enable-actions: "Activez les actions de conteneur pour nettoyer depuis ici."

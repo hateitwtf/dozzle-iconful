@@ -1,14 +1,11 @@
 package agent
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io"
-
-	"encoding/json"
 
 	"time"
 
@@ -18,7 +15,6 @@ import (
 	"github.com/amir20/dozzle/internal/notification/dispatcher"
 	"github.com/amir20/dozzle/types"
 	"github.com/rs/zerolog/log"
-	orderedmap "github.com/wk8/go-ordered-map/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -174,21 +170,24 @@ func (s *server) StreamRawBytes(in *pb.StreamRawBytesRequest, out pb.AgentServic
 	buf := make([]byte, 1024)
 	for {
 		n, err := reader.Read(buf)
-		if err != nil {
-			if err == io.EOF {
-				return nil
+		// A Read may return data and an error together; send the data first.
+		if n > 0 {
+			if sendErr := out.Send(&pb.StreamRawBytesResponse{
+				Data: buf[:n],
+			}); sendErr != nil {
+				return sendErr
 			}
+		}
+
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
 			return err
 		}
 
 		if n == 0 {
 			break
-		}
-
-		if err := out.Send(&pb.StreamRawBytesResponse{
-			Data: buf[:n],
-		}); err != nil {
-			return err
 		}
 	}
 
@@ -325,6 +324,23 @@ func (s *server) StreamContainerStarted(in *pb.StreamContainerStartedRequest, ou
 			return nil
 		}
 	}
+}
+
+func (s *server) PruneHost(ctx context.Context, in *pb.PruneHostRequest) (*pb.PruneHostResponse, error) {
+	pruner, ok := s.service.(container.HostPruner)
+	if !ok {
+		return nil, status.Error(codes.Unimplemented, "this host cannot prune")
+	}
+	result, err := pruner.PruneHost(ctx, container.PruneOptions{
+		Images:     in.Images,
+		Volumes:    in.Volumes,
+		Containers: in.Containers,
+		BuildCache: in.BuildCache,
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &pb.PruneHostResponse{SpaceReclaimed: result.SpaceReclaimed}, nil
 }
 
 func (s *server) ContainerAction(ctx context.Context, in *pb.ContainerActionRequest) (*pb.ContainerActionResponse, error) {
@@ -669,13 +685,13 @@ func logEventToPb(event *container.LogEvent) *pb.LogEvent {
 			Fragments: fragments,
 		})
 
-	case *orderedmap.OrderedMap[string, any]:
+	case container.Fields[any]:
 		message, _ = anypb.New(&pb.ComplexMessage{
-			Data: orderedMapToJSONBytes(data),
+			Data: fieldsToJSONBytes(data),
 		})
-	case *orderedmap.OrderedMap[string, string]:
+	case container.Fields[string]:
 		message, _ = anypb.New(&pb.ComplexMessage{
-			Data: orderedMapToJSONBytes(data),
+			Data: fieldsToJSONBytes(data),
 		})
 
 	default:
@@ -695,8 +711,7 @@ func logEventToPb(event *container.LogEvent) *pb.LogEvent {
 	}
 }
 
-func orderedMapToJSONBytes[T any](data *orderedmap.OrderedMap[string, T]) []byte {
-	bytes := bytes.Buffer{}
-	json.NewEncoder(&bytes).Encode(data)
-	return bytes.Bytes()
+func fieldsToJSONBytes[T any](data container.Fields[T]) []byte {
+	b, _ := data.MarshalJSON()
+	return b
 }

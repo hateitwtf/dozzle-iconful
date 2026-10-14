@@ -15,6 +15,16 @@ toolbar:
   restart: Reiniciar
   rollout-restart: "Reiniciar {kind}"
   rollout-restart-done: "{workload} está desplegando pods nuevos."
+  section-containers: "Contenedores"
+  restart-all: "Reiniciar todos"
+  stop-all: "Detener todos"
+  start-all: "Iniciar todos"
+  bulk-confirm-restart: "¿Reiniciar 1 contenedor? | ¿Reiniciar {count} contenedores?"
+  bulk-confirm-stop: "¿Detener 1 contenedor? | ¿Detener {count} contenedores?"
+  bulk-confirm-start: "¿Iniciar 1 contenedor? | ¿Iniciar {count} contenedores?"
+  bulk-self-skipped: "Se omite el contenedor de Dozzle."
+  bulk-more: "y {count} más"
+  bulk-failed: "No se completó para {names}"
   update: Actualizar
   update-service: Actualizar Servicio
   update-pulling: Descargando última imagen...
@@ -122,6 +132,7 @@ label:
   cpu: CPU
   core: Sin núcleos | 1 núcleo | {count} núcleos
   disk: Disco
+  network: Red
   reclaimable: Recuperable
   unused-images: "Imágenes sin usar"
   unused-volumes: "Volúmenes sin usar"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: Desanclar columna
   merge-stream: Combinar en el flujo
   merge-stream-hint: Abre un contenedor para combinarlo
-  merge-stream-other-host: "Solo se pueden combinar contenedores del mismo host"
   unmerge-stream: Quitar del flujo
   merge-all: Fusionar todo en un flujo
   network-io: "Red: ↑ {tx}/s · ↓ {rx}/s"
@@ -333,6 +343,8 @@ cloud-search:
   no-matches: "Ningún contenedor o comando coincide"
   nav-hint: "navegar"
   pin-shortcut: "anclar columna"
+  merge-shortcut: "fusionar en el flujo"
+  unmerge-shortcut: "quitar del flujo"
   search-logs-for: 'Buscar logs por "{query}"'
   across-containers: "indexados en todos tus contenedores"
   connect-to-enable: "Conecta Dozzle Cloud para buscar logs"
@@ -491,6 +503,9 @@ analytics:
   example_all: Todos los registros
   example_count: Número de filas
   example_group: Conteo por {column}
+  example_by_container: Por contenedor
+  include_previous: "Incluir 1 contenedor anterior | Incluir {count} contenedores anteriores"
+  containers_count: "{count} contenedores"
   export: Exportar
   export_csv: Descargar CSV
   export_json: Descargar JSON
@@ -502,6 +517,7 @@ analytics:
   max: Máx
   p50: P50
   p95: P95
+  distribution_of: "Distribución de {column}"
   rows: 1 fila | {count} filas
 updates:
   title: Actualizaciones
@@ -1137,3 +1153,17 @@ inspect:
   hide-value: "Ocultar valor"
   env-hidden: "Los valores están ocultos. Leerlos requiere acceso a la shell."
   load-failed: "No se pudieron cargar los detalles del contenedor."
+reclaim:
+  clean-up: "Limpiar"
+  free-up: "Liberar {size}"
+  confirm-title: "¿Liberar {size} en {host}?"
+  cannot-undo: "Esto no se puede deshacer."
+  images-repull: "Un stack detenido vuelve a descargar sus imágenes en su próximo inicio."
+  volumes-warning: "1 volumen guarda datos que ningún contenedor usa ahora mismo. Borrarlo elimina esos datos, como una base de datos cuyo contenedor se eliminó. | {count} volúmenes guardan datos que ningún contenedor usa ahora mismo. Borrarlos elimina esos datos, como una base de datos cuyo contenedor se eliminó."
+  volumes-confirm: "Lo entiendo, borrar los volúmenes"
+  delete: "Borrar"
+  deleting: "Liberando {size}…"
+  freed: "{size} liberados"
+  failed: "La limpieza falló"
+  agent-too-old: "Este agente aún no puede limpiar. Actualízalo a la última versión."
+  enable-actions: "Activa las acciones de contenedor para limpiar desde aquí."

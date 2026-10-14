@@ -15,6 +15,16 @@ toolbar:
   restart: Neustarten
   rollout-restart: "{kind} neu starten"
   rollout-restart-done: "{workload} rollt neue Pods aus."
+  section-containers: "Container"
+  restart-all: "Alle neu starten"
+  stop-all: "Alle stoppen"
+  start-all: "Alle starten"
+  bulk-confirm-restart: "1 Container neu starten? | {count} Container neu starten?"
+  bulk-confirm-stop: "1 Container stoppen? | {count} Container stoppen?"
+  bulk-confirm-start: "1 Container starten? | {count} Container starten?"
+  bulk-self-skipped: "Dozzles eigener Container wird übersprungen."
+  bulk-more: "und {count} weitere"
+  bulk-failed: "Nicht abgeschlossen für {names}"
   update: Aktualisieren
   update-service: Service Aktualisieren
   update-pulling: Neuestes Image wird geladen...
@@ -122,6 +132,7 @@ label:
   cpu: CPU
   core: Keine Kerne | 1 Kern | {count} Kerne
   disk: Datenträger
+  network: Netzwerk
   reclaimable: Freigebbar
   unused-images: "Ungenutzte Images"
   unused-volumes: "Ungenutzte Volumes"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: Spalte lösen
   merge-stream: In den Stream einfügen
   merge-stream-hint: Zum Zusammenführen zuerst einen Container öffnen
-  merge-stream-other-host: "Nur Container auf demselben Host lassen sich zusammenführen"
   unmerge-stream: Aus dem Stream entfernen
   merge-all: Alles in einen Stream zusammenführen
   network-io: "Netzwerk: ↑ {tx}/s · ↓ {rx}/s"
@@ -369,6 +379,9 @@ analytics:
   example_all: Alle Logs
   example_count: Anzahl Zeilen
   example_group: Anzahl nach {column}
+  example_by_container: Nach Container
+  include_previous: "1 älteren Container einbeziehen | {count} ältere Container einbeziehen"
+  containers_count: "{count} Container"
   export: Exportieren
   export_csv: CSV herunterladen
   export_json: JSON herunterladen
@@ -380,6 +393,7 @@ analytics:
   max: Max
   p50: P50
   p95: P95
+  distribution_of: "Verteilung von {column}"
   rows: 1 Zeile | {count} Zeilen
 updates:
   title: Updates
@@ -806,6 +820,8 @@ cloud-search:
   no-matches: "Keine Container oder Befehle gefunden"
   nav-hint: "navigieren"
   pin-shortcut: "Spalte anheften"
+  merge-shortcut: "in Stream zusammenführen"
+  unmerge-shortcut: "aus Stream entfernen"
   search-logs-for: 'Logs durchsuchen nach "{query}"'
   across-containers: "indexiert über alle deine Container"
   connect-to-enable: "Dozzle Cloud verbinden, um Logs zu durchsuchen"
@@ -1137,3 +1153,17 @@ inspect:
   hide-value: "Wert ausblenden"
   env-hidden: "Werte sind ausgeblendet. Zum Lesen ist Shell-Zugriff nötig."
   load-failed: "Container-Details konnten nicht geladen werden."
+reclaim:
+  clean-up: "Aufräumen"
+  free-up: "{size} freigeben"
+  confirm-title: "{size} auf {host} freigeben?"
+  cannot-undo: "Das lässt sich nicht rückgängig machen."
+  images-repull: "Ein gestoppter Stack lädt seine Images beim nächsten Start erneut herunter."
+  volumes-warning: "1 Volume enthält Daten, die gerade kein Container nutzt. Beim Löschen gehen diese Daten verloren, etwa eine Datenbank, deren Container entfernt wurde. | {count} Volumes enthalten Daten, die gerade kein Container nutzt. Beim Löschen gehen diese Daten verloren, etwa eine Datenbank, deren Container entfernt wurde."
+  volumes-confirm: "Verstanden, Volumes löschen"
+  delete: "Löschen"
+  deleting: "{size} werden freigegeben…"
+  freed: "{size} freigegeben"
+  failed: "Aufräumen fehlgeschlagen"
+  agent-too-old: "Dieser Agent kann noch nicht aufräumen. Aktualisieren Sie ihn auf die neueste Version."
+  enable-actions: "Aktiviere Container-Aktionen, um hier aufzuräumen."

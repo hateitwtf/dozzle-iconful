@@ -15,7 +15,6 @@ import (
 	"github.com/amir20/dozzle/internal/notification/dispatcher"
 	"github.com/amir20/dozzle/types"
 	"github.com/rs/zerolog/log"
-	lop "github.com/samber/lo/parallel"
 )
 
 type HostUnavailableError struct {
@@ -76,6 +75,34 @@ func (m *MultiHostService) FindContainer(host string, id string, labels containe
 	return container.NewContainerService(client, c), nil
 }
 
+// ErrHostNotFound is a host id no client answers to.
+var ErrHostNotFound = errors.New("host not found")
+
+// PruneHost deletes what opts picks on one host, and returns what that host can
+// still reclaim, measured after the prune. A host that cannot prune (k8s)
+// returns errors.ErrUnsupported, and so does an agent too old to know the call.
+func (m *MultiHostService) PruneHost(ctx context.Context, host string, opts container.PruneOptions) (container.PruneResult, *container.Reclaimable, error) {
+	client, ok := m.manager.Find(host)
+	if !ok {
+		return container.PruneResult{}, nil, fmt.Errorf("%w: %s", ErrHostNotFound, host)
+	}
+	pruner, ok := client.(container.HostPruner)
+	if !ok {
+		return container.PruneResult{}, nil, errors.ErrUnsupported
+	}
+	result, err := pruner.PruneHost(ctx, opts)
+	if err != nil {
+		return result, nil, err
+	}
+	h, err := client.Host(ctx)
+	if err != nil {
+		// the prune went through; only the new numbers are missing
+		log.Warn().Err(err).Str("host", host).Msg("could not read reclaimable space after pruning")
+		return result, nil, nil
+	}
+	return result, h.Reclaimable, nil
+}
+
 func (m *MultiHostService) ListContainersForHost(host string, labels container.ContainerLabels) ([]container.Container, error) {
 	client, ok := m.manager.Find(host)
 	if !ok {
@@ -95,20 +122,26 @@ func (m *MultiHostService) ListAllContainers(labels container.ContainerLabels) (
 		err        error
 	}
 
-	results := lop.Map(clients, func(client container.ClientService, _ int) result {
-		ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
-		defer cancel()
+	results := make([]result, len(clients))
+	var wg sync.WaitGroup
+	for i, client := range clients {
+		wg.Go(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
+			defer cancel()
 
-		list, err := client.ListContainers(ctx, labels)
-		if err != nil {
-			host, _ := client.Host(ctx)
-			log.Debug().Err(err).Str("host", host.Name).Msg("error listing containers")
-			host.Available = false
-			return result{nil, &HostUnavailableError{Host: host, Err: err}}
-		}
+			list, err := client.ListContainers(ctx, labels)
+			if err != nil {
+				host, _ := client.Host(ctx)
+				log.Debug().Err(err).Str("host", host.Name).Msg("error listing containers")
+				host.Available = false
+				results[i] = result{nil, &HostUnavailableError{Host: host, Err: err}}
+				return
+			}
 
-		return result{list, nil}
-	})
+			results[i] = result{list, nil}
+		})
+	}
+	wg.Wait()
 
 	containers := make([]container.Container, 0)
 	for _, r := range results {
@@ -713,16 +746,21 @@ func (m *MultiHostService) FetchAgentNotificationStats() map[int]types.Subscript
 	}
 
 	// Fetch stats from all agents in parallel
-	allStats := lop.Map(providers, func(provider NotificationStatsProvider, _ int) []types.SubscriptionStats {
-		ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
-		defer cancel()
-		stats, err := provider.GetNotificationStats(ctx)
-		if err != nil {
-			log.Debug().Err(err).Msg("Failed to fetch notification stats from agent")
-			return nil
-		}
-		return stats
-	})
+	allStats := make([][]types.SubscriptionStats, len(providers))
+	var wg sync.WaitGroup
+	for i, provider := range providers {
+		wg.Go(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
+			defer cancel()
+			stats, err := provider.GetNotificationStats(ctx)
+			if err != nil {
+				log.Debug().Err(err).Msg("Failed to fetch notification stats from agent")
+				return
+			}
+			allStats[i] = stats
+		})
+	}
+	wg.Wait()
 
 	// Aggregate sequentially
 	aggregated := make(map[int]types.SubscriptionStats)

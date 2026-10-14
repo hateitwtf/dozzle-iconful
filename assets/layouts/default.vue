@@ -16,7 +16,7 @@
               <router-view></router-view>
             </Pane>
             <template v-if="!isMobile">
-              <Pane v-for="other in pinnedLogs" :key="other.id">
+              <Pane v-for="other in visiblePinnedLogs" :key="other.id">
                 <ContainerLog
                   :id="other.id"
                   show-title
@@ -42,7 +42,7 @@
   <CloudRail v-if="railMounted" />
   <CloudRailHandle v-else-if="railCollapsed" />
   <dialog ref="modal" class="modal bg-base-300/50! items-start backdrop-blur-md transition-none!" @close="closeSearch">
-    <div class="modal-box max-w-2xl overflow-visible! bg-transparent pt-20 shadow-none">
+    <div class="modal-box max-w-3xl overflow-visible! bg-transparent pt-20 shadow-none">
       <FuzzySearchModal @close="closeSearch" v-if="open" />
     </div>
     <form method="dialog" class="modal-backdrop">
@@ -66,7 +66,7 @@ import SideDrawer from "@/components/shell/SideDrawer.vue";
 
 usePinnedColumnsInUrl();
 const pinnedLogsStore = usePinnedLogsStore();
-const { pinnedLogs } = storeToRefs(pinnedLogsStore);
+const visiblePinnedLogs = useVisiblePinnedLogs();
 
 const drawer = useTemplateRef<InstanceType<typeof SideDrawer>>("drawer") as Ref<InstanceType<typeof SideDrawer>>;
 const {
@@ -83,7 +83,14 @@ const FuzzySearchModal = defineAsyncComponent(() => import("@/components/search/
 // Only rendered for pinned columns; the route's own view imports it when it needs it.
 const ContainerLog = defineAsyncComponent(() => import("@/components/views/ContainerLog.vue"));
 
-const { railOffset, mounted: railMounted, collapsed: railCollapsed, toggleRail } = useCloudRail();
+const {
+  railOffset,
+  mounted: railMounted,
+  collapsed: railCollapsed,
+  available: railAvailable,
+  toggleRail,
+  openRail,
+} = useCloudRail();
 
 const modal = ref<HTMLDialogElement>();
 const { open, openSearch: showFuzzySearch, closeSearch } = useFuzzySearch();
@@ -130,6 +137,9 @@ onKeyStroke(["k", "K"], (e) => {
     e.preventDefault();
   }
 });
+// The bare letter the log toolbars hint at, here for the same reason. Only where
+// the rail can show, so a page without one never has it un-hidden behind its back.
+useLetterShortcut(".", () => openRail("chat"), railAvailable);
 
 // splitpanes also emits `resized` for its own relayouts (the collapse toggle
 // adding/removing the nav pane, a remount). Those carry neither `event` nor

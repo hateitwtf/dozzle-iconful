@@ -1,18 +1,8 @@
 <template>
-  <Popover
-    hover
-    sheet
-    placement="bottom-end"
-    panel-class="rounded-box bg-base-200 border-base-content/10 w-max min-w-60 border p-1.5 shadow-lg"
-  >
+  <Popover hover sheet placement="bottom-end" panel-class="log-menu-panel">
     <template #trigger>
-      <button
-        type="button"
-        class="icon-btn btn btn-ghost btn-sm relative w-8 gap-0 px-0 md:gap-0.5"
-        data-testid="log-actions"
-      >
-        <carbon:circle-solid class="text-red w-2 md:w-2.5" v-if="streamConfig.stderr" />
-        <carbon:circle-solid class="text-blue w-2 md:w-2.5" v-if="streamConfig.stdout" />
+      <button type="button" class="icon-btn btn btn-ghost btn-sm relative w-8 px-0" data-testid="log-actions">
+        <mdi:dots-vertical class="size-4" />
         <span
           v-if="showImageUpdateAlert"
           class="absolute end-0.5 top-0.5 flex size-1.5"
@@ -29,7 +19,7 @@
         ></span>
       </button>
     </template>
-    <ul class="menu w-full p-0">
+    <ul class="menu log-menu w-full p-0">
       <li class="section" v-if="!historical || hasComplexLogs">{{ $t("toolbar.section-logs") }}</li>
       <li v-if="!historical">
         <a @click="showSearch = true">
@@ -44,6 +34,7 @@
           <ph:map-pin-simple-fill v-if="pinned" class="text-secondary" />
           <ph:map-pin-simple v-else />
           {{ pinned ? $t("toolbar.unpin") : $t("toolbar.pin") }}
+          <KeyShortcut v-if="isMainView" char="p" :modifiers="[]" />
         </a>
       </li>
       <li v-if="!historical">
@@ -53,9 +44,9 @@
         </a>
       </li>
       <li v-if="hasComplexLogs">
-        <a @click="showDrawer(LogAnalytics, { container }, 'lg')">
+        <a @click="openAnalytics()">
           <ph:file-sql /> {{ $t("analytics.title") }}
-          <KeyShortcut char="f" :modifiers="['shift', 'meta']" />
+          <KeyShortcut v-if="isMainView" char="s" :modifiers="[]" />
         </a>
       </li>
       <!-- A phone has no rail strip, so this one row is the way into all three
@@ -70,125 +61,20 @@
       <li v-else-if="cloudLinked">
         <a @click="openRail('chat')">
           <mdi:message-outline /> {{ $t("cloud-chat.title") }}
-          <KeyShortcut char="k" :modifiers="['shift', 'meta']" />
+          <KeyShortcut v-if="isMainView" char="." :modifiers="[]" />
         </a>
       </li>
-      <li class="section">{{ $t("toolbar.section-filters") }}</li>
-      <!-- A phone has no room for the time chip in the title bar, so it lives here. -->
-      <li v-if="isMobile && !historical">
-        <details>
-          <summary>
-            <mdi:clock-outline />
-            {{ $t("time-range.title") }}
-            <span class="value">{{ timeLabel }}</span>
-          </summary>
-          <ul class="menu">
-            <li v-for="row in timeRows" :key="row.key">
-              <a @click="row.run()">
-                <mdi:check class="w-4" v-if="row.active" />
-                <div v-else class="w-4"></div>
-                {{ row.label }}
-              </a>
-            </li>
-            <li>
-              <a @click="customRange()">
-                <mdi:calendar-range class="w-4" />
-                {{ $t("time-range.custom") }}…
-              </a>
-            </li>
-          </ul>
-        </details>
-      </li>
-      <li>
-        <details>
-          <summary>
-            <div class="flex w-4 items-center gap-0.5">
-              <carbon:circle-solid class="size-2" :class="streamConfig.stderr ? 'text-red' : 'opacity-20'" />
-              <carbon:circle-solid class="size-2" :class="streamConfig.stdout ? 'text-blue' : 'opacity-20'" />
-            </div>
-            {{ $t("toolbar.streams") }}
-            <span class="value">{{ streamSummary }}</span>
-          </summary>
-          <ul class="menu">
-            <li>
-              <a
-                @click="
-                  streamConfig.stdout = true;
-                  streamConfig.stderr = true;
-                "
-              >
-                <mdi:check class="w-4" v-if="streamConfig.stdout == true && streamConfig.stderr == true" />
-                <div v-else class="w-4"></div>
-                {{ $t("toolbar.show-all") }}
-              </a>
-            </li>
-            <li>
-              <a
-                @click="
-                  streamConfig.stdout = true;
-                  streamConfig.stderr = false;
-                "
-              >
-                <mdi:check class="w-4" v-if="streamConfig.stdout == true && streamConfig.stderr == false" />
-                <div v-else class="w-4"></div>
-                {{ $t("toolbar.show", { std: "STDOUT" }) }}
-              </a>
-            </li>
-            <li>
-              <a
-                @click="
-                  streamConfig.stdout = false;
-                  streamConfig.stderr = true;
-                "
-              >
-                <mdi:check class="w-4" v-if="streamConfig.stdout == false && streamConfig.stderr == true" />
-                <div v-else class="w-4"></div>
-                {{ $t("toolbar.show", { std: "STDERR" }) }}
-              </a>
-            </li>
-          </ul>
-        </details>
-      </li>
-      <li>
-        <details class="group/details">
-          <summary>
-            <mdi:gauge />
-            {{ $t("toolbar.levels") }}
-            <span class="value group-open/details:hidden">{{ levelSummary }}</span>
-            <Toggle
-              class="toggle-xs hidden group-open/details:inline-flex"
-              v-model="toggleAllLevels"
-              :title="$t('toolbar.toggle-all-levels')"
-            />
-          </summary>
-          <ul class="menu">
-            <li v-for="level in allLevels">
-              <a class="capitalize" @click="levels.has(level) ? levels.delete(level) : levels.add(level)">
-                <mdi:check class="w-4" v-if="levels.has(level)" />
-                <div v-else class="w-4"></div>
+      <!-- The filter chip in the title bar carries these where it fits; a phone and a
+           pinned column have no room for it, so they land here instead. Time is phone
+           only: a range is a route, and a pinned column picking one would move the
+           main view instead. -->
+      <template v-if="filters">
+        <li class="section">{{ $t("toolbar.section-filters") }}</li>
+        <LogTimeRows v-if="!historical && isMobile" nested :container :range="timeRange" />
+        <LogFilterRows />
+      </template>
 
-                <div class="flex">
-                  <div class="badge" :data-level="level">{{ level }}</div>
-                </div>
-              </a>
-            </li>
-          </ul>
-        </details>
-      </li>
-
-      <li class="section">{{ $t("toolbar.section-export") }}</li>
-      <li v-if="enableDownload">
-        <a :href="downloadUrl" download>
-          <octicon:download-24 />
-          {{ isFiltered ? $t("toolbar.download-filtered") : $t("toolbar.download") }}
-        </a>
-      </li>
-      <li>
-        <a @click="copyLogs()">
-          <mdi:content-copy />
-          {{ isFiltered ? $t("toolbar.copy-filtered-logs") : $t("toolbar.copy-logs") }}
-        </a>
-      </li>
+      <LogExportRows :containers="[container]" :name="container.name" :shortcuts="isMainView" />
       <li>
         <a @click="copyPermalink()">
           <material-symbols:link />
@@ -201,6 +87,7 @@
       <li v-if="!historical">
         <a @click="showDrawer(ContainerInspect, { container })">
           <mdi:information-outline /> {{ $t("toolbar.inspect") }}
+          <KeyShortcut v-if="isMainView" char="i" :modifiers="[]" />
         </a>
       </li>
       <template v-if="enableActions && !historical">
@@ -246,14 +133,14 @@
           <a @click="showDrawer(Terminal, { container, action: 'attach' }, 'lg')">
             <ri:terminal-window-fill />
             {{ $t("toolbar.attach") }}
-            <KeyShortcut char="a" :modifiers="['shift', 'meta']" />
+            <KeyShortcut v-if="isMainView" char="a" :modifiers="[]" />
           </a>
         </li>
         <li>
           <a @click="showDrawer(Terminal, { container, action: 'exec' }, 'lg')">
             <material-symbols:terminal />
             {{ $t("toolbar.shell") }}
-            <KeyShortcut char="e" :modifiers="['shift', 'meta']" />
+            <KeyShortcut v-if="isMainView" char="e" :modifiers="[]" />
           </a>
         </li>
       </template>
@@ -310,8 +197,6 @@
 
 <script lang="ts" setup>
 import { Container, powerAction } from "@/models/Container";
-import { allLevels } from "@/composable/logs/logContext";
-import { appendRangeParams } from "@/composable/logs/timeRange";
 // Drawer-only, and it drags in apache-arrow; loading it eagerly put both on every log view.
 const LogAnalytics = defineAsyncComponent(() => import("@/components/logs/LogAnalytics.vue"));
 import Terminal from "./Terminal.vue";
@@ -321,20 +206,22 @@ const { showSearch } = useSearchFilter();
 const { linked: cloudLinked } = useCloudSurface();
 const { openRail, openCloud } = useCloudRail();
 const { unseen: unseenAlerts } = useViewAlerts();
-const { enableActions, enableShell, enableDownload } = config;
-const { streamConfig, hasComplexLogs, levels, timeRange } = useLoggingContext();
-const {
-  rows: timeRows,
-  label: timeLabel,
-  custom: customRange,
-} = useTimeRangeMenu(
-  () => container,
-  () => timeRange.value,
-);
+const { enableActions, enableShell } = config;
+const { hasComplexLogs, timeRange } = useLoggingContext();
 const showDrawer = useDrawer();
 
-const { container, historical = false } = defineProps<{ container: Container; historical?: boolean }>();
-const clear = defineEmit();
+const {
+  container,
+  historical = false,
+  filters = false,
+} = defineProps<{
+  container: Container;
+  historical?: boolean;
+  /** Carry the time, stream and level rows, for where the filter chip is not shown. */
+  filters?: boolean;
+}>();
+const emit = defineEmits<{ clear: [] }>();
+const clear = () => emit("clear");
 const { actionStates, start, stop, restart, update } = useContainerActions(toRef(() => container));
 const canStartStop = config.mode !== "k8s";
 const workload = computed(() => containerWorkload(container));
@@ -368,9 +255,7 @@ const { latestRelease } = useAnnouncements();
 const releaseNotesUrl = computed(() => latestRelease.value?.htmlUrl ?? "https://github.com/amir20/dozzle/releases");
 
 const router = useRouter();
-const { copy, copyLazy } = useCopy();
-const { t } = useI18n();
-const { showToast, removeToast } = useToast();
+const { copy } = useCopy();
 
 async function copyPermalink() {
   const url = router.resolve({
@@ -385,100 +270,44 @@ async function copyImageReference() {
   await copy(container.image, { message: escapeHtml(container.image) });
 }
 
-async function copyLogs() {
-  const params = new URLSearchParams();
-  if (streamConfig.value.stdout) params.append("stdout", "1");
-  if (streamConfig.value.stderr) params.append("stderr", "1");
-  params.append("everything", "1");
-  appendRangeParams(params, timeRange.value);
+// A pinned column mounts its own toolbar; only the page's acts on a key, or one press
+// would open a drawer per column.
+const isMainView = isViewContextOwner();
+const canShell = isMainView && enableShell && !historical;
+const openAnalytics = () => showDrawer(LogAnalytics, { containers: [container] }, "lg");
+const openTerminal = (action: "attach" | "exec") => showDrawer(Terminal, { container, action }, "lg");
 
-  const { appliedSearchFilter } = useSearchFilter();
-  if (appliedSearchFilter.value) {
-    params.append("filter", appliedSearchFilter.value);
+useLetterShortcut("s", openAnalytics, () => isMainView && hasComplexLogs.value);
+useLetterShortcut("i", () => showDrawer(ContainerInspect, { container }), isMainView && !historical);
+useLetterShortcut("p", () => (pinned.value = !pinned.value), isMainView);
+useLetterShortcut("a", () => openTerminal("attach"), canShell);
+useLetterShortcut("e", () => openTerminal("exec"), canShell);
+
+// The chords the letters replaced, kept working for one release.
+const legacyChord = (enabled: () => boolean, run: () => void) => (e: KeyboardEvent) => {
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && enabled()) {
+    run();
+    e.preventDefault();
   }
-
-  const selectedLevels = Array.from(levels.value);
-  if (selectedLevels.length > 0 && selectedLevels.length < allLevels.length) {
-    selectedLevels.forEach((level) => params.append("levels", level));
-  }
-
-  const url = withBase(`/api/hosts/${container.host}/containers/${container.id}/logs?${params.toString()}`);
-
-  const toastId = "copy-logs";
-  showToast(
-    {
-      id: toastId,
-      title: t("toolbar.copying-logs"),
-      message: "",
-      type: "info",
-    },
-    { once: true },
-  );
-
-  // The success toast belongs to the copy, not to the download: on http the
-  // clipboard is out of reach, and the logs arriving is not the same as them
-  // landing somewhere the user can paste. A failed download has already been
-  // reported by then, so it is swallowed here.
-  await copyLazy(
-    () =>
-      fetch(url, { headers: { Accept: "text/plain" } })
-        .then((response) => {
-          if (!response.ok) throw new Error(response.statusText);
-          return response.text();
-        })
-        .then((text) => {
-          removeToast(toastId);
-          return text;
-        })
-        .catch((err) => {
-          removeToast(toastId);
-          showToast(
-            {
-              title: "Error",
-              message: escapeHtml(err.message),
-              type: "error",
-            },
-            { expire: 5000 },
-          );
-          throw err;
-        }),
-    // A browser only allows the fallback copy for a few seconds after the click,
-    // which a long download can outlast, so the notice offers the same content as
-    // a file rather than dead-ending.
-    { action: enableDownload ? { label: t("toolbar.download"), handler: downloadLogs } : undefined },
-  ).catch(() => {});
-}
-
-function downloadLogs() {
-  const link = document.createElement("a");
-  link.href = downloadUrl.value;
-  link.download = "";
-  link.click();
-}
-
-onKeyStroke(["f", "F"], (e) => {
-  if (hasComplexLogs.value) {
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
-      showDrawer(LogAnalytics, { container }, "lg");
-      e.preventDefault();
-    }
-  }
-});
-if (enableShell) {
-  onKeyStroke(["a", "A"], (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
-      showDrawer(Terminal, { container, action: "attach" }, "lg");
-      e.preventDefault();
-    }
-  });
-
-  onKeyStroke(["e", "E"], (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
-      showDrawer(Terminal, { container, action: "exec" }, "lg");
-      e.preventDefault();
-    }
-  });
-}
+};
+onKeyStroke(
+  ["f", "F"],
+  legacyChord(() => isMainView && hasComplexLogs.value, openAnalytics),
+);
+onKeyStroke(
+  ["a", "A"],
+  legacyChord(
+    () => canShell,
+    () => openTerminal("attach"),
+  ),
+);
+onKeyStroke(
+  ["e", "E"],
+  legacyChord(
+    () => canShell,
+    () => openTerminal("exec"),
+  ),
+);
 
 const pinned = computed({
   get: () => pinnedContainers.value.has(container.name),
@@ -491,103 +320,7 @@ const pinned = computed({
   },
 });
 
-const containerRef = computed(() => [container]);
-const { downloadUrl, isFiltered } = useDownloadUrl(
-  containerRef,
-  streamConfig,
-  levels,
-  toRef(() => container.name),
-);
-
 // Nothing to act on once the container is deleted, and Docker will not start a paused one.
 const power = computed(() => powerAction(container));
 const disableRestart = computed(() => actionStates.stop || actionStates.start || actionStates.restart);
-
-// Collapsed submenus say what they are currently set to, so the menu answers
-// "what am I looking at?" without being opened.
-const streamSummary = computed(() => {
-  if (streamConfig.value.stdout && streamConfig.value.stderr) return t("toolbar.all");
-  if (streamConfig.value.stdout) return "STDOUT";
-  if (streamConfig.value.stderr) return "STDERR";
-  return t("toolbar.none");
-});
-
-const levelSummary = computed(() =>
-  levels.value.size === allLevels.length ? t("toolbar.all") : `${levels.value.size}/${allLevels.length}`,
-);
-
-const toggleAllLevels = computed({
-  get: () => levels.value.size === allLevels.length,
-  set: (value) => {
-    if (value) {
-      allLevels.forEach((level) => levels.value.add(level));
-    } else {
-      levels.value.clear();
-    }
-  },
-});
 </script>
-
-<style scoped>
-@reference "@/main.css";
-
-/* Section headers replace the old hairline dividers: they separate and label at
- * the same time. The first one has nothing above it to divide from. */
-li.section {
-  @apply text-base-content/40 border-base-content/10 mt-1.5 border-t px-2 pt-2 pb-1 text-[10px] font-semibold tracking-wider uppercase;
-}
-
-/* Same specificity as li.section, declared after it, so the accent wins. */
-li.section.warn {
-  @apply text-warning/90;
-}
-
-/* daisyUI pads every direct child of a menu li as if it were a clickable row,
- * which squeezes the status dot and spinner in these headers down to nothing. */
-li.section > * {
-  @apply p-0;
-}
-
-li.section:first-child {
-  @apply mt-0 border-t-0 pt-1;
-}
-
-a,
-button,
-summary {
-  @apply whitespace-nowrap;
-}
-
-/* One icon size for every row, so labels line up on a single text column. */
-.menu > li > :where(a, button, summary) > svg {
-  @apply size-4 shrink-0 opacity-70;
-}
-
-/* The collapsed-state value sits in the trailing grid column daisyUI reserves,
- * next to (not on top of) the disclosure chevron. */
-.value {
-  @apply text-base-content/40 text-xs tabular-nums;
-}
-
-/* daisyUI's .menu is width: fit-content, so nested submenus (Streams, Levels)
- * shrink to their content and the hover highlight stops short. Stretch them to
- * fill the dropdown so the row highlight spans the full width. */
-.menu li ul {
-  margin-inline-start: 0;
-  width: 100%;
-  &:before {
-    display: none;
-  }
-}
-
-/* Keep the solid level colors, but use white labels in the light theme so the
- * text reads against the saturated chip backgrounds. warn is a light orange,
- * where dark text has better contrast than white, so it keeps the default. */
-[data-theme="light"] .badge[data-level="info"],
-[data-theme="light"] .badge[data-level="debug"],
-[data-theme="light"] .badge[data-level="trace"],
-[data-theme="light"] .badge[data-level="error"],
-[data-theme="light"] .badge[data-level="fatal"] {
-  color: oklch(100% 0 0) !important;
-}
-</style>

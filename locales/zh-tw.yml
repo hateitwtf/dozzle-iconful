@@ -15,6 +15,16 @@ toolbar:
   restart: 重新啟動
   rollout-restart: "重新啟動 {kind}"
   rollout-restart-done: "{workload} 正在滾動部署新的 Pod。"
+  section-containers: "容器"
+  restart-all: "全部重新啟動"
+  stop-all: "全部停止"
+  start-all: "全部啟動"
+  bulk-confirm-restart: "要重新啟動 1 個容器嗎？ | 要重新啟動 {count} 個容器嗎？"
+  bulk-confirm-stop: "要停止 1 個容器嗎？ | 要停止 {count} 個容器嗎？"
+  bulk-confirm-start: "要啟動 1 個容器嗎？ | 要啟動 {count} 個容器嗎？"
+  bulk-self-skipped: "會略過 Dozzle 本身的容器。"
+  bulk-more: "還有 {count} 個"
+  bulk-failed: "未完成：{names}"
   update: 更新
   update-service: 更新服務
   update-pulling: 正在拉取最新映像檔...
@@ -137,6 +147,7 @@ label:
   cpu: CPU
   core: 無核心 | 1 個核心 | {count} 個核心
   disk: 磁碟
+  network: 網路
   reclaimable: 可回收
   unused-images: "未使用的映像"
   unused-volumes: "未使用的磁碟區"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: 取消釘選欄位
   merge-stream: 合併到串流
   merge-stream-hint: 開啟一個容器以進行合併
-  merge-stream-other-host: "只能合併同一主機上的容器"
   unmerge-stream: 從串流移除
   merge-all: 將所有內容合併到一個流中
   network-io: "網路：↑ {tx}/s · ↓ {rx}/s"
@@ -371,6 +381,9 @@ analytics:
   example_all: 所有日誌
   example_count: 資料列數
   example_group: 依 {column} 計數
+  example_by_container: 依容器
+  include_previous: "包含 {count} 個較舊的容器"
+  containers_count: "{count} 個容器"
   export: 匯出
   export_csv: 下載 CSV
   export_json: 下載 JSON
@@ -382,6 +395,7 @@ analytics:
   max: 最大
   p50: P50
   p95: P95
+  distribution_of: "{column} 的分布"
   rows: 1 列 | {count} 列
 updates:
   title: 更新
@@ -808,6 +822,8 @@ cloud-search:
   no-matches: "沒有符合的容器或指令"
   nav-hint: "導覽"
   pin-shortcut: "釘選為欄位"
+  merge-shortcut: "合併到日誌串流"
+  unmerge-shortcut: "從日誌串流中移除"
   search-logs-for: '搜尋日誌 "{query}"'
   across-containers: "已在所有容器中建立索引"
   connect-to-enable: "連接 Dozzle Cloud 以搜尋日誌"
@@ -1139,3 +1155,17 @@ inspect:
   hide-value: "隱藏值"
   env-hidden: "值已隱藏。檢視需要 shell 權限。"
   load-failed: "無法載入容器詳細資料。"
+reclaim:
+  clean-up: "清理"
+  free-up: "釋放 {size}"
+  confirm-title: "要在 {host} 上釋放 {size} 嗎？"
+  cannot-undo: "此操作無法復原。"
+  images-repull: "已停止的 stack 下次啟動時會重新拉取映像。"
+  volumes-warning: "有 1 個磁碟區存放著目前沒有容器使用的資料。刪除後這些資料會消失，例如容器已被移除的資料庫。 | 有 {count} 個磁碟區存放著目前沒有容器使用的資料。刪除後這些資料會消失，例如容器已被移除的資料庫。"
+  volumes-confirm: "我了解，刪除磁碟區"
+  delete: "刪除"
+  deleting: "正在釋放 {size}…"
+  freed: "已釋放 {size}"
+  failed: "清理失敗"
+  agent-too-old: "此 agent 尚無法清理，請更新至最新版本。"
+  enable-actions: "啟用容器操作即可在此清理。"

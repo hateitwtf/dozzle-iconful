@@ -38,6 +38,16 @@ toolbar:
   restart: Ponovni zagon
   rollout-restart: "Znova zaženi {kind}"
   rollout-restart-done: "{workload} uvaja nove pode."
+  section-containers: "Zabojniki"
+  restart-all: "Ponovno zaženi vse"
+  stop-all: "Ustavi vse"
+  start-all: "Zaženi vse"
+  bulk-confirm-restart: "Ponovno zaženem zabojnike: 1? | Ponovno zaženem zabojnike: {count}?"
+  bulk-confirm-stop: "Ustavim zabojnike: 1? | Ustavim zabojnike: {count}?"
+  bulk-confirm-start: "Zaženem zabojnike: 1? | Zaženem zabojnike: {count}?"
+  bulk-self-skipped: "Dozzlov lastni zabojnik je preskočen."
+  bulk-more: "in še {count}"
+  bulk-failed: "Ni uspelo za {names}"
   update: Posodobi
   update-service: Posodobi Storitev
   update-pulling: Prenašanje najnovejše slike...
@@ -136,6 +146,7 @@ label:
   cpu: CPU
   core: Ni jeder | 1 jedro | {count} jeder
   disk: Disk
+  network: Omrežje
   reclaimable: Za sprostitev
   unused-images: "Neuporabljene slike"
   unused-volumes: "Neuporabljeni nosilci"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: Odpni stolpec
   merge-stream: Združi s tokom
   merge-stream-hint: Odprite vsebnik za združevanje
-  merge-stream-other-host: "Združiti je mogoče le vsebnike na istem gostitelju"
   unmerge-stream: Odstrani iz toka
   merge-all: Združi vse v en tok
   network-io: "Omrežje: ↑ {tx}/s · ↓ {rx}/s"
@@ -374,6 +384,9 @@ analytics:
   example_all: Vsi dnevniki
   example_count: Število vrstic
   example_group: Štetje po {column}
+  example_by_container: Po vsebnikih
+  include_previous: "Vključi starejše vsebnike ({count})"
+  containers_count: "Vsebniki: {count}"
   export: Izvozi
   export_csv: Prenesi CSV
   export_json: Prenesi JSON
@@ -385,6 +398,7 @@ analytics:
   max: Maks
   p50: P50
   p95: P95
+  distribution_of: "Porazdelitev {column}"
   rows: 1 vrstica | {count} vrstic
 updates:
   title: Posodobitve
@@ -811,6 +825,8 @@ cloud-search:
   no-matches: "Ni ujemajočih se vsebnikov ali ukazov"
   nav-hint: "krmarjenje"
   pin-shortcut: "pripni stolpec"
+  merge-shortcut: "združi v tok"
+  unmerge-shortcut: "odstrani iz toka"
   search-logs-for: 'Iskanje dnevnikov za "{query}"'
   across-containers: "indeksirano po vseh vaših vsebnikih"
   connect-to-enable: "Povežite Dozzle Cloud za iskanje po dnevnikih"
@@ -1142,3 +1158,17 @@ inspect:
   hide-value: "Skrij vrednost"
   env-hidden: "Vrednosti so skrite. Za branje je potreben dostop do lupine."
   load-failed: "Podrobnosti vsebnika ni bilo mogoče naložiti."
+reclaim:
+  clean-up: "Počisti"
+  free-up: "Sprosti {size}"
+  confirm-title: "Sprostim {size} na {host}?"
+  cannot-undo: "Tega ni mogoče razveljaviti."
+  images-repull: "Ustavljen sklad bo ob naslednjem zagonu znova prenesel svoje slike."
+  volumes-warning: "Nosilci (1) hranijo podatke, ki jih trenutno ne uporablja noben zabojnik. Brisanje izbriše te podatke, na primer bazo podatkov, katere zabojnik je bil odstranjen. | Nosilci ({count}) hranijo podatke, ki jih trenutno ne uporablja noben zabojnik. Brisanje izbriše te podatke, na primer bazo podatkov, katere zabojnik je bil odstranjen."
+  volumes-confirm: "Razumem, izbriši nosilce"
+  delete: "Izbriši"
+  deleting: "Sproščam {size}…"
+  freed: "Sproščeno {size}"
+  failed: "Čiščenje ni uspelo"
+  agent-too-old: "Ta agent še ne zna čistiti. Posodobite ga na najnovejšo različico."
+  enable-actions: "Omogočite dejanja vsebnikov, da lahko počistite od tukaj."

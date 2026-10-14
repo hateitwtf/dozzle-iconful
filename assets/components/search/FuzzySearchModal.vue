@@ -17,6 +17,8 @@
         @keydown.enter.exact.prevent="onEnter"
         @keydown.shift.enter.exact.prevent="runLogSearch"
         @keydown.alt.enter.exact.prevent="onPin"
+        @keydown.meta.enter.exact.prevent="onMerge"
+        @keydown.ctrl.enter.exact.prevent="onMerge"
         v-model="query"
         :placeholder="placeholderCopy"
       />
@@ -116,10 +118,24 @@
                     </span>
                   </div>
                   <RelativeTime :date="entry.item.created" class="text-base-content/40 shrink-0 text-xs" />
+                  <!-- Only offered where it would work: something is streaming. The
+                       sidebar popup explains the rest. -->
+                  <button
+                    v-if="entry.item.type === 'container' && canToggle(entry.item.id)"
+                    type="button"
+                    class="text-base-content/40 hover:text-secondary relative shrink-0 after:absolute after:-inset-2 after:content-['']"
+                    :class="{ 'text-secondary': isStreaming(entry.item.id) }"
+                    :title="toggleTitle(entry.item.id)"
+                    :aria-label="toggleTitle(entry.item.id)"
+                    :aria-pressed="isStreaming(entry.item.id)"
+                    @click.stop.prevent="mergeItem(entry.item)"
+                  >
+                    <ph:arrows-merge class="size-4" />
+                  </button>
                   <button
                     v-if="entry.item.type === 'container' && !isMobile"
                     type="button"
-                    class="text-base-content/40 hover:text-secondary shrink-0 cursor-pointer"
+                    class="text-base-content/40 hover:text-secondary relative shrink-0 after:absolute after:-inset-2 after:content-['']"
                     :title="$t('tooltip.pin-column')"
                     @click.stop.prevent="addColumn(entry.item)"
                   >
@@ -184,7 +200,7 @@
 
     <!-- Footer: what the keys do for the current selection, plus cloud status. -->
     <div
-      class="bg-base-300/40 border-base-content/10 text-base-content/50 flex items-center gap-3 border-t px-4 py-2 text-[11px]"
+      class="bg-base-300/40 border-base-content/10 text-base-content/50 flex items-center gap-4 border-t px-4 py-2 text-[11px] whitespace-nowrap"
     >
       <span v-if="flatEntries.length > 1" class="hidden items-center gap-1 sm:flex">
         <kbd class="kbd kbd-xs">↑</kbd><kbd class="kbd kbd-xs">↓</kbd>
@@ -193,9 +209,22 @@
       <span v-if="enterHint" class="hidden items-center gap-1 sm:flex">
         <kbd class="kbd kbd-xs">↵</kbd> <span class="ml-0.5">{{ enterHint }}</span>
       </span>
-      <span v-if="selectedEntry?.kind === 'container'" class="hidden items-center gap-1 sm:flex">
+      <!-- Pin and merge only apply to a container, not to a service or stack row. -->
+      <span v-if="selectedContainerItem" class="hidden items-center gap-1 md:flex">
         <kbd class="kbd kbd-xs">⌥</kbd><kbd class="kbd kbd-xs">↵</kbd>
         <span class="ml-0.5">{{ $t("cloud-search.pin-shortcut") }}</span>
+      </span>
+      <span
+        v-if="selectedContainerItem && canToggle(selectedContainerItem.id)"
+        class="hidden items-center gap-1 md:flex"
+      >
+        <kbd class="kbd kbd-xs">{{ isMac ? "⌘" : "Ctrl" }}</kbd
+        ><kbd class="kbd kbd-xs">↵</kbd>
+        <span class="ml-0.5">{{
+          isStreaming(selectedContainerItem.id)
+            ? $t("cloud-search.unmerge-shortcut")
+            : $t("cloud-search.merge-shortcut")
+        }}</span>
       </span>
 
       <!-- Cloud status. Skipped while the log search row is on screen, which
@@ -241,7 +270,8 @@ import { useCommands, type Command } from "@/composable/app/commands";
 
 trackUsage("palette.open");
 
-const close = defineEmit();
+const emit = defineEmits<{ close: [] }>();
+const close = () => emit("close");
 
 const { ask, openPane } = useCloudChat();
 const { linked: cloudLinked } = useCloudSurface();
@@ -549,11 +579,28 @@ function onEnter() {
   if (entry) activate(entry);
 }
 
-function onPin() {
-  // Alt+Enter pins a container column. Only meaningful when a container row is
-  // selected, not a command or the log search row.
+// Pin and merge are only meaningful on a container row, not a service, stack,
+// command or the log search row.
+const selectedContainerItem = computed(() => {
   const entry = selectedEntry.value;
-  if (entry?.kind === "container" && entry.item.type === "container") addColumn(entry.item);
+  return entry?.kind === "container" && entry.item.type === "container" ? entry.item : undefined;
+});
+
+function onPin() {
+  // Alt+Enter pins a container column.
+  if (selectedContainerItem.value) addColumn(selectedContainerItem.value);
+}
+
+// Cmd/Ctrl+Enter adds the container to the stream on screen, or takes it out.
+function onMerge() {
+  const item = selectedContainerItem.value;
+  if (item && canToggle(item.id)) mergeItem(item);
+}
+
+const { isStreaming, canToggle, toggleTitle, toggle: toggleMerge } = useStreamedContainers();
+function mergeItem(item: Item) {
+  toggleMerge(item.id);
+  close();
 }
 
 // The palette is already a text box the user typed a question into, so this

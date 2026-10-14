@@ -15,6 +15,16 @@ toolbar:
   restart: Mulai ulang
   rollout-restart: "Mulai ulang {kind}"
   rollout-restart-done: "{workload} sedang meluncurkan pod baru."
+  section-containers: "Kontainer"
+  restart-all: "Mulai ulang semua"
+  stop-all: "Hentikan semua"
+  start-all: "Mulai semua"
+  bulk-confirm-restart: "Mulai ulang 1 kontainer? | Mulai ulang {count} kontainer?"
+  bulk-confirm-stop: "Hentikan 1 kontainer? | Hentikan {count} kontainer?"
+  bulk-confirm-start: "Mulai 1 kontainer? | Mulai {count} kontainer?"
+  bulk-self-skipped: "Kontainer Dozzle sendiri dilewati."
+  bulk-more: "dan {count} lainnya"
+  bulk-failed: "Gagal untuk {names}"
   update: Perbarui
   update-service: Perbarui Layanan
   update-pulling: Mengunduh image terbaru...
@@ -123,6 +133,7 @@ label:
   cpu: CPU
   core: Tidak ada inti | 1 inti | {count} inti
   disk: Disk
+  network: Jaringan
   reclaimable: Dapat dibebaskan
   unused-images: "Image tidak terpakai"
   unused-volumes: "Volume tidak terpakai"
@@ -164,7 +175,6 @@ tooltip:
   unpin-column: Lepas sematan kolom
   merge-stream: Gabungkan ke aliran
   merge-stream-hint: Buka kontainer untuk digabungkan
-  merge-stream-other-host: "Hanya kontainer di host yang sama yang dapat digabungkan"
   unmerge-stream: Hapus dari aliran
   merge-all: Gabungkan semua ke dalam satu aliran
   network-io: "Jaringan: ↑ {tx}/s · ↓ {rx}/s"
@@ -381,6 +391,9 @@ analytics:
   example_all: Semua log
   example_count: Jumlah baris
   example_group: Hitung berdasarkan {column}
+  example_by_container: Per kontainer
+  include_previous: "Sertakan {count} kontainer lama"
+  containers_count: "{count} kontainer"
   export: Ekspor
   export_csv: Unduh CSV
   export_json: Unduh JSON
@@ -392,6 +405,7 @@ analytics:
   max: Maks
   p50: P50
   p95: P95
+  distribution_of: "Distribusi {column}"
   rows: 1 baris | {count} baris
 updates:
   title: Pembaruan
@@ -818,6 +832,8 @@ cloud-search:
   no-matches: "Tidak ada kontainer atau perintah yang cocok"
   nav-hint: "navigasi"
   pin-shortcut: "sematkan kolom"
+  merge-shortcut: "gabungkan ke stream"
+  unmerge-shortcut: "hapus dari stream"
   search-logs-for: 'Cari log untuk "{query}"'
   across-containers: "diindeks di semua kontainer Anda"
   connect-to-enable: "Hubungkan Dozzle Cloud untuk mencari log"
@@ -1149,3 +1165,17 @@ inspect:
   hide-value: "Sembunyikan nilai"
   env-hidden: "Nilai disembunyikan. Membacanya memerlukan akses shell."
   load-failed: "Gagal memuat detail kontainer."
+reclaim:
+  clean-up: "Bersihkan"
+  free-up: "Kosongkan {size}"
+  confirm-title: "Kosongkan {size} di {host}?"
+  cannot-undo: "Tindakan ini tidak dapat dibatalkan."
+  images-repull: "Stack yang berhenti akan menarik ulang image-nya saat dijalankan lagi."
+  volumes-warning: "1 volume menyimpan data yang tidak dipakai container mana pun saat ini. Menghapusnya akan menghapus data itu, seperti database yang container-nya sudah dihapus. | {count} volume menyimpan data yang tidak dipakai container mana pun saat ini. Menghapusnya akan menghapus data itu, seperti database yang container-nya sudah dihapus."
+  volumes-confirm: "Saya mengerti, hapus volume"
+  delete: "Hapus"
+  deleting: "Mengosongkan {size}…"
+  freed: "{size} dikosongkan"
+  failed: "Pembersihan gagal"
+  agent-too-old: "Agent ini belum bisa membersihkan. Perbarui ke versi terbaru."
+  enable-actions: "Aktifkan aksi kontainer untuk membersihkan dari sini."

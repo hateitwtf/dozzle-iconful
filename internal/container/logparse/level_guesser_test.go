@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/amir20/dozzle/internal/container"
-
-	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
 func TestGuessPinoLogLevel(t *testing.T) {
@@ -35,6 +33,7 @@ func TestGuessPinoLogLevel(t *testing.T) {
 		{`{"@l":"error","level":30}`, "error"},
 		{`{"level":30,"severity":"error"}`, "info"},
 		{`{"level":35,"severity":"warn"}`, "warn"},
+		{`{"level":"panic","msg":"zerolog panic"}`, "fatal"},
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
@@ -118,7 +117,7 @@ func TestGuessOtelLogLevel(t *testing.T) {
 }
 
 func TestGuessLogLevel(t *testing.T) {
-	var nilOrderedMap *orderedmap.OrderedMap[string, any]
+	var nilOrderedMap container.Fields[any]
 	tests := []struct {
 		input    any
 		expected string
@@ -175,74 +174,50 @@ func TestGuessLogLevel(t *testing.T) {
 		{"Warning0806 14:55:55.980915 not klog either", "warn"},
 		{"2026-01-05 12:13:24,566 - retry.api                        (7fd8ad34eb30) :  WARNING (api:40) - HTTPSConnectionPool(host='podnapisi.net', port=443): Max retries exceeded", "warn"},
 		{"2026-01-05 08:21:16,511 - root                             (7fd8bf822b30) :  INFO (get_providers:408) - Throttling podnapisi for 10 minutes", "info"},
-		{orderedmap.New[string, string](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, string]{Key: "key", Value: "value"},
-				orderedmap.Pair[string, string]{Key: "level", Value: "info"},
-			),
-		), "info"},
-		{orderedmap.New[string, any](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, any]{Key: "key", Value: "value"},
-				orderedmap.Pair[string, any]{Key: "level", Value: "info"},
-			),
-		), "info"},
-		{orderedmap.New[string, string](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, string]{Key: "key", Value: "value"},
-				orderedmap.Pair[string, string]{Key: "severity", Value: "info"},
-			),
-		), "info"},
-		{orderedmap.New[string, any](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, any]{Key: "key", Value: "value"},
-				orderedmap.Pair[string, any]{Key: "severity", Value: "info"},
-			),
-		), "info"},
-		{orderedmap.New[string, string](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, string]{Key: "severityText", Value: "ERROR"},
-			),
-		), "error"},
-		{orderedmap.New[string, string](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, string]{Key: "severityNumber", Value: "17"},
-			),
-		), "error"},
-		{orderedmap.New[string, string](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, string]{Key: "severityNumber", Value: "not-a-number"},
-			),
-		), "unknown"},
-		{orderedmap.New[string, string](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, string]{Key: "severityText", Value: "WARN2"},
-			),
-		), "warn"},
-		{orderedmap.New[string, string](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, string]{Key: "severityText", Value: "Notice"},
-				orderedmap.Pair[string, string]{Key: "severityNumber", Value: "9"},
-			),
-		), "info"},
-		{orderedmap.New[string, string](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, string]{Key: "key", Value: "value"},
-				orderedmap.Pair[string, string]{Key: "@l", Value: "info"},
-			),
-		), "info"},
-		{orderedmap.New[string, any](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, any]{Key: "key", Value: "value"},
-				orderedmap.Pair[string, any]{Key: "@l", Value: "debug"},
-			),
-		), "debug"},
-		{orderedmap.New[string, string](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, string]{Key: "@l", Value: "error"},
-				orderedmap.Pair[string, string]{Key: "@t", Value: "2024-01-01T00:00:00Z"},
-			),
-		), "error"},
+		{container.Fields[string]{
+			{Key: "key", Value: "value"},
+			{Key: "level", Value: "info"},
+		}, "info"},
+		{container.Fields[any]{
+			{Key: "key", Value: "value"},
+			{Key: "level", Value: "info"},
+		}, "info"},
+		{container.Fields[string]{
+			{Key: "key", Value: "value"},
+			{Key: "severity", Value: "info"},
+		}, "info"},
+		{container.Fields[any]{
+			{Key: "key", Value: "value"},
+			{Key: "severity", Value: "info"},
+		}, "info"},
+		{container.Fields[string]{
+			{Key: "severityText", Value: "ERROR"},
+		}, "error"},
+		{container.Fields[string]{
+			{Key: "severityNumber", Value: "17"},
+		}, "error"},
+		{container.Fields[string]{
+			{Key: "severityNumber", Value: "not-a-number"},
+		}, "unknown"},
+		{container.Fields[string]{
+			{Key: "severityText", Value: "WARN2"},
+		}, "warn"},
+		{container.Fields[string]{
+			{Key: "severityText", Value: "Notice"},
+			{Key: "severityNumber", Value: "9"},
+		}, "info"},
+		{container.Fields[string]{
+			{Key: "key", Value: "value"},
+			{Key: "@l", Value: "info"},
+		}, "info"},
+		{container.Fields[any]{
+			{Key: "key", Value: "value"},
+			{Key: "@l", Value: "debug"},
+		}, "debug"},
+		{container.Fields[string]{
+			{Key: "@l", Value: "error"},
+			{Key: "@t", Value: "2024-01-01T00:00:00Z"},
+		}, "error"},
 		// Zigbee2MQTT-style: bracketed timestamp + " <level>:" inside the line.
 		{"[2025-12-22 12:00:00] info: 	z2m: started", "info"},
 		{"[2025-12-22 12:00:00] warn: 	z2m: queue full", "warn"},
@@ -287,25 +262,19 @@ func TestGuessLogLevel(t *testing.T) {
 		{"Information: service started", "info"},
 		{"[Information] service started", "info"},
 		{"2024-12-30T17:43:16Z Information starting up", "info"},
-		{orderedmap.New[string, string](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, string]{Key: "level", Value: "Information"},
-			),
-		), "info"},
-		{orderedmap.New[string, any](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, any]{Key: "@l", Value: "Information"},
-			),
-		), "info"},
+		{container.Fields[string]{
+			{Key: "level", Value: "Information"},
+		}, "info"},
+		{container.Fields[any]{
+			{Key: "@l", Value: "Information"},
+		}, "info"},
 		// Equal confidence between two different levels -> unknown (don't guess).
 		{"saw info: here and error: there", "unknown"},
 		{"[INFO] [DEBUG] both bracketed", "unknown"},
-		{orderedmap.New[string, any](
-			orderedmap.WithInitialData(
-				orderedmap.Pair[string, any]{Key: "key", Value: "value"},
-				orderedmap.Pair[string, any]{Key: "level", Value: "warning"},
-			),
-		), "warn"},
+		{container.Fields[any]{
+			{Key: "key", Value: "value"},
+			{Key: "level", Value: "warning"},
+		}, "warn"},
 		// Fail2ban native format (issue #5334).
 		{"2026-10-04 08:30:00,124 fail2ban.server         [1]: INFO    Starting Fail2ban v1.1.0", "info"},
 		{"2026-10-04 08:31:02,111 fail2ban.filters        [1]: NOTICE  [sshd] Ready to monitor log file /var/log/auth.log", "info"},
@@ -321,9 +290,40 @@ func TestGuessLogLevel(t *testing.T) {
 		{"fail2ban.server         [1]: INFO    Starting Fail2ban v1.1.0", "info"},
 		{"fail2ban                [1]: INFO    Using socket file /var/run/fail2ban/fail2ban.sock", "info"},
 		{"fail2ban.actions        [1]: NOTICE  Ban 192.168.1.150", "info"},
+		// NestJS (Immich): the upper-case level wins over "error:" in the message.
+		{"[Nest] 7  - 10/12/2026, 10:00:00 AM     LOG [Api:EventRepository] Websocket Connect: abc", "info"},
+		{"[Nest] 7  - 10/12/2026, 10:00:00 AM    WARN [Microservices:StorageService] Error: EROFS: read-only file system, unlink '/x'", "warn"},
+		{"[Nest] 25  - 10/11/2026, 10:30:32 PM   DEBUG [Api:Bootstrap] Socket error: read ECONNRESET", "debug"},
+		{"[Nest] 7  - 10/12/2026, 10:00:00 AM   ERROR [Microservices:JobService] Unable to run job handler", "error"},
+		{"[Nest] 7  - 10/12/2026, 10:00:00 AM VERBOSE [Api:LoggingInterceptor] GET /api/server/ping 200", "trace"},
+		{"[Nest] 7  - 10/12/2026, 10:00:00 AM     LOG [Microservices:MetadataService] Error reading exif, falling back", "info"},
+		// Postgres default prefix. DETAIL/STATEMENT are not levels.
+		{"2026-10-08 19:37:00.681 UTC [61] LOG:  database system is ready to accept connections", "info"},
+		{"2026-10-08 19:37:00.681 UTC [61] LOG:  could not receive data from client: Connection reset by peer", "info"},
+		{"2026-10-08 19:37:00.681 UTC [61] WARNING:  there is no transaction in progress", "warn"},
+		{"2026-10-08 19:37:00.681 UTC [61] ERROR:  relation \"x\" does not exist", "error"},
+		{"2026-10-05 01:35:24.746 EDT [148304] FATAL:  connection to client lost", "fatal"},
+		{"2026-10-08 19:37:00.681 UTC [61] PANIC:  could not write to file \"pg_wal/xlogtemp.1\": No space left on device", "fatal"},
+		{"2026-10-08 19:37:00.681 +03 [61] LOG:  checkpoint starting: time", "info"},
+		{"2026-10-08 19:37:00.681 UTC [61] STATEMENT:  select * from users", "unknown"},
+		{"LOG:  database system is ready to accept connections", "info"},
+		{"PANIC:  could not locate a valid checkpoint record", "fatal"},
+		{"Login failed for user", "unknown"},
+		// Winston with a label: the level comes before the message, so a later
+		// upper-case word does not override it.
+		{"[api] info: upstream returned ERROR 502", "info"},
+		{"[worker] warn: retrying, FAIL count=2", "warn"},
+		// Lower-case panic is not a level: the line's own error wins.
+		{"panic: runtime error: index out of range [3] with length 3", "error"},
+		{"http: recovered from panic: runtime error: invalid memory address", "error"},
+		// MariaDB notes.
+		{"2026-10-12 10:00:00 0 [Note] mariadbd: ready for connections.", "info"},
 		// Negative tests: ordinary prose containing level words or 'fail' prefix.
 		{"ordinary prose containing notice", "unknown"},
 		{"ordinary prose containing critical", "unknown"},
+		{"ordinary prose containing note", "unknown"},
+		{"ordinary prose containing panic", "unknown"},
+		{"failed to write log: disk full", "unknown"},
 		{"ordinary prose containing fail", "unknown"},
 		{"msg: error handling enabled", "unknown"},
 		{"config loaded: critical=false", "unknown"},

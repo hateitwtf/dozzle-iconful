@@ -15,6 +15,16 @@ toolbar:
   restart: Reiniciar
   rollout-restart: "Reiniciar {kind}"
   rollout-restart-done: "{workload} está implantando novos pods."
+  section-containers: "Containers"
+  restart-all: "Reiniciar todos"
+  stop-all: "Parar todos"
+  start-all: "Iniciar todos"
+  bulk-confirm-restart: "Reiniciar 1 container? | Reiniciar {count} containers?"
+  bulk-confirm-stop: "Parar 1 container? | Parar {count} containers?"
+  bulk-confirm-start: "Iniciar 1 container? | Iniciar {count} containers?"
+  bulk-self-skipped: "O container do próprio Dozzle é ignorado."
+  bulk-more: "e mais {count}"
+  bulk-failed: "Não concluído para {names}"
   update: Atualizar
   update-service: Atualizar Serviço
   update-pulling: Baixando imagem mais recente...
@@ -122,6 +132,7 @@ label:
   cpu: CPU
   core: Sem núcleos | 1 núcleo | {count} núcleos
   disk: Disco
+  network: Rede
   reclaimable: Recuperável
   unused-images: "Imagens não usadas"
   unused-volumes: "Volumes não usados"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: Desafixar coluna
   merge-stream: Mesclar no fluxo
   merge-stream-hint: Abra um contêiner para mesclar com ele
-  merge-stream-other-host: "Só é possível mesclar contêineres do mesmo host"
   unmerge-stream: Remover do fluxo
   merge-all: Unir tudo em um fluxo
   network-io: "Rede: ↑ {tx}/s · ↓ {rx}/s"
@@ -369,6 +379,9 @@ analytics:
   example_all: Todos os logs
   example_count: Número de linhas
   example_group: Contagem por {column}
+  example_by_container: Por contêiner
+  include_previous: "Incluir 1 contêiner anterior | Incluir {count} contêineres anteriores"
+  containers_count: "{count} contêineres"
   export: Exportar
   export_csv: Baixar CSV
   export_json: Baixar JSON
@@ -380,6 +393,7 @@ analytics:
   max: Máx
   p50: P50
   p95: P95
+  distribution_of: "Distribuição de {column}"
   rows: 1 linha | {count} linhas
 updates:
   title: Atualizações
@@ -806,6 +820,8 @@ cloud-search:
   no-matches: "Nenhum container ou comando corresponde"
   nav-hint: "navegar"
   pin-shortcut: "fixar coluna"
+  merge-shortcut: "mesclar no fluxo"
+  unmerge-shortcut: "remover do fluxo"
   search-logs-for: 'Buscar logs por "{query}"'
   across-containers: "indexados em todos os seus containers"
   connect-to-enable: "Conectar Dozzle Cloud para buscar logs"
@@ -1137,3 +1153,17 @@ inspect:
   hide-value: "Ocultar valor"
   env-hidden: "Os valores estão ocultos. Lê-los requer acesso ao shell."
   load-failed: "Não foi possível carregar os detalhes do contêiner."
+reclaim:
+  clean-up: "Limpar"
+  free-up: "Liberar {size}"
+  confirm-title: "Liberar {size} em {host}?"
+  cannot-undo: "Isto não pode ser desfeito."
+  images-repull: "Um stack parado baixa suas imagens de novo na próxima vez que iniciar."
+  volumes-warning: "1 volume guarda dados que nenhum contêiner usa agora. Apagá-lo elimina esses dados, como um banco de dados cujo contêiner foi removido. | {count} volumes guardam dados que nenhum contêiner usa agora. Apagá-los elimina esses dados, como um banco de dados cujo contêiner foi removido."
+  volumes-confirm: "Entendo, apagar os volumes"
+  delete: "Apagar"
+  deleting: "Liberando {size}…"
+  freed: "{size} liberados"
+  failed: "A limpeza falhou"
+  agent-too-old: "Este agente ainda não consegue limpar. Atualize-o para a versão mais recente."
+  enable-actions: "Ative as ações de contêiner para limpar a partir daqui."

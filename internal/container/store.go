@@ -9,7 +9,6 @@ import (
 
 	"github.com/puzpuzpuz/xsync/v4"
 	"github.com/rs/zerolog/log"
-	"github.com/samber/lo"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -166,6 +165,19 @@ func (s *Store) Reclaimable() *Reclaimable {
 	return s.reclaimable.Load()
 }
 
+// Prune deletes what opts picks and measures the host again right away, so
+// Reclaimable shows what is left without waiting out volumeRefreshInterval.
+func (s *Store) Prune(ctx context.Context, opts PruneOptions) (PruneResult, error) {
+	pruner, ok := s.client.(Pruner)
+	if !ok {
+		return PruneResult{}, errors.ErrUnsupported
+	}
+	result, err := pruner.Prune(ctx, opts)
+	// even after an error: a prune that failed halfway still deleted something
+	s.sizeMonitor.remeasure(ctx, opts.Containers)
+	return result, err
+}
+
 // applyVolumes records the volumes a container mounts and broadcasts an "update"
 // when they changed.
 func (s *Store) applyVolumes(id string, volumes []VolumeUsage) {
@@ -216,9 +228,11 @@ func (s *Store) userFilterIDs(ctx context.Context, labels ContainerLabels) (map[
 	if len(validContainers) == 0 {
 		log.Warn().Interface("userLabels", labels).Msg("no containers found with user labels")
 	}
-	return lo.KeyBy(validContainers, func(item Container) string {
-		return item.ID
-	}), nil
+	byID := make(map[string]Container, len(validContainers))
+	for _, c := range validContainers {
+		byID[c.ID] = c
+	}
+	return byID, nil
 }
 
 func (s *Store) ListContainers(ctx context.Context, labels ContainerLabels) ([]Container, error) {

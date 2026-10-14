@@ -15,6 +15,16 @@ toolbar:
   restart: Restart
   rollout-restart: "Riavvia {kind}"
   rollout-restart-done: "{workload} sta distribuendo nuovi pod."
+  section-containers: "Container"
+  restart-all: "Riavvia tutti"
+  stop-all: "Arresta tutti"
+  start-all: "Avvia tutti"
+  bulk-confirm-restart: "Riavviare 1 container? | Riavviare {count} container?"
+  bulk-confirm-stop: "Arrestare 1 container? | Arrestare {count} container?"
+  bulk-confirm-start: "Avviare 1 container? | Avviare {count} container?"
+  bulk-self-skipped: "Il container di Dozzle viene saltato."
+  bulk-more: "e altri {count}"
+  bulk-failed: "Non completato per {names}"
   update: Aggiorna
   update-service: Aggiorna Servizio
   update-pulling: Download dell'ultima immagine...
@@ -122,6 +132,7 @@ label:
   cpu: CPU
   core: Nessun core | 1 core | {count} core
   disk: Disco
+  network: Rete
   reclaimable: Recuperabile
   unused-images: "Immagini inutilizzate"
   unused-volumes: "Volumi inutilizzati"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: Sblocca colonna
   merge-stream: Unisci al flusso
   merge-stream-hint: Apri un container per unirlo
-  merge-stream-other-host: "Si possono unire solo container sullo stesso host"
   unmerge-stream: Rimuovi dal flusso
   merge-all: Unisci tutto in un flusso
   network-io: "Rete: ↑ {tx}/s · ↓ {rx}/s"
@@ -369,6 +379,9 @@ analytics:
   example_all: Tutti i log
   example_count: Numero di righe
   example_group: Conteggio per {column}
+  example_by_container: Per container
+  include_previous: "Includi 1 container precedente | Includi {count} container precedenti"
+  containers_count: "{count} container"
   export: Esporta
   export_csv: Scarica CSV
   export_json: Scarica JSON
@@ -380,6 +393,7 @@ analytics:
   max: Max
   p50: P50
   p95: P95
+  distribution_of: "Distribuzione di {column}"
   rows: 1 riga | {count} righe
 updates:
   title: Aggiornamenti
@@ -806,6 +820,8 @@ cloud-search:
   no-matches: "Nessun container o comando corrisponde"
   nav-hint: "naviga"
   pin-shortcut: "blocca colonna"
+  merge-shortcut: "unisci allo stream"
+  unmerge-shortcut: "rimuovi dallo stream"
   search-logs-for: 'Cerca log per "{query}"'
   across-containers: "indicizzati su tutti i tuoi container"
   connect-to-enable: "Connetti Dozzle Cloud per cercare nei log"
@@ -1137,3 +1153,17 @@ inspect:
   hide-value: "Nascondi valore"
   env-hidden: "I valori sono nascosti. Per leggerli serve l'accesso alla shell."
   load-failed: "Impossibile caricare i dettagli del container."
+reclaim:
+  clean-up: "Pulisci"
+  free-up: "Libera {size}"
+  confirm-title: "Liberare {size} su {host}?"
+  cannot-undo: "L'operazione non può essere annullata."
+  images-repull: "Uno stack fermo scaricherà di nuovo le sue immagini al prossimo avvio."
+  volumes-warning: "1 volume contiene dati che nessun container usa al momento. Eliminarlo cancella quei dati, come un database il cui container è stato rimosso. | {count} volumi contengono dati che nessun container usa al momento. Eliminarli cancella quei dati, come un database il cui container è stato rimosso."
+  volumes-confirm: "Ho capito, elimina i volumi"
+  delete: "Elimina"
+  deleting: "Liberazione di {size}…"
+  freed: "Liberati {size}"
+  failed: "Pulizia non riuscita"
+  agent-too-old: "Questo agent non può ancora pulire. Aggiornalo all'ultima versione."
+  enable-actions: "Abilita le azioni sui container per fare pulizia da qui."

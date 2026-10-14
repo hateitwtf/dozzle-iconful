@@ -105,6 +105,9 @@ const ALIASES: Record<string, string> = {
   containrrr: "watchtower",
   jc21: "nginx-proxy-manager",
   "immich-server": "immich",
+  "coolify-helper": "coolify",
+  "beszel-agent": "beszel",
+  "aio-nextcloud": "nextcloud",
   "immich-machine-learning": "immich",
   "immich-microservices": "immich",
   paperless: "paperless-ngx",
@@ -146,6 +149,9 @@ const ALIASES: Record<string, string> = {
   "apprise-api": "apprise",
   thetorproject: "tor",
   openlitespeed: "litespeed",
+  openobserve: "open-observe",
+  "nut-upsd": "nut",
+  pasta: "pastatool",
 };
 
 const stripSuffix = (name: string) => {

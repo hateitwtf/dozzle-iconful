@@ -5,10 +5,29 @@
     <ph:file-sql class="text-primary size-6 shrink-0" />
     <h1 class="text-base font-semibold">{{ $t("analytics.title") }}</h1>
     <h2 class="text-base-content/55 flex min-w-0 items-center text-xs">
-      <span class="truncate">{{ container.name }}</span>
-      <span class="px-1">&middot;</span>
-      <RelativeTime :date="container.created" />
+      <template v-if="title">
+        <span class="truncate">{{ title }}</span>
+        <span class="px-1">&middot;</span>
+      </template>
+      <template v-if="merged">
+        {{ $t("analytics.containers_count", { count: sources.length }) }}
+      </template>
+      <RelativeTime v-else :date="container.created" />
     </h2>
+    <label
+      v-if="single && (previous.length || merged)"
+      class="text-base-content/70 ml-auto flex items-center gap-2 text-xs"
+      :class="{ 'opacity-50': !canToggleMerged }"
+    >
+      <input
+        type="checkbox"
+        class="toggle toggle-xs toggle-primary"
+        :checked="merged"
+        :disabled="!canToggleMerged"
+        @change="toggleMerged"
+      />
+      {{ $t("analytics.include_previous", merged ? sources.length - 1 : previous.length) }}
+    </label>
   </header>
 
   <div class="mt-5 flex flex-col gap-6 pb-8">
@@ -153,11 +172,17 @@ import { Container } from "@/models/Container";
 import { Table } from "@apache-arrow/esnext-esm";
 import type { AsyncDuckDBConnection } from "@duckdb/duckdb-wasm";
 
-const { container, initialQuery } = defineProps<{
-  container: Container;
+const { containers, name, initialQuery } = defineProps<{
+  // One for a container's own view, every container in it for a merged view.
+  containers: Container[];
+  // What a merged view is called (a stack, group or host); unset for a plain merge.
+  name?: string;
   // Opens with this query instead of the default, e.g. charting one field from LogDetails.
   initialQuery?: string;
 }>();
+const container = containers[0];
+const single = containers.length === 1;
+const title = single ? container.name : name;
 const defaultQuery = "SELECT * FROM logs LIMIT 100";
 const query = ref(initialQuery ?? defaultQuery);
 const error = ref<string | null>(null);
@@ -194,37 +219,43 @@ watchDebounced(
   { debounce: 500 },
 );
 
-const url = withBase(
-  `/api/hosts/${container.host}/containers/${container.id}/logs?stdout=1&stderr=1&everything&jsonOnly`,
-);
+// Older containers under the same name, usually the same service before a restart or
+// redeploy. Only offered, never loaded, until the user asks for them.
+const sameName = useSameNameContainers(() => container);
+const previous = computed(() => (single ? sameName.value.filter((c) => c.id !== container.id) : []));
+// Snapshotted when loaded, so a container appearing mid-session does not reload the table.
+const sources = shallowRef<Container[]>(containers);
+const merged = computed(() => sources.value.length > 1);
 
 // Nothing here is awaited in setup, so the drawer renders at once and shows progress
 // instead of sitting on the Suspense spinner. Both downloads start now and run side by
 // side: reading the logs only after the engine was up had left them mostly serial.
 const engine = useDuckDB((fraction) => (engineProgress.value = fraction));
-const abort = new AbortController();
+let abort = new AbortController();
 onUnmounted(() => abort.abort());
 
 let conn: AsyncDuckDBConnection | undefined;
+let registered = false;
 const empty = new Table<Record<string, any>>();
 
-async function fetchLogs(): Promise<Uint8Array> {
-  const response = await fetch(url, { signal: abort.signal });
+async function fetchLogs(list: Container[], signal: AbortSignal): Promise<Uint8Array> {
+  const response = await postContainerLogs(analyticsLogsParams(list), { signal });
   if (!response.ok) throw new Error(`Failed to fetch logs: ${response.statusText}`);
 
   const reader = response.body?.getReader();
   if (!reader) throw new Error("No reader available from stream");
 
   const chunks: Uint8Array[] = [];
+  let length = 0;
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     chunks.push(value);
+    length += value.length;
     bytes.value += value.length;
   }
-  logsDone.value = true;
 
-  const buffer = new Uint8Array(bytes.value);
+  const buffer = new Uint8Array(length);
   let position = 0;
   for (const chunk of chunks) {
     buffer.set(chunk, position);
@@ -233,18 +264,31 @@ async function fetchLogs(): Promise<Uint8Array> {
   return buffer;
 }
 
-(async () => {
+async function load(list: Container[]) {
+  abort.abort();
+  const controller = (abort = new AbortController());
+  sources.value = list;
+  state.value = "loading";
+  error.value = null;
+  bytes.value = 0;
+  logsDone.value = false;
+
   try {
-    const [duck, buffer] = await Promise.all([engine, fetchLogs()]);
+    const [duck, buffer] = await Promise.all([
+      engine,
+      fetchLogs(list, controller.signal).finally(() => (logsDone.value = true)),
+    ]);
     const { db } = duck;
     conn = duck.conn;
 
-    await db.registerFileBuffer("logs.json", buffer);
+    await conn.query(`DROP TABLE IF EXISTS logs`);
+    if (registered) await db.dropFile("logs.json");
 
     state.value = "initializing";
-    await conn.query(
-      `CREATE TABLE logs AS SELECT unnest(m) FROM read_json('logs.json', ignore_errors = true, format = 'newline_delimited', map_inference_threshold = -1)`,
-    );
+    registered = true;
+    await db.registerFileBuffer("logs.json", buffer);
+    await conn.query(createLogsTableSql("logs.json", list.length > 1));
+    if (controller.signal.aborted) return;
 
     const described = await conn.query<{ column_name: any; column_type: any }>(`DESCRIBE logs`);
     columns.value = described.toArray().map((row) => ({
@@ -255,21 +299,38 @@ async function fetchLogs(): Promise<Uint8Array> {
     state.value = "ready";
   } catch (e) {
     // Closing the drawer aborts the logs download; that is not an error to show.
-    if (abort.signal.aborted) return;
+    if (controller.signal.aborted) return;
     console.error(e);
     if (e instanceof Error) {
       error.value = e.message;
     }
   }
-})();
+}
+
+load(containers);
+
+const canToggleMerged = computed(() => state.value === "ready" || error.value !== null);
+
+function toggleMerged() {
+  if (!canToggleMerged.value) return;
+  load(merged.value ? [container] : [container, ...previous.value]);
+}
 
 const examples = computed(() => {
   const names = columns.value.map((c) => c.name);
-  const pick = ["level", "severity", "lvl", "status"].find((c) => names.includes(c)) ?? names[0];
+  const pick =
+    ["level", "severity", "lvl", "status"].find((c) => names.includes(c)) ??
+    names.find((c) => c !== "_container" && c !== "_ts");
   const list: { key: string; sql: string; params?: Record<string, string> }[] = [
     { key: "analytics.example_all", sql: "SELECT * FROM logs LIMIT 100" },
     { key: "analytics.example_count", sql: "SELECT count(*) AS total FROM logs" },
   ];
+  if (merged.value) {
+    list.push({
+      key: "analytics.example_by_container",
+      sql: "SELECT _container, count(*) AS count, min(_ts) AS first, max(_ts) AS last FROM logs GROUP BY _container ORDER BY first",
+    });
+  }
   if (pick) {
     list.push({
       key: "analytics.example_group",
@@ -367,12 +428,12 @@ function exportResults(format: "csv" | "json") {
   const columns = Object.keys(table.get(0) as Record<string, any>);
   const content = format === "csv" ? toCSV(table, columns) : toJSON(table, columns);
   const type = format === "csv" ? "text/csv;charset=utf-8" : "application/json";
-  const name = container.name.replace(/[^\w.-]+/g, "-");
+  const fileName = (title ?? "containers").replace(/[^\w.-]+/g, "-");
 
   const url = URL.createObjectURL(new Blob([content], { type }));
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${name}-query.${format}`;
+  link.download = `${fileName}-query.${format}`;
   link.click();
   URL.revokeObjectURL(url);
   (document.activeElement as HTMLElement | null)?.blur();

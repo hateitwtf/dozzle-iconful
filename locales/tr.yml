@@ -15,6 +15,16 @@ toolbar:
   restart: Yeniden Başlat
   rollout-restart: "{kind} yeniden başlat"
   rollout-restart-done: "{workload} yeni pod'ları dağıtıyor."
+  section-containers: "Konteynerler"
+  restart-all: "Tümünü yeniden başlat"
+  stop-all: "Tümünü durdur"
+  start-all: "Tümünü başlat"
+  bulk-confirm-restart: "1 konteyner yeniden başlatılsın mı? | {count} konteyner yeniden başlatılsın mı?"
+  bulk-confirm-stop: "1 konteyner durdurulsun mu? | {count} konteyner durdurulsun mu?"
+  bulk-confirm-start: "1 konteyner başlatılsın mı? | {count} konteyner başlatılsın mı?"
+  bulk-self-skipped: "Dozzle'ın kendi konteyneri atlanır."
+  bulk-more: "ve {count} tane daha"
+  bulk-failed: "Tamamlanamayanlar: {names}"
   update: Güncelle
   update-service: Servisi Güncelle
   update-pulling: En son imaj indiriliyor...
@@ -122,6 +132,7 @@ label:
   cpu: CPU
   core: Çekirdek yok | 1 çekirdek | {count} çekirdek
   disk: Disk
+  network: Ağ
   reclaimable: Geri kazanılabilir
   unused-images: "Kullanılmayan imajlar"
   unused-volumes: "Kullanılmayan birimler"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: Sütun sabitlemesini kaldır
   merge-stream: Akışa birleştir
   merge-stream-hint: Birleştirmek için bir konteyner açın
-  merge-stream-other-host: "Yalnızca aynı ana makinedeki konteynerler birleştirilebilir"
   unmerge-stream: Akıştan çıkar
   merge-all: Tümünü tek bir akışta birleştir
   network-io: "Ağ: ↑ {tx}/sn · ↓ {rx}/sn"
@@ -372,6 +382,9 @@ analytics:
   example_all: Tüm günlükler
   example_count: Satır sayısı
   example_group: "{column} bazında sayı"
+  example_by_container: Konteyner bazında
+  include_previous: "{count} eski konteyneri dahil et"
+  containers_count: "{count} konteyner"
   export: Dışa aktar
   export_csv: CSV indir
   export_json: JSON indir
@@ -383,6 +396,7 @@ analytics:
   max: Maks
   p50: P50
   p95: P95
+  distribution_of: "{column} dağılımı"
   rows: 1 satır | {count} satır
 updates:
   title: Güncellemeler
@@ -809,6 +823,8 @@ cloud-search:
   no-matches: "Eşleşen konteyner veya komut yok"
   nav-hint: "gezin"
   pin-shortcut: "sütunu sabitle"
+  merge-shortcut: "akışa birleştir"
+  unmerge-shortcut: "akıştan çıkar"
   search-logs-for: '"{query}" için logları ara'
   across-containers: "tüm konteynerleriniz arasında indekslenmiş"
   connect-to-enable: "Logları aramak için Dozzle Cloud'a bağlanın"
@@ -1140,3 +1156,17 @@ inspect:
   hide-value: "Değeri gizle"
   env-hidden: "Değerler gizli. Okumak için kabuk erişimi gerekir."
   load-failed: "Konteyner ayrıntıları yüklenemedi."
+reclaim:
+  clean-up: "Temizle"
+  free-up: "{size} boşalt"
+  confirm-title: "{host} üzerinde {size} boşaltılsın mı?"
+  cannot-undo: "Bu işlem geri alınamaz."
+  images-repull: "Durdurulmuş bir stack, bir sonraki başlatmada imajlarını yeniden çeker."
+  volumes-warning: "1 volume, şu anda hiçbir container'ın kullanmadığı veriler tutuyor. Silmek bu verileri yok eder, örneğin container'ı kaldırılmış bir veritabanı. | {count} volume, şu anda hiçbir container'ın kullanmadığı veriler tutuyor. Silmek bu verileri yok eder, örneğin container'ı kaldırılmış bir veritabanı."
+  volumes-confirm: "Anladım, volume'ları sil"
+  delete: "Sil"
+  deleting: "{size} boşaltılıyor…"
+  freed: "{size} boşaltıldı"
+  failed: "Temizleme başarısız"
+  agent-too-old: "Bu agent henüz temizlik yapamıyor. En son sürüme güncelleyin."
+  enable-actions: "Buradan temizlemek için konteyner eylemlerini etkinleştirin."

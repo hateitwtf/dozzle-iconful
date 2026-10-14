@@ -85,9 +85,6 @@
               <td v-if="isVisible('host')">
                 <div class="bg-base-content/50 h-3 w-20 rounded-full opacity-50"></div>
               </td>
-              <td v-if="isVisible('state')">
-                <div class="bg-base-content/50 h-3 w-16 rounded-full opacity-50"></div>
-              </td>
               <td v-if="isVisible('created')">
                 <div class="bg-base-content/50 h-3 w-24 rounded-full opacity-50"></div>
               </td>
@@ -97,7 +94,10 @@
               <td v-if="isVisible('mem')">
                 <div class="bg-base-content/50 h-3 w-full rounded-full opacity-50"></div>
               </td>
-              <td v-if="isVisible('disk')">
+              <td v-if="isVisible('net')" class="max-xl:hidden">
+                <div class="bg-base-content/50 h-3 w-16 rounded-full opacity-50"></div>
+              </td>
+              <td v-if="isVisible('disk')" class="max-xl:hidden">
                 <div class="bg-base-content/50 h-3 w-12 rounded-full opacity-50"></div>
               </td>
             </tr>
@@ -117,6 +117,7 @@
               container.volumes,
               statMode,
               isMobile,
+              multiHost,
               showAppIcons,
               dismissedLinkHint,
               showUpdates && hasUpdate(container),
@@ -129,12 +130,12 @@
                   :state="container.state"
                   :health="container.health"
                   :slug="container.icon"
-                  class="size-6 max-md:mt-0.5"
+                  class="size-6"
                 />
                 <div class="min-w-0 flex-1">
-                  <div class="flex items-baseline gap-2">
+                  <div class="flex items-center gap-2 max-md:h-6">
                     <router-link
-                      class="min-w-0 flex-1 truncate font-medium"
+                      class="min-w-0 flex-1 truncate font-medium max-md:text-base"
                       :to="{ name: '/container/[id]', params: { id: container.id } }"
                       :title="container.name"
                     >
@@ -151,8 +152,20 @@
                       class="text-base-content/50 shrink-0 text-xs"
                     />
                   </div>
-                  <div v-if="container.customGroup" class="text-base-content/50 truncate text-xs">
-                    {{ container.customGroup }}
+                  <!-- The image rides on the muted line under the name rather than in a
+                       column of its own: the table has no width to spare. Phones keep
+                       just the group, the row there is already full. -->
+                  <div
+                    v-if="isMobile ? container.customGroup : container.customGroup || container.image"
+                    class="text-base-content/50 truncate text-xs"
+                  >
+                    <span>{{ container.customGroup }}</span
+                    ><template v-if="!isMobile && container.image"
+                      ><span v-if="container.customGroup" class="text-base-content/30 mx-1">·</span
+                      ><span class="font-mono" :title="container.image">{{
+                        shortImageRef(container.image)
+                      }}</span></template
+                    >
                   </div>
                   <!-- The host card's meter strip at row size: two halves spanning the
                        row, so the bars are long enough to read at a glance. -->
@@ -177,12 +190,6 @@
               </div>
             </td>
             <td v-if="isVisible('host')" class="text-base-content/70">{{ container.hostLabel }}</td>
-            <td v-if="isVisible('state')">
-              <span class="inline-flex items-center gap-1.5">
-                <span class="size-1.5 shrink-0 rounded-full" :class="statusDot(container)"></span>
-                {{ container.health ?? container.state }}
-              </span>
-            </td>
             <td v-if="isVisible('created')" class="text-base-content/70">
               <RelativeTime :date="container.created" />
             </td>
@@ -192,9 +199,12 @@
             <td v-if="isVisible('mem')">
               <ContainerStatCell :container="container" type="mem" :host="hosts[container.host]" :mode="statMode" />
             </td>
+            <td v-if="isVisible('net')" class="max-xl:hidden">
+              <ContainerNetCell :container="container" />
+            </td>
             <td
               v-if="isVisible('disk')"
-              class="text-base-content/70 font-mono whitespace-nowrap"
+              class="text-base-content/70 font-mono whitespace-nowrap max-xl:hidden"
               :title="diskBreakdown(container)"
             >
               <template v-if="container.diskTotal !== undefined">{{
@@ -240,12 +250,13 @@
 </template>
 
 <script setup lang="ts">
-import { Container } from "@/models/Container";
+import { Container, networkRate } from "@/models/Container";
 import { showAppIcons } from "@/stores/settings";
 import { toRefs } from "@vueuse/core";
 
 const { t } = useI18n();
 const { hosts } = useHosts();
+const multiHost = computed(() => Object.keys(hosts.value).length > 1);
 const selectedHost = ref(null);
 // Same gate as the dashboard's updates button: without actions there is
 // nothing a mark on the row could lead to.
@@ -260,6 +271,8 @@ const fields: Record<
     sortFunc: (a: Container, b: Container) => number;
     mobileVisible: boolean;
     customClass?: string;
+    // sortable from the dropdown, but no column: the icon's dot already shows it
+    sortOnly?: boolean;
   }
 > = {
   name: {
@@ -280,7 +293,7 @@ const fields: Record<
     sortFunc: (a: Container, b: Container) =>
       (a.health ?? a.state).localeCompare(b.health ?? b.state) * direction.value,
     mobileVisible: false,
-    customClass: "w-1",
+    sortOnly: true,
   },
   created: {
     label: "label.created",
@@ -303,13 +316,25 @@ const fields: Record<
     mobileVisible: false,
     customClass: "min-w-48 max-md:min-w-0",
   },
+  net: {
+    label: "label.network",
+    sortFunc: (a: Container, b: Container) => (netTotal(a) - netTotal(b)) * direction.value,
+    mobileVisible: false,
+    customClass: "w-1 max-xl:hidden",
+  },
   disk: {
     label: "label.disk",
     // not measured yet sorts below an empty layer
     sortFunc: (a: Container, b: Container) => ((a.diskTotal ?? -1) - (b.diskTotal ?? -1)) * direction.value,
     mobileVisible: false,
-    customClass: "w-1",
+    customClass: "w-1 max-xl:hidden",
   },
+};
+
+// stopped or not yet measured sorts below an idle container
+const netTotal = (container: Container) => {
+  const rate = networkRate(container);
+  return rate ? rate.rx + rate.tx : -1;
 };
 
 const { containers } = defineProps<{
@@ -352,8 +377,8 @@ const paginated = computed(() => {
 
 const sortOptions = computed(() =>
   Object.entries(fields)
-    .filter(([key]) => key !== "host" || Object.keys(hosts.value).length > 1)
-    .filter(([key]) => key !== "disk" || config.mode !== "k8s")
+    .filter(([key]) => key !== "host" || multiHost.value)
+    .filter(([key]) => (key !== "disk" && key !== "net") || config.mode !== "k8s")
     .map(([key, value]) => ({ label: t(value.mobileLabel ?? value.label), value: key })),
 );
 
@@ -379,13 +404,6 @@ function diskBreakdown(container: Container) {
   return lines.join("\n");
 }
 
-function statusDot(container: Container) {
-  if (container.health === "unhealthy") return "bg-error";
-  if (container.health === "starting") return "bg-warning";
-  if (container.state === "running") return "bg-success";
-  return "bg-base-content/30";
-}
-
 function sort(field: keys) {
   if (sortField.value === field) {
     direction.value *= -1;
@@ -395,8 +413,11 @@ function sort(field: keys) {
   }
 }
 function isVisible(field: keys) {
-  // k8s has no writable-layer size to report
-  if (field === "disk" && config.mode === "k8s") return false;
+  if (fields[field].sortOnly) return false;
+  // one host means every row would say the same thing
+  if (field === "host" && !multiHost.value) return false;
+  // k8s has no writable-layer size to report, and its metrics API no network counters
+  if ((field === "disk" || field === "net") && config.mode === "k8s") return false;
   return fields[field].mobileVisible || !isMobile.value;
 }
 </script>

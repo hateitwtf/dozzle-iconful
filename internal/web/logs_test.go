@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/url"
 	"regexp"
@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	"github.com/amir20/dozzle/internal/container"
+	"github.com/amir20/dozzle/internal/container/docker"
 	"github.com/amir20/dozzle/internal/web/search"
-	"github.com/beme/abide"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -40,7 +40,7 @@ func Test_handler_streamLogs_happy(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 
 	id := "123456"
-	req, err := http.NewRequestWithContext(ctx, "GET", "/api/hosts/localhost/containers/"+id+"/logs/stream", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "/api/containers/logs/stream?container=localhost/"+id, nil)
 
 	q := req.URL.Query()
 	q.Add("stdout", "true")
@@ -78,14 +78,14 @@ func Test_handler_streamLogs_happy(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	reader := strings.NewReader(regexp.MustCompile(`"time":"[^"]*"`).ReplaceAllString(rr.Body.String(), `"time":"<removed>"`))
-	abide.AssertReader(t, t.Name(), reader)
+	matchReaderSnapshot(t, reader)
 	mockedClient.AssertExpectations(t)
 }
 
 func Test_handler_streamLogs_happy_with_id(t *testing.T) {
 	id := "123456"
 	ctx, cancel := context.WithCancel(context.Background())
-	req, err := http.NewRequestWithContext(ctx, "GET", "/api/hosts/localhost/containers/"+id+"/logs/stream", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "/api/containers/logs/stream?container=localhost/"+id, nil)
 	q := req.URL.Query()
 	q.Add("stdout", "true")
 	q.Add("stderr", "true")
@@ -124,14 +124,14 @@ func Test_handler_streamLogs_happy_with_id(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	reader := strings.NewReader(regexp.MustCompile(`"time":"[^"]*"`).ReplaceAllString(rr.Body.String(), `"time":"<removed>"`))
-	abide.AssertReader(t, t.Name(), reader)
+	matchReaderSnapshot(t, reader)
 	mockedClient.AssertExpectations(t)
 }
 
 func Test_handler_streamLogs_happy_container_stopped(t *testing.T) {
 	id := "123456"
 	ctx, cancel := context.WithCancel(context.Background())
-	req, err := http.NewRequestWithContext(ctx, "GET", "/api/hosts/localhost/containers/"+id+"/logs/stream", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "/api/containers/logs/stream?container=localhost/"+id, nil)
 	q := req.URL.Query()
 	q.Add("stdout", "true")
 	q.Add("stderr", "true")
@@ -162,14 +162,14 @@ func Test_handler_streamLogs_happy_container_stopped(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	reader := strings.NewReader(regexp.MustCompile(`"time":"[^"]*"`).ReplaceAllString(rr.Body.String(), `"time":"<removed>"`))
-	abide.AssertReader(t, t.Name(), reader)
+	matchReaderSnapshot(t, reader)
 	mockedClient.AssertExpectations(t)
 }
 
 func Test_handler_streamLogs_container_stopped_ignores_previous_run(t *testing.T) {
 	id := "123456"
 	ctx, cancel := context.WithCancel(context.Background())
-	req, err := http.NewRequestWithContext(ctx, "GET", "/api/hosts/localhost/containers/"+id+"/logs/stream", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "/api/containers/logs/stream?container=localhost/"+id, nil)
 	q := req.URL.Query()
 	q.Add("stdout", "true")
 	q.Add("stderr", "true")
@@ -216,7 +216,7 @@ func Test_handler_streamLogs_search_status_exhausted(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	id := "123456"
-	req, err := http.NewRequestWithContext(ctx, "GET", "/api/hosts/localhost/containers/"+id+"/logs/stream", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "/api/containers/logs/stream?container=localhost/"+id, nil)
 	require.NoError(t, err, "NewRequest should not return an error.")
 
 	q := req.URL.Query()
@@ -259,7 +259,7 @@ func Test_handler_streamLogs_search_status_on_error(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	id := "123456"
-	req, err := http.NewRequestWithContext(ctx, "GET", "/api/hosts/localhost/containers/"+id+"/logs/stream", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "/api/containers/logs/stream?container=localhost/"+id, nil)
 	require.NoError(t, err, "NewRequest should not return an error.")
 
 	q := req.URL.Query()
@@ -304,7 +304,7 @@ func Test_handler_streamLogs_error_reading(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	id := "123456"
-	req, err := http.NewRequestWithContext(ctx, "GET", "/api/hosts/localhost/containers/"+id+"/logs/stream", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "/api/containers/logs/stream?container=localhost/"+id, nil)
 	q := req.URL.Query()
 	q.Add("stdout", "true")
 	q.Add("stderr", "true")
@@ -335,13 +335,13 @@ func Test_handler_streamLogs_error_reading(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	reader := strings.NewReader(regexp.MustCompile(`"time":"[^"]*"`).ReplaceAllString(rr.Body.String(), `"time":"<removed>"`))
-	abide.AssertReader(t, t.Name(), reader)
+	matchReaderSnapshot(t, reader)
 	mockedClient.AssertExpectations(t)
 }
 
 func Test_handler_streamLogs_error_std(t *testing.T) {
 	id := "123456"
-	req, err := http.NewRequest("GET", "/api/hosts/localhost/containers/"+id+"/logs/stream", nil)
+	req, err := http.NewRequest("GET", "/api/containers/logs/stream?container=localhost/"+id, nil)
 
 	require.NoError(t, err, "NewRequest should not return an error.")
 
@@ -361,12 +361,12 @@ func Test_handler_streamLogs_error_std(t *testing.T) {
 	handler := createDefaultHandler(mockedClient)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
-	abide.AssertHTTPResponse(t, t.Name(), rr.Result())
+	matchHTTPSnapshot(t, rr.Result())
 }
 
 func Test_handler_between_dates(t *testing.T) {
 	id := "123456"
-	req, err := http.NewRequest("GET", "/api/hosts/localhost/containers/"+id+"/logs", nil)
+	req, err := containerLogsRequest("format=jsonl&container=localhost/" + id)
 	require.NoError(t, err, "NewRequest should not return an error.")
 
 	from, _ := time.Parse(time.RFC3339, "2018-01-01T00:00:00Z")
@@ -401,13 +401,13 @@ func Test_handler_between_dates(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	reader := strings.NewReader(regexp.MustCompile(`"time":"[^"]*"`).ReplaceAllString(rr.Body.String(), `"time":"<removed>"`))
-	abide.AssertReader(t, t.Name(), reader)
+	matchReaderSnapshot(t, reader)
 	mockedClient.AssertExpectations(t)
 }
 
 func Test_handler_between_dates_with_fill(t *testing.T) {
 	id := "123456"
-	req, err := http.NewRequest("GET", "/api/hosts/localhost/containers/"+id+"/logs", nil)
+	req, err := containerLogsRequest("format=jsonl&container=localhost/" + id)
 	require.NoError(t, err, "NewRequest should not return an error.")
 
 	from, _ := time.Parse(time.RFC3339, "2018-01-01T00:00:00Z")
@@ -455,150 +455,8 @@ func Test_handler_between_dates_with_fill(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	reader := strings.NewReader(regexp.MustCompile(`"time":"[^"]*"`).ReplaceAllString(rr.Body.String(), `"time":"<removed>"`))
-	abide.AssertReader(t, t.Name(), reader)
+	matchReaderSnapshot(t, reader)
 	mockedClient.AssertExpectations(t)
-}
-
-func Test_handler_between_dates_with_everything_complex(t *testing.T) {
-	id := "123456"
-	req, err := http.NewRequest("GET", "/api/hosts/localhost/containers/"+id+"/logs", nil)
-	require.NoError(t, err, "NewRequest should not return an error.")
-
-	q := req.URL.Query()
-	q.Add("jsonOnly", "true")
-	q.Add("stdout", "true")
-	q.Add("stderr", "true")
-	q.Add("everything", "true")
-
-	req.URL.RawQuery = q.Encode()
-
-	mockedClient := new(MockedClient)
-
-	first := makeMessage("2020-05-13T18:55:37.772853839Z INFO Testing stdout logs...\n", container.STDOUT)
-	second := makeMessage("2020-05-13T18:56:37.772853839Z {\"msg\":\"a complex log message\"}\n", container.STDOUT)
-	data := append(first, second...)
-
-	mockedClient.On("ContainerLogsBetweenDates", mock.Anything, id, mock.Anything, mock.Anything, container.STDALL).
-		Return(io.NopCloser(bytes.NewReader(data)), nil).
-		Once()
-	mockedClient.On("FindContainer", mock.Anything, id).Return(container.Container{ID: id}, nil)
-	mockedClient.On("Host").Return(container.Host{
-		ID: "localhost",
-	})
-	mockedClient.On("ListContainers", mock.Anything, mock.Anything).Return([]container.Container{
-		{ID: id, Name: "test", Host: "localhost", State: "running"},
-	}, nil)
-	mockedClient.On("ContainerEvents", mock.Anything, mock.AnythingOfType("chan<- container.ContainerEvent")).Return(nil)
-
-	handler := createDefaultHandler(mockedClient)
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	reader := strings.NewReader(regexp.MustCompile(`"time":"[^"]*"`).ReplaceAllString(rr.Body.String(), `"time":"<removed>"`))
-	abide.AssertReader(t, t.Name(), reader)
-	mockedClient.AssertExpectations(t)
-}
-
-// jsonOnly feeds the SQL analytics view, which builds a DuckDB table with
-// `unnest(m)`. That only works when every `m` is an object, so anything that is
-// not a complex event has to be dropped here. Filtering on "the message is not a
-// string" is not enough: grouped events carry a []string, which makes DuckDB
-// infer the column as JSON and fails the whole table with a binder error.
-func Test_handler_between_dates_everything_jsonOnly(t *testing.T) {
-	// A single line, a two line group (an ERROR followed by an unlevelled
-	// continuation close in time), and a complex JSON line.
-	data := concatMessages(
-		"2020-05-13T18:55:37.772853839Z INFO Testing stdout logs...\n",
-		"2020-05-13T18:55:38.772853839Z ERROR something blew up\n",
-		"2020-05-13T18:55:38.782853839Z     at foo.bar(baz.go:1)\n",
-		"2020-05-13T18:56:37.772853839Z {\"msg\":\"a complex log message\"}\n",
-	)
-
-	tests := []struct {
-		name      string
-		jsonOnly  bool
-		wantTypes []container.LogType
-	}{
-		{
-			name:      "jsonOnly keeps complex events only",
-			jsonOnly:  true,
-			wantTypes: []container.LogType{container.LogTypeComplex},
-		},
-		{
-			name:     "without jsonOnly every event is sent",
-			jsonOnly: false,
-			wantTypes: []container.LogType{
-				container.LogTypeSingle,
-				container.LogTypeGroup,
-				container.LogTypeComplex,
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			events := fetchEverything(t, data, tt.jsonOnly)
-
-			types := make([]container.LogType, 0, len(events))
-			for _, event := range events {
-				types = append(types, event.Type)
-			}
-			assert.Equal(t, tt.wantTypes, types)
-
-			for _, event := range events {
-				if !tt.jsonOnly {
-					continue
-				}
-				// unnest(m) rejects anything that is not a struct, so every
-				// message the analytics view sees must decode to an object.
-				assert.IsType(t, map[string]any{}, event.Message)
-			}
-		})
-	}
-}
-
-// fetchEverything runs the between-dates handler over data with everything=true
-// and returns the decoded events it wrote.
-func fetchEverything(t *testing.T, data []byte, jsonOnly bool) []*container.LogEvent {
-	t.Helper()
-
-	id := "123456"
-	req, err := http.NewRequest("GET", "/api/hosts/localhost/containers/"+id+"/logs", nil)
-	require.NoError(t, err, "NewRequest should not return an error.")
-
-	q := req.URL.Query()
-	q.Add("stdout", "true")
-	q.Add("stderr", "true")
-	q.Add("everything", "true")
-	if jsonOnly {
-		q.Add("jsonOnly", "true")
-	}
-	req.URL.RawQuery = q.Encode()
-
-	mockedClient := new(MockedClient)
-	mockedClient.On("ContainerLogsBetweenDates", mock.Anything, id, mock.Anything, mock.Anything, container.STDALL).
-		Return(io.NopCloser(bytes.NewReader(data)), nil).
-		Once()
-	mockedClient.On("FindContainer", mock.Anything, id).Return(container.Container{ID: id}, nil)
-	mockedClient.On("Host").Return(container.Host{ID: "localhost"})
-	mockedClient.On("ListContainers", mock.Anything, mock.Anything).Return([]container.Container{
-		{ID: id, Name: "test", Host: "localhost", State: "running"},
-	}, nil)
-	mockedClient.On("ContainerEvents", mock.Anything, mock.AnythingOfType("chan<- container.ContainerEvent")).Return(nil)
-
-	rr := httptest.NewRecorder()
-	createDefaultHandler(mockedClient).ServeHTTP(rr, req)
-	require.Equal(t, http.StatusOK, rr.Code)
-	mockedClient.AssertExpectations(t)
-
-	var events []*container.LogEvent
-	decoder := json.NewDecoder(rr.Body)
-	for decoder.More() {
-		event := &container.LogEvent{}
-		require.NoError(t, decoder.Decode(event))
-		events = append(events, event)
-	}
-
-	return events
 }
 
 func concatMessages(messages ...string) []byte {
@@ -864,4 +722,114 @@ func TestPathParamDecodesOnce(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+// storeHostService finds containers in one store per host and nothing else: its
+// embedded HostService is nil, so a stream that lists a host, or every host,
+// panics instead of passing.
+type storeHostService struct {
+	HostService
+	hosts map[string]container.ClientService
+}
+
+func (s *storeHostService) FindContainer(host, id string, labels container.ContainerLabels) (*container.ContainerService, error) {
+	client, ok := s.hosts[host]
+	if !ok {
+		return nil, fmt.Errorf("host %s not found", host)
+	}
+	c, err := client.FindContainer(context.Background(), id, labels)
+	if err != nil {
+		return nil, err
+	}
+	return container.NewContainerService(client, c), nil
+}
+
+func (s *storeHostService) SubscribeContainersStarted(context.Context, chan<- container.Container, container.ContainerFilter) {
+}
+
+func hostClient(host, id, message string) *MockedClient {
+	c := container.Container{ID: id, Name: id, Host: host, State: "running", StartedAt: time.Now()}
+	client := new(MockedClient)
+	client.On("Host").Return(container.Host{ID: host})
+	client.On("ListContainers", mock.Anything, mock.Anything).Return([]container.Container{c}, nil)
+	client.On("FindContainer", mock.Anything, id).Return(c, nil)
+	client.On("ContainerLogs", mock.Anything, id, mock.Anything, container.STDALL).
+		Return(io.NopCloser(bytes.NewReader(makeMessage(message, container.STDOUT))), nil)
+	client.On("ContainerEvents", mock.Anything, mock.AnythingOfType("chan<- container.ContainerEvent")).Return(nil)
+	return client
+}
+
+// A merged view can mix hosts: each container is found on the host its ref names,
+// and no host is listed to find it.
+func Test_handler_streamContainerLogs_across_hosts(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", "/api/containers/logs/stream", nil)
+	require.NoError(t, err)
+	q := req.URL.Query()
+	q.Add("stdout", "1")
+	q.Add("stderr", "1")
+	addAllLogLevels(q)
+	q.Add("container", "nas/web")
+	q.Add("container", "pi/db")
+	q.Add("container", "pi/db") // a repeated ref is tailed once
+	req.URL.RawQuery = q.Encode()
+
+	nas := hostClient("nas", "web", "from nas\n")
+	pi := hostClient("pi", "db", "from pi\n")
+	h := createRouter(&handler{
+		hostService: &storeHostService{hosts: map[string]container.ClientService{
+			"nas": docker.NewService(nas, container.ContainerLabels{}),
+			"pi":  docker.NewService(pi, container.ContainerLabels{}),
+		}},
+		config: &Config{Base: "/", Authorization: Authorization{Provider: NONE}},
+	})
+
+	rr := httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		h.ServeHTTP(rr, req)
+	}()
+	time.Sleep(300 * time.Millisecond)
+	cancel()
+	<-done
+
+	body := rr.Body.String()
+	assert.Contains(t, body, "from nas")
+	assert.Contains(t, body, "from pi")
+	pi.AssertNumberOfCalls(t, "ContainerLogs", 1)
+}
+
+func Test_handler_streamContainerLogs_bad_refs(t *testing.T) {
+	h := createDefaultHandler(nil)
+	for _, query := range []string{"", "&container=web", "&container=/web", "&container=nas/"} {
+		rr := httptest.NewRecorder()
+		h.ServeHTTP(rr, httptest.NewRequest("GET", "/api/containers/logs/stream?stdout=1"+query, nil))
+		assert.Equal(t, http.StatusBadRequest, rr.Code, query)
+	}
+}
+
+// A whole-log read treats no levels as every level; the windowed fetch does not.
+func Test_logFilter_keeps(t *testing.T) {
+	regex, err := search.ParseRegex("timeout")
+	require.NoError(t, err)
+	hit := &container.LogEvent{Message: "a timeout", Level: "error"}
+	miss := &container.LogEvent{Message: "all good", Level: "error"}
+
+	none := logFilter{levels: map[string]struct{}{}}
+	assert.True(t, none.keeps(hit))
+	assert.False(t, none.matches(hit))
+
+	onlyErrors := logFilter{levels: map[string]struct{}{"error": {}}, regex: regex}
+	assert.True(t, onlyErrors.keeps(hit))
+	assert.False(t, onlyErrors.keeps(miss))
+
+	info := logFilter{levels: map[string]struct{}{"info": {}}}
+	assert.False(t, info.keeps(hit))
+
+	inverse := logFilter{levels: map[string]struct{}{}, regex: regex, inverse: true}
+	assert.False(t, inverse.keeps(hit))
+	assert.True(t, inverse.keeps(miss))
 }

@@ -173,6 +173,105 @@
   --noise: 0;
 }
 
+/* The classes ansi_up emits for the 16 standard colors (assets/utils/ansi.ts), bound to the
+ * per-theme palette above. 256-color and truecolor values arrive inline. */
+.ansi-black-fg {
+  color: var(--ansi-black);
+}
+.ansi-red-fg {
+  color: var(--ansi-red);
+}
+.ansi-green-fg {
+  color: var(--ansi-green);
+}
+.ansi-yellow-fg {
+  color: var(--ansi-yellow);
+}
+.ansi-blue-fg {
+  color: var(--ansi-blue);
+}
+.ansi-magenta-fg {
+  color: var(--ansi-magenta);
+}
+.ansi-cyan-fg {
+  color: var(--ansi-cyan);
+}
+.ansi-white-fg {
+  color: var(--ansi-white);
+}
+.ansi-bright-black-fg {
+  color: var(--ansi-bright-black);
+}
+.ansi-bright-red-fg {
+  color: var(--ansi-bright-red);
+}
+.ansi-bright-green-fg {
+  color: var(--ansi-bright-green);
+}
+.ansi-bright-yellow-fg {
+  color: var(--ansi-bright-yellow);
+}
+.ansi-bright-blue-fg {
+  color: var(--ansi-bright-blue);
+}
+.ansi-bright-magenta-fg {
+  color: var(--ansi-bright-magenta);
+}
+.ansi-bright-cyan-fg {
+  color: var(--ansi-bright-cyan);
+}
+.ansi-bright-white-fg {
+  color: var(--ansi-bright-white);
+}
+.ansi-black-bg {
+  background-color: var(--ansi-black);
+}
+.ansi-red-bg {
+  background-color: var(--ansi-red);
+}
+.ansi-green-bg {
+  background-color: var(--ansi-green);
+}
+.ansi-yellow-bg {
+  background-color: var(--ansi-yellow);
+}
+.ansi-blue-bg {
+  background-color: var(--ansi-blue);
+}
+.ansi-magenta-bg {
+  background-color: var(--ansi-magenta);
+}
+.ansi-cyan-bg {
+  background-color: var(--ansi-cyan);
+}
+.ansi-white-bg {
+  background-color: var(--ansi-white);
+}
+.ansi-bright-black-bg {
+  background-color: var(--ansi-bright-black);
+}
+.ansi-bright-red-bg {
+  background-color: var(--ansi-bright-red);
+}
+.ansi-bright-green-bg {
+  background-color: var(--ansi-bright-green);
+}
+.ansi-bright-yellow-bg {
+  background-color: var(--ansi-bright-yellow);
+}
+.ansi-bright-blue-bg {
+  background-color: var(--ansi-bright-blue);
+}
+.ansi-bright-magenta-bg {
+  background-color: var(--ansi-bright-magenta);
+}
+.ansi-bright-cyan-bg {
+  background-color: var(--ansi-bright-cyan);
+}
+.ansi-bright-white-bg {
+  background-color: var(--ansi-bright-white);
+}
+
 @utility input {
   @apply outline-hidden!;
   &.input-ghost {
@@ -241,6 +340,11 @@
 
 @utility nav-menu-panel {
   @apply rounded-box border-base-content/15 bg-base-200 w-56 border p-1.5 shadow-lg;
+}
+
+/* The panel behind the filter chip and the log actions menus. */
+@utility log-menu-panel {
+  @apply rounded-box border-base-content/10 bg-base-200 w-max min-w-60 border p-1.5 shadow-lg;
 }
 
 @utility animate-bounce-fast {
@@ -455,6 +559,71 @@ html {
 }
 .status-pill-error {
   @apply text-error border-error/30 bg-error/10;
+}
+
+/* --- Log toolbar menus ----------------------------------------------------
+ * The filter chip and the actions menu over a log view share one row
+ * vocabulary, and the filter rows render inside both, so it lives here rather
+ * than in either component's scoped block. Goes on the `ul.menu`. */
+
+/* Section headers replace hairline dividers: they separate and label at the
+ * same time. The first one has nothing above it to divide from. */
+.log-menu li.section {
+  @apply text-base-content/40 border-base-content/10 mt-1.5 border-t px-2 pt-2 pb-1 text-[10px] font-semibold tracking-wider uppercase;
+}
+
+.log-menu li.section.warn {
+  @apply text-warning/90;
+}
+
+/* daisyUI pads every direct child of a menu li as if it were a clickable row,
+ * which squeezes a status dot or spinner in a header down to nothing. */
+.log-menu li.section > * {
+  @apply p-0;
+}
+
+.log-menu li.section:first-child {
+  @apply mt-0 border-t-0 pt-1;
+}
+
+.log-menu :where(a, button, summary) {
+  @apply whitespace-nowrap;
+}
+
+/* One icon size for every row, so labels line up on a single text column. */
+.log-menu > li > :where(a, button, summary) > svg,
+.log-menu > li > details > summary > svg {
+  @apply size-4 shrink-0 opacity-70;
+}
+
+/* A collapsed submenu's current value, in the trailing grid column daisyUI
+ * reserves next to the disclosure chevron. */
+.log-menu .value {
+  @apply text-base-content/40 text-xs tabular-nums;
+}
+
+/* daisyUI's .menu is fit-content, so a nested submenu shrinks to its content
+ * and the hover highlight stops short of the dropdown's edge. */
+.log-menu li ul {
+  margin-inline-start: 0;
+  width: 100%;
+  &:before {
+    display: none;
+  }
+}
+
+/* Solid level colors keep white labels in the light theme. warn is a light
+ * orange, where dark text has better contrast, so it keeps the default. */
+[data-theme="light"]
+  .log-menu
+  .badge:is(
+    [data-level="info"],
+    [data-level="debug"],
+    [data-level="trace"],
+    [data-level="error"],
+    [data-level="fatal"]
+  ) {
+  color: oklch(100% 0 0) !important;
 }
 
 /* --- Icon button motion ---------------------------------------------------

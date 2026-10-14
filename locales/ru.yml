@@ -15,6 +15,16 @@ toolbar:
   restart: Перезапустить
   rollout-restart: "Перезапустить {kind}"
   rollout-restart-done: "{workload} разворачивает новые поды."
+  section-containers: "Контейнеры"
+  restart-all: "Перезапустить все"
+  stop-all: "Остановить все"
+  start-all: "Запустить все"
+  bulk-confirm-restart: "Перезапустить контейнеры: 1? | Перезапустить контейнеры: {count}?"
+  bulk-confirm-stop: "Остановить контейнеры: 1? | Остановить контейнеры: {count}?"
+  bulk-confirm-start: "Запустить контейнеры: 1? | Запустить контейнеры: {count}?"
+  bulk-self-skipped: "Собственный контейнер Dozzle пропускается."
+  bulk-more: "и ещё {count}"
+  bulk-failed: "Не выполнено для {names}"
   update: Обновить
   update-service: Обновить Сервис
   update-pulling: Загрузка последнего образа...
@@ -122,6 +132,7 @@ label:
   cpu: CPU
   core: Нет ядер | 1 ядро | {count} ядер
   disk: Диск
+  network: Сеть
   reclaimable: Можно освободить
   unused-images: "Неиспользуемые образы"
   unused-volumes: "Неиспользуемые тома"
@@ -162,7 +173,6 @@ tooltip:
   unpin-column: Открепить столбец
   merge-stream: Объединить с потоком
   merge-stream-hint: Откройте контейнер, чтобы объединить с ним
-  merge-stream-other-host: "Объединять можно только контейнеры на одном хосте"
   unmerge-stream: Убрать из потока
   merge-all: Объединить все в один поток
   network-io: "Сеть: ↑ {tx}/s · ↓ {rx}/s"
@@ -369,6 +379,9 @@ analytics:
   example_all: Все логи
   example_count: Количество строк
   example_group: Количество по {column}
+  example_by_container: По контейнерам
+  include_previous: "Включить старые контейнеры ({count})"
+  containers_count: "Контейнеры: {count}"
   export: Экспорт
   export_csv: Скачать CSV
   export_json: Скачать JSON
@@ -380,6 +393,7 @@ analytics:
   max: Макс
   p50: P50
   p95: P95
+  distribution_of: "Распределение {column}"
   rows: 1 строка | {count} строк
 updates:
   title: Обновления
@@ -806,6 +820,8 @@ cloud-search:
   no-matches: "Нет подходящих контейнеров или команд"
   nav-hint: "навигация"
   pin-shortcut: "закрепить столбец"
+  merge-shortcut: "объединить в поток"
+  unmerge-shortcut: "убрать из потока"
   search-logs-for: 'Поиск логов по "{query}"'
   across-containers: "проиндексированных по всем вашим контейнерам"
   connect-to-enable: "Подключите Dozzle Cloud, чтобы искать в логах"
@@ -1137,3 +1153,17 @@ inspect:
   hide-value: "Скрыть значение"
   env-hidden: "Значения скрыты. Для их чтения нужен доступ к shell."
   load-failed: "Не удалось загрузить сведения о контейнере."
+reclaim:
+  clean-up: "Очистить"
+  free-up: "Освободить {size}"
+  confirm-title: "Освободить {size} на {host}?"
+  cannot-undo: "Это действие нельзя отменить."
+  images-repull: "Остановленный стек заново скачает свои образы при следующем запуске."
+  volumes-warning: "Тома (1) хранят данные, которые сейчас не использует ни один контейнер. Удаление сотрёт эти данные, например базу данных, контейнер которой был удалён. | Тома ({count}) хранят данные, которые сейчас не использует ни один контейнер. Удаление сотрёт эти данные, например базу данных, контейнер которой был удалён."
+  volumes-confirm: "Понимаю, удалить тома"
+  delete: "Удалить"
+  deleting: "Освобождение {size}…"
+  freed: "Освобождено {size}"
+  failed: "Не удалось очистить"
+  agent-too-old: "Этот агент пока не умеет очищать. Обновите его до последней версии."
+  enable-actions: "Включите действия с контейнерами, чтобы очищать отсюда."
