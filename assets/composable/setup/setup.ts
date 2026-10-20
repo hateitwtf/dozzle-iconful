@@ -152,9 +152,11 @@ export function setupSteps(status: SetupStatus, cloud: SetupCloudFacts): SetupSt
   if (!status.locked.authProvider) steps.push("login");
   // Nothing to toggle when both are pinned.
   if (!(status.locked.enableActions && status.locked.enableShell)) steps.push("actions");
+  // Right after actions, so restarting from chat builds on the choice just made.
+  // Actions is never greyed out, so this pairing holds on every install.
+  if (!cloud.linked && cloud.canLink) steps.push("cloud");
   // Adding a host applies live, so the step never feeds the restart at the end.
   if (status.canAddAgents) steps.push("hosts");
-  if (!cloud.linked && cloud.canLink) steps.push("cloud");
   // Always listed so people see what actions would unlock. The wizard greys it out
   // while actions are off, since self-update is an action.
   if (status.mode === "server" && status.autoUpdate) steps.push("update");
@@ -207,6 +209,17 @@ export function setupStepConfigured(id: SetupStepId, status: SetupStatus): boole
   if (id === "hosts") return (status.agents?.length ?? 0) > 0;
   if (id === "update") return !!status.autoUpdate && status.autoUpdate.mode !== "off";
   return false;
+}
+
+// Whether a step the user left before a restart or the cloud round trip counts as
+// done once the wizard resumes. Nothing remembers what was skipped across the
+// reload, so the answer comes from what the server and Cloud report: walking away
+// from the Cloud page, or skipping login, must not come back as a check mark.
+// Actions has no skip, so leaving it was an answer either way.
+export function setupResumeDone(id: SetupStepId, status: SetupStatus, cloudLinked: boolean): boolean {
+  if (id === "cloud") return cloudLinked;
+  if (id === "actions") return true;
+  return setupStepConfigured(id, status);
 }
 
 // What each toggle will be after the next restart.

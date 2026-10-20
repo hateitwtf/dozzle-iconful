@@ -8,6 +8,7 @@
 // biome-ignore lint: disable
 export {}
 declare global {
+  const AIM_IDLE: typeof import('./composable/ui/pointerAim').AIM_IDLE
   const BULK_CONCURRENCY: typeof import('./composable/containers/bulkContainerActions').BULK_CONCURRENCY
   const COMPACT_OFFSET_PX: typeof import('./composable/ui/compactOnScroll').COMPACT_OFFSET_PX
   const COPY_CONCURRENCY: typeof import('./composable/logs/copyLogs').COPY_CONCURRENCY
@@ -38,6 +39,8 @@ declare global {
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
   const agentComposeSnippet: typeof import('./composable/setup/setup').agentComposeSnippet
   const agentImage: typeof import('./composable/setup/setup').agentImage
+  const aimAt: typeof import('./composable/ui/pointerAim').aimAt
+  const aimOwner: typeof import('./composable/ui/pointerAim').aimOwner
   const alertTargetFor: typeof import('./composable/notifications/alertForm').alertTargetFor
   const allLevels: typeof import('./composable/logs/logContext').allLevels
   const analyticsLogsParams: typeof import('./composable/logs/analyticsTable').analyticsLogsParams
@@ -59,6 +62,7 @@ declare global {
   const canUpdate: typeof import('./composable/containers/imageUpdate').canUpdate
   const checkSession: typeof import('./composable/app/session').checkSession
   const chipMoment: typeof import('./composable/cloud/patternMemory').chipMoment
+  const clearAim: typeof import('./composable/ui/pointerAim').clearAim
   const clearCloudWelcomePending: typeof import('./composable/cloud/cloudWelcome').clearCloudWelcomePending
   const clearSetupResume: typeof import('./composable/setup/setup').clearSetupResume
   const cloudWelcomePending: typeof import('./composable/cloud/cloudWelcome').cloudWelcomePending
@@ -287,6 +291,7 @@ declare global {
   const setupLoginConfigured: typeof import('./composable/setup/setup').setupLoginConfigured
   const setupLoginErrorKey: typeof import('./composable/setup/setup').setupLoginErrorKey
   const setupPendingChanges: typeof import('./composable/setup/setup').setupPendingChanges
+  const setupResumeDone: typeof import('./composable/setup/setup').setupResumeDone
   const setupShouldAutoOpen: typeof import('./composable/setup/setup').setupShouldAutoOpen
   const setupStepConfigured: typeof import('./composable/setup/setup').setupStepConfigured
   const setupSteps: typeof import('./composable/setup/setup').setupSteps
@@ -734,6 +739,7 @@ import { UnwrapRef } from 'vue'
 declare module 'vue' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
+    readonly AIM_IDLE: UnwrapRef<typeof import('./composable/ui/pointerAim')['AIM_IDLE']>
     readonly BULK_CONCURRENCY: UnwrapRef<typeof import('./composable/containers/bulkContainerActions')['BULK_CONCURRENCY']>
     readonly COMPACT_OFFSET_PX: UnwrapRef<typeof import('./composable/ui/compactOnScroll')['COMPACT_OFFSET_PX']>
     readonly DEFAULT_SETTINGS: UnwrapRef<typeof import('./stores/settings')['DEFAULT_SETTINGS']>
@@ -761,6 +767,8 @@ declare module 'vue' {
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
     readonly agentComposeSnippet: UnwrapRef<typeof import('./composable/setup/setup')['agentComposeSnippet']>
     readonly agentImage: UnwrapRef<typeof import('./composable/setup/setup')['agentImage']>
+    readonly aimAt: UnwrapRef<typeof import('./composable/ui/pointerAim')['aimAt']>
+    readonly aimOwner: UnwrapRef<typeof import('./composable/ui/pointerAim')['aimOwner']>
     readonly alertTargetFor: UnwrapRef<typeof import('./composable/notifications/alertForm')['alertTargetFor']>
     readonly allLevels: UnwrapRef<typeof import('./composable/logs/logContext')['allLevels']>
     readonly analyticsLogsParams: UnwrapRef<typeof import('./composable/logs/analyticsTable')['analyticsLogsParams']>
@@ -782,6 +790,7 @@ declare module 'vue' {
     readonly canUpdate: UnwrapRef<typeof import('./composable/containers/imageUpdate')['canUpdate']>
     readonly checkSession: UnwrapRef<typeof import('./composable/app/session')['checkSession']>
     readonly chipMoment: UnwrapRef<typeof import('./composable/cloud/patternMemory')['chipMoment']>
+    readonly clearAim: UnwrapRef<typeof import('./composable/ui/pointerAim')['clearAim']>
     readonly clearCloudWelcomePending: UnwrapRef<typeof import('./composable/cloud/cloudWelcome')['clearCloudWelcomePending']>
     readonly clearSetupResume: UnwrapRef<typeof import('./composable/setup/setup')['clearSetupResume']>
     readonly cloudWelcomePending: UnwrapRef<typeof import('./composable/cloud/cloudWelcome')['cloudWelcomePending']>
@@ -1002,6 +1011,7 @@ declare module 'vue' {
     readonly setupLoginConfigured: UnwrapRef<typeof import('./composable/setup/setup')['setupLoginConfigured']>
     readonly setupLoginErrorKey: UnwrapRef<typeof import('./composable/setup/setup')['setupLoginErrorKey']>
     readonly setupPendingChanges: UnwrapRef<typeof import('./composable/setup/setup')['setupPendingChanges']>
+    readonly setupResumeDone: UnwrapRef<typeof import('./composable/setup/setup')['setupResumeDone']>
     readonly setupShouldAutoOpen: UnwrapRef<typeof import('./composable/setup/setup')['setupShouldAutoOpen']>
     readonly setupStepConfigured: UnwrapRef<typeof import('./composable/setup/setup')['setupStepConfigured']>
     readonly setupSteps: UnwrapRef<typeof import('./composable/setup/setup')['setupSteps']>
