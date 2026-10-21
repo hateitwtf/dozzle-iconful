@@ -1,4 +1,5 @@
 import { useCloudConfig } from "./cloudConfig";
+import type { VolumeBucket } from "./searchVolume";
 
 export interface CloudLogHit {
   ts: number;
@@ -20,9 +21,38 @@ interface CloudLogSearchResponse {
   // Cursor for the next older page. Pass back as `before=` in the URL.
   // Omitted when there's nothing more to load.
   nextBefore?: number;
+  // How every match spreads over the window; first page only, and absent when
+  // Cloud is older than the field or could not count in time.
+  volume?: VolumeBucket[];
+  stepNs?: number;
+  // Oldest timestamp (ns) the search reaches and every match in it, as Cloud
+  // decided them. Absent from an older Cloud, or when it could not count.
+  windowStart?: number;
+  total?: number;
 }
 
 const debounceMs = 250;
+
+/**
+ * Hands a query to the Cloud results page. `available` is the one definition of
+ * "Cloud can search": linked AND streaming logs, since nothing is indexed otherwise.
+ */
+export function useCloudSearchHandoff() {
+  const { cloudConfig } = useCloudConfig();
+  // Optional: a few surfaces mount without a router (tests, the login page).
+  const router = useRouter();
+  const available = computed(() => !!cloudConfig.value?.linked && !!cloudConfig.value?.streamLogs);
+
+  // `regex` says the query came from find, which runs it as a regex. Cloud decides
+  // what that means; Dozzle only carries the intent.
+  function open(query: string, { regex = false } = {}) {
+    const q = query.trim();
+    if (!available.value || !q) return;
+    router?.push({ path: "/cloud/search", query: regex ? { q, regex: "1" } : { q } });
+  }
+
+  return { available, open };
+}
 
 /** A search Cloud refused because of the query itself; message is user-facing. */
 class QueryError extends Error {}
@@ -47,9 +77,7 @@ class QueryError extends Error {}
  *               message, which is written for the person who typed it
  *   any other 4xx/5xx -> error set, results cleared
  */
-export function useCloudLogSearch(query: Ref<string>) {
-  const { cloudConfig } = useCloudConfig();
-
+export function useCloudLogSearch(query: Ref<string>, regex: Ref<boolean> = ref(false)) {
   const results = ref<CloudLogHit[]>([]);
   const loading = ref(false);
   const loadingMore = ref(false);
@@ -59,11 +87,19 @@ export function useCloudLogSearch(query: Ref<string>) {
   // message would describe infrastructure rather than the search.
   const errorDetail = ref<string | null>(null);
   const hasMore = ref(false);
+  // Round trip of the last fresh search in ms, as the reader felt it. Cloud does
+  // not report its own query time, and the wait the reader sat through is the
+  // number that means something to them anyway.
+  const tookMs = ref<number | null>(null);
+  const volume = ref<VolumeBucket[]>([]);
+  const stepNs = ref(0);
+  const windowStart = ref(0);
+  const total = ref<number | null>(null);
   // Cursor (timestamp_ns) of the last hit on the current page; 0 = at the
   // newest page. Cleared on every new query.
   const nextBefore = ref<number>(0);
 
-  const available = computed(() => !!cloudConfig.value?.linked && !!cloudConfig.value?.streamLogs);
+  const { available } = useCloudSearchHandoff();
 
   // Two parallel fetch lifecycles — keystroke search (cancels on next
   // keystroke / unmount) and pagination loadMore (cancels on unmount or
@@ -81,11 +117,18 @@ export function useCloudLogSearch(query: Ref<string>) {
     loadingMore.value = false;
     hasMore.value = false;
     nextBefore.value = 0;
+    tookMs.value = null;
+    volume.value = [];
+    stepNs.value = 0;
+    windowStart.value = 0;
+    total.value = null;
   }
 
   async function fetchPage(q: string, before: number, signal: AbortSignal): Promise<CloudLogSearchResponse | null> {
     let url = withBase(`/api/cloud/search/logs?q=${encodeURIComponent(q)}&limit=20`);
-    if (before > 0) url += `&before=${before}`;
+    if (regex.value) url += "&regex=1";
+    // The window's shape does not change as the reader pages back, so only the first page counts it.
+    url += before > 0 ? `&before=${before}` : "&volume=1";
     const res = await fetch(url, { signal });
     if (res.status === 204) return { hits: [], hasMore: false };
     if (!res.ok) {
@@ -109,11 +152,18 @@ export function useCloudLogSearch(query: Ref<string>) {
     error.value = null;
     errorDetail.value = null;
     nextBefore.value = 0;
+    tookMs.value = null;
 
     try {
+      const started = performance.now();
       const body = await fetchPage(q, 0, abortController.signal);
       if (!body) return;
+      tookMs.value = Math.round(performance.now() - started);
       results.value = body.hits ?? [];
+      volume.value = body.volume ?? [];
+      stepNs.value = body.stepNs ?? 0;
+      windowStart.value = body.windowStart ?? 0;
+      total.value = body.total ?? null;
       hasMore.value = !!body.hasMore;
       nextBefore.value = body.nextBefore ?? 0;
     } catch (e) {
@@ -122,6 +172,10 @@ export function useCloudLogSearch(query: Ref<string>) {
         errorDetail.value = e instanceof QueryError ? e.message : null;
         results.value = [];
         hasMore.value = false;
+        volume.value = [];
+        stepNs.value = 0;
+        windowStart.value = 0;
+        total.value = null;
       }
     } finally {
       loading.value = false;
@@ -152,7 +206,7 @@ export function useCloudLogSearch(query: Ref<string>) {
   }
 
   watchDebounced(
-    [query, available],
+    [query, available, regex],
     ([q, isAvailable]) => {
       const trimmed = q.trim();
       if (!isAvailable || trimmed === "") {
@@ -169,5 +223,19 @@ export function useCloudLogSearch(query: Ref<string>) {
     loadMoreAborter?.abort();
   });
 
-  return { results, loading, loadingMore, error, errorDetail, available, hasMore, loadMore };
+  return {
+    results,
+    loading,
+    loadingMore,
+    error,
+    errorDetail,
+    available,
+    hasMore,
+    tookMs,
+    volume,
+    stepNs,
+    windowStart,
+    total,
+    loadMore,
+  };
 }

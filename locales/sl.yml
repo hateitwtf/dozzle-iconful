@@ -8,6 +8,7 @@ toolbar:
   invalid-regex: Neveljaven regularni izraz
   close-search: Zapri iskanje
   move-search: Povlecite za premik
+  search-all-containers: Išči po vseh vsebnikih
   show: Prikaži {std}
   show-all: Prikaži vse
   stop: Ustavi
@@ -68,6 +69,7 @@ action:
   copy-log: Kopiraj dnevnik
   copy-link: Kopiraj trajno povezavo
   see-in-context: Glej v kontekstu
+  search-similar: Poišči podobne
   show-details: Prikaži podrobnosti
   create-alert: Ustvari opozorilo
   ask-about-log: Vprašaj o tem dnevniku
@@ -844,16 +846,12 @@ cloud-search:
   search-empty-prompt: "Vpišite poizvedbo za iskanje po dnevnikih."
   searching: "Iskanje…"
   hits-count: "{n} zadetkov"
-  window-suffix: "v zadnjih 14 dneh"
+  window-since: "od {time}"
   hero-title-cloud: "Iskanje vsebnikov in dnevnikov"
   hero-title-plain: "Iskanje vsebnikov"
   hero-pill-indexed: "Cloud indeks"
   modal-placeholder-cloud: "Iskanje vsebnikov in dnevnikov…"
   modal-placeholder-plain: "Iskanje vsebnikov…"
-  col-time: "Čas"
-  col-level: "Raven"
-  col-container: "Vsebnik"
-  col-message: "Sporočilo"
   container-removed: "Vsebnik je bil izbrisan"
   cta-settings: "Nastavitve Cloud"
   container-removed-pill: "izbrisano"
@@ -1175,3 +1173,7 @@ reclaim:
   failed: "Čiščenje ni uspelo"
   agent-too-old: "Ta agent še ne zna čistiti. Posodobite ga na najnovejšo različico."
   enable-actions: "Omogočite dejanja vsebnikov, da lahko počistite od tukaj."
+  schedule-label: "Samodejno počisti"
+  schedule-desc: "Neuporabljene slike, ustavljeni vsebniki in predpomnilnik gradnje na vseh gostiteljih. Nosilci se nikoli ne izbrišejo."
+  last-run: "Zadnji zagon je sprostil {size} {when}."
+  last-run-failed: "{count} gostitelja ni bilo mogoče počistiti, poglejte dnevnike. | {count} gostiteljev ni bilo mogoče počistiti, poglejte dnevnike."

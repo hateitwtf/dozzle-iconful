@@ -18,18 +18,36 @@
       <button
         type="button"
         class="btn btn-square btn-xs border-base-content/20 bg-base-100 border opacity-0 shadow-sm group-hover/entry:opacity-90"
+        :title="$t('action.copy-log')"
+        @click="copyLogMessage()"
         v-else
       >
-        <ion:ellipsis-vertical />
+        <material-symbols:content-copy />
       </button>
     </template>
-    <ul class="menu w-full p-0">
-      <li v-if="isFiltered">
-        <router-link @click="resetSearch()" :to="momentRoute">
-          <material-symbols:eye-tracking />
-          {{ $t("action.see-in-context") }}
-        </router-link>
-      </li>
+    <!-- Grouped by what the line is for: looking at it, taking it elsewhere, acting on it. -->
+    <ul class="menu w-full gap-0.5 p-0 [&_svg]:size-4 [&_svg]:opacity-60">
+      <template v-if="isFiltered || isComplex || similar">
+        <li v-if="isFiltered">
+          <router-link @click="resetSearch()" :to="momentRoute">
+            <material-symbols:eye-tracking />
+            {{ $t("action.see-in-context") }}
+          </router-link>
+        </li>
+        <li v-if="similar">
+          <a @click="searchSimilar()">
+            <material-symbols:search />
+            {{ $t("action.search-similar") }}
+          </a>
+        </li>
+        <li v-if="isComplex">
+          <a @click="showDrawer(LogDetails, { entry: logEntry })">
+            <material-symbols:code-blocks-rounded />
+            {{ $t("action.show-details") }}
+          </a>
+        </li>
+        <li class="mx-2 my-1 self-stretch" aria-hidden="true"></li>
+      </template>
       <li>
         <a @click="copyLogMessage()">
           <material-symbols:content-copy />
@@ -42,13 +60,7 @@
           {{ $t("action.copy-link") }}
         </a>
       </li>
-
-      <li v-if="logEntry instanceof ComplexLogEntry">
-        <a @click="showDrawer(LogDetails, { entry: logEntry })">
-          <material-symbols:code-blocks-rounded />
-          {{ $t("action.show-details") }}
-        </a>
-      </li>
+      <li class="mx-2 my-1 self-stretch" aria-hidden="true"></li>
       <li>
         <a @click="createAlert()">
           <mdi:bell />
@@ -70,6 +82,8 @@ import stripAnsi from "strip-ansi";
 import { Container } from "@/models/Container";
 import { LogEntry, SimpleLogEntry, ComplexLogEntry, GroupedLogEntry, JSONObject } from "@/models/LogEntry";
 import { toViewLogLine } from "@/composable/logs/viewContext";
+import { useCloudConfig } from "@/composable/cloud/cloudConfig";
+import { similarSearch, similarSource } from "@/composable/logs/similarSearch";
 // Both only ever open in the drawer, so they load when it does.
 const LogDetails = defineAsyncComponent(() => import("./LogDetails.vue"));
 const AlertForm = defineAsyncComponent(() => import("@/components/notifications/AlertForm.vue"));
@@ -87,12 +101,35 @@ const { askAboutLine } = useCloudChat();
 const { hrefFor } = useLogJump();
 const moment = () => ({ containerId: container.id, date: logEntry.date, logId: logEntry.id });
 const momentRoute = computed(() => logMomentRoute(moment()));
-const { isSearching, resetSearch } = useSearchFilter();
+const { isSearching, resetSearch, searchQueryFilter, inverseFilter, showSearch } = useSearchFilter();
 const { levels } = useLoggingContext();
 
 // Show "see in context" whenever the stream is narrowed, either by a text search
 // or by a log-level filter, so the entry can be inspected in the full log stream.
 const isFiltered = computed(() => isSearching.value || allLevels.some((level) => !levels.value.has(level)));
+
+const isComplex = computed(() => logEntry instanceof ComplexLogEntry);
+
+// With Cloud indexing logs the search runs across every container and back 14
+// days; without it, the stream on screen is all there is to search.
+const { cloudConfig } = useCloudConfig();
+const cloudSearch = computed(() => !!cloudConfig.value?.linked && !!cloudConfig.value?.streamLogs);
+const similar = computed(() => {
+  const source = similarSource(logEntry);
+  return source && similarSearch(source.text, source.whole);
+});
+const router = useRouter();
+
+function searchSimilar() {
+  if (!similar.value) return;
+  if (cloudSearch.value) {
+    router.push({ path: "/cloud/search", query: { q: similar.value.phrase } });
+  } else {
+    searchQueryFilter.value = similar.value.regex;
+    inverseFilter.value = false;
+    showSearch.value = true;
+  }
+}
 
 const { copy } = useCopy();
 

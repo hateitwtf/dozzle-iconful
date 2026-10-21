@@ -8,6 +8,7 @@ toolbar:
   invalid-regex: 無效的正規表示式
   close-search: 關閉搜尋
   move-search: 拖曳以移動
+  search-all-containers: 搜尋所有容器
   show: 僅顯示 {std}
   show-all: 顯示全部
   stop: 停止
@@ -68,6 +69,7 @@ action:
   copy-log: 複製日誌
   copy-link: 複製永久連結
   see-in-context: 在內容中查看
+  search-similar: 搜尋相似日誌
   show-details: 顯示詳細資訊
   create-alert: 建立警報
   ask-about-log: 詢問這則日誌
@@ -841,16 +843,12 @@ cloud-search:
   search-empty-prompt: "輸入查詢以搜尋日誌。"
   searching: "搜尋中…"
   hits-count: "{n} 條結果"
-  window-suffix: "在過去 14 天內"
+  window-since: "自 {time} 起"
   hero-title-cloud: "搜尋容器和日誌"
   hero-title-plain: "搜尋容器"
   hero-pill-indexed: "Cloud 索引"
   modal-placeholder-cloud: "搜尋容器和日誌…"
   modal-placeholder-plain: "搜尋容器…"
-  col-time: "時間"
-  col-level: "級別"
-  col-container: "容器"
-  col-message: "訊息"
   container-removed: "容器已被刪除"
   cta-settings: "Cloud 設定"
   container-removed-pill: "已刪除"
@@ -1172,3 +1170,7 @@ reclaim:
   failed: "清理失敗"
   agent-too-old: "此 agent 尚無法清理，請更新至最新版本。"
   enable-actions: "啟用容器操作即可在此清理。"
+  schedule-label: "自動清理"
+  schedule-desc: "清理所有主機上未使用的映像、已停止的容器和建置快取。永遠不會刪除磁碟區。"
+  last-run: "上次執行於 {when} 釋放了 {size}。"
+  last-run-failed: "有 {count} 台主機無法清理，請查看日誌。 | 有 {count} 台主機無法清理，請查看日誌。"

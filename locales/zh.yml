@@ -8,6 +8,7 @@ toolbar:
   invalid-regex: 无效的正则表达式
   close-search: 关闭搜索
   move-search: 拖动以移动
+  search-all-containers: 搜索所有容器
   show: 显示 {std}
   show-all: 显示全部
   stop: 停止
@@ -68,6 +69,7 @@ action:
   copy-log: 复制日志
   copy-link: 复制永久链接
   see-in-context: 在上下文中查看
+  search-similar: 搜索相似日志
   show-details: 显示详细信息
   create-alert: 创建告警
   ask-about-log: 询问这条日志
@@ -839,16 +841,12 @@ cloud-search:
   search-empty-prompt: "输入查询以搜索日志。"
   searching: "搜索中…"
   hits-count: "{n} 条结果"
-  window-suffix: "在过去 14 天内"
+  window-since: "自 {time} 起"
   hero-title-cloud: "搜索容器和日志"
   hero-title-plain: "搜索容器"
   hero-pill-indexed: "Cloud 索引"
   modal-placeholder-cloud: "搜索容器和日志…"
   modal-placeholder-plain: "搜索容器…"
-  col-time: "时间"
-  col-level: "级别"
-  col-container: "容器"
-  col-message: "消息"
   container-removed: "容器已被删除"
   cta-settings: "Cloud 设置"
   container-removed-pill: "已删除"
@@ -1170,3 +1168,7 @@ reclaim:
   failed: "清理失败"
   agent-too-old: "此 agent 还不能清理，请更新到最新版本。"
   enable-actions: "启用容器操作即可在此清理。"
+  schedule-label: "自动清理"
+  schedule-desc: "清理所有主机上未使用的镜像、已停止的容器和构建缓存。永远不会删除卷。"
+  last-run: "上次运行于 {when} 释放了 {size}。"
+  last-run-failed: "有 {count} 台主机无法清理，请查看日志。 | 有 {count} 台主机无法清理，请查看日志。"

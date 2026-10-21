@@ -8,6 +8,7 @@ toolbar:
   invalid-regex: Ekspresi reguler tidak valid
   close-search: Tutup pencarian
   move-search: Seret untuk memindahkan
+  search-all-containers: Cari di semua kontainer
   show: Tampilkan {std}
   show-all: Tampilkan semua
   stop: Hentikan
@@ -68,6 +69,7 @@ action:
   copy-log: Salin log
   copy-link: Salin permalink
   see-in-context: Lihat dalam konteks
+  search-similar: Cari yang serupa
   show-details: Tampilkan detail
   create-alert: Buat peringatan
   ask-about-log: Tanya tentang log ini
@@ -851,16 +853,12 @@ cloud-search:
   search-empty-prompt: "Ketik kueri untuk mencari di log."
   searching: "Mencari…"
   hits-count: "{n} hasil"
-  window-suffix: "dalam 14 hari terakhir"
+  window-since: "sejak {time}"
   hero-title-cloud: "Cari kontainer dan log"
   hero-title-plain: "Cari kontainer"
   hero-pill-indexed: "Indeks Cloud"
   modal-placeholder-cloud: "Cari kontainer dan log…"
   modal-placeholder-plain: "Cari kontainer…"
-  col-time: "Waktu"
-  col-level: "Level"
-  col-container: "Kontainer"
-  col-message: "Pesan"
   container-removed: "Kontainer telah dihapus"
   cta-settings: "Pengaturan Cloud"
   container-removed-pill: "dihapus"
@@ -1185,3 +1183,7 @@ reclaim:
   failed: "Pembersihan gagal"
   agent-too-old: "Agent ini belum bisa membersihkan. Perbarui ke versi terbaru."
   enable-actions: "Aktifkan aksi kontainer untuk membersihkan dari sini."
+  schedule-label: "Bersihkan otomatis"
+  schedule-desc: "Image yang tidak dipakai, kontainer yang berhenti, dan build cache di semua host. Volume tidak pernah dihapus."
+  last-run: "Proses terakhir mengosongkan {size} {when}."
+  last-run-failed: "{count} host tidak bisa dibersihkan, lihat log. | {count} host tidak bisa dibersihkan, lihat log."

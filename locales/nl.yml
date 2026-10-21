@@ -8,6 +8,7 @@ toolbar:
   invalid-regex: Ongeldige reguliere expressie
   close-search: Zoeken sluiten
   move-search: Sleep om te verplaatsen
+  search-all-containers: Zoeken in alle containers
   show: Toon {std}
   show-all: Toon alles
   stop: Stoppen
@@ -68,6 +69,7 @@ action:
   copy-log: Log kopiëren
   copy-link: Permalink kopiëren
   see-in-context: Bekijk in context
+  search-similar: Zoek vergelijkbare
   show-details: Toon details
   create-alert: Waarschuwing aanmaken
   ask-about-log: Vraag over deze log
@@ -840,16 +842,12 @@ cloud-search:
   search-empty-prompt: "Typ een zoekopdracht om logs te doorzoeken."
   searching: "Zoeken…"
   hits-count: "{n} treffers"
-  window-suffix: "in de afgelopen 14 dagen"
+  window-since: "sinds {time}"
   hero-title-cloud: "Containers en logs zoeken"
   hero-title-plain: "Containers zoeken"
   hero-pill-indexed: "Cloud-index"
   modal-placeholder-cloud: "Containers en logs zoeken…"
   modal-placeholder-plain: "Containers zoeken…"
-  col-time: "Tijd"
-  col-level: "Niveau"
-  col-container: "Container"
-  col-message: "Bericht"
   container-removed: "Container is verwijderd"
   cta-settings: "Cloud-instellingen"
   container-removed-pill: "verwijderd"
@@ -1171,3 +1169,7 @@ reclaim:
   failed: "Opruimen mislukt"
   agent-too-old: "Deze agent kan nog niet opruimen. Werk hem bij naar de nieuwste versie."
   enable-actions: "Schakel containeracties in om hier op te ruimen."
+  schedule-label: "Automatisch opruimen"
+  schedule-desc: "Ongebruikte images, gestopte containers en build-cache op alle hosts. Volumes worden nooit verwijderd."
+  last-run: "Laatste run maakte {size} vrij, {when}."
+  last-run-failed: "{count} host kon niet worden opgeruimd, zie de logs. | {count} hosts konden niet worden opgeruimd, zie de logs."

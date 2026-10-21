@@ -8,6 +8,7 @@ toolbar:
   invalid-regex: Expression régulière invalide
   close-search: Fermer la recherche
   move-search: Glisser pour déplacer
+  search-all-containers: Rechercher dans tous les conteneurs
   show: Montrer seulement {std}
   show-all: Afficher tous les flux
   stop: Stop
@@ -68,6 +69,7 @@ action:
   copy-log: Copier le journal
   copy-link: Copier le permalien
   see-in-context: Voir dans le contexte
+  search-similar: Rechercher des journaux similaires
   show-details: Afficher les détails
   create-alert: Créer une alerte
   ask-about-log: Poser une question sur ce log
@@ -839,16 +841,12 @@ cloud-search:
   search-empty-prompt: "Tapez une requête pour rechercher dans les logs."
   searching: "Recherche…"
   hits-count: "{n} résultats"
-  window-suffix: "au cours des 14 derniers jours"
+  window-since: "depuis le {time}"
   hero-title-cloud: "Rechercher conteneurs et logs"
   hero-title-plain: "Rechercher des conteneurs"
   hero-pill-indexed: "Index Cloud"
   modal-placeholder-cloud: "Rechercher conteneurs et logs…"
   modal-placeholder-plain: "Rechercher des conteneurs…"
-  col-time: "Heure"
-  col-level: "Niveau"
-  col-container: "Conteneur"
-  col-message: "Message"
   container-removed: "Le conteneur a été supprimé"
   cta-settings: "Paramètres Cloud"
   container-removed-pill: "supprimé"
@@ -1170,3 +1168,7 @@ reclaim:
   failed: "Échec du nettoyage"
   agent-too-old: "Cet agent ne peut pas encore nettoyer. Mettez-le à jour vers la dernière version."
   enable-actions: "Activez les actions de conteneur pour nettoyer depuis ici."
+  schedule-label: "Nettoyer automatiquement"
+  schedule-desc: "Images inutilisées, conteneurs arrêtés et cache de build sur tous les hôtes. Les volumes ne sont jamais supprimés."
+  last-run: "Le dernier passage a libéré {size} {when}."
+  last-run-failed: "{count} hôte n'a pas pu être nettoyé, voir les logs. | {count} hôtes n'ont pas pu être nettoyés, voir les logs."

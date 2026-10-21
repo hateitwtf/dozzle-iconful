@@ -83,10 +83,18 @@ func (h *handler) cloudSearchLogs(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// The histogram above the results; the page asks for it on its first page only.
+	// Cloud counts every container on the instance and the buckets carry no
+	// container to filter on, so a label-restricted caller never gets one.
+	volume := r.URL.Query().Get("volume") == "1" && !h.restrictedUser(r)
+
+	// Set by the in-log find handoff. Cloud owns what a find query means.
+	regex := r.URL.Query().Get("regex") == "1"
+
 	ctx, cancel := context.WithTimeout(r.Context(), cloudSearchTimeout)
 	defer cancel()
 
-	result, err := h.config.Cloud.SearchLogs(ctx, q, limit, hostID, containerID, before)
+	result, err := h.config.Cloud.SearchLogs(ctx, q, limit, hostID, containerID, before, volume, regex)
 	if err != nil {
 		if errors.Is(err, cloud.ErrNotConfigured) {
 			writeError(w, http.StatusServiceUnavailable, "cloud not configured")
@@ -123,7 +131,7 @@ func (h *handler) cloudSearchLogs(w http.ResponseWriter, r *http.Request) {
 
 	// Cloud scopes hits to the instance, not to the user. A label-restricted
 	// caller must not see lines from containers outside their scope, so drop
-	// anything the store wouldn't hand them. Fails closed: a container Cloud
+	// anything the store wouldn't hand them, and the instance-wide counts too. Fails closed: a container Cloud
 	// still has logs for but the store no longer knows about is dropped too.
 	if h.restrictedUser(r) && result != nil {
 		visible := h.visibleContainerIDs(r)
@@ -134,6 +142,7 @@ func (h *handler) cloudSearchLogs(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		result.Hits = hits
+		result.Volume, result.StepNs, result.Total = nil, 0, nil
 	}
 
 	w.Header().Set("Content-Type", "application/json")

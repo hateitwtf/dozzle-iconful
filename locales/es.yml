@@ -8,6 +8,7 @@ toolbar:
   invalid-regex: Expresión regular no válida
   close-search: Cerrar búsqueda
   move-search: Arrastra para mover
+  search-all-containers: Buscar en todos los contenedores
   show: Mostrar {std}
   show-all: Mostrar todo
   stop: Detener
@@ -68,6 +69,7 @@ action:
   copy-log: Copiar registro
   copy-link: Copiar enlace permanente
   see-in-context: Ver en contexto
+  search-similar: Buscar similares
   show-details: Mostrar detalles
   create-alert: Crear alerta
   ask-about-log: Preguntar sobre este log
@@ -360,16 +362,12 @@ cloud-search:
   search-empty-prompt: "Escribe una consulta para buscar en los logs."
   searching: "Buscando…"
   hits-count: "{n} resultados"
-  window-suffix: "en los últimos 14 días"
+  window-since: "desde {time}"
   hero-title-cloud: "Buscar contenedores y logs"
   hero-title-plain: "Buscar contenedores"
   hero-pill-indexed: "Índice Cloud"
   modal-placeholder-cloud: "Buscar contenedores y logs…"
   modal-placeholder-plain: "Buscar contenedores…"
-  col-time: "Hora"
-  col-level: "Nivel"
-  col-container: "Contenedor"
-  col-message: "Mensaje"
   container-removed: "El contenedor ha sido eliminado"
   cta-settings: "Configuración de Cloud"
   container-removed-pill: "eliminado"
@@ -1170,3 +1168,7 @@ reclaim:
   failed: "La limpieza falló"
   agent-too-old: "Este agente aún no puede limpiar. Actualízalo a la última versión."
   enable-actions: "Activa las acciones de contenedor para limpiar desde aquí."
+  schedule-label: "Limpiar automáticamente"
+  schedule-desc: "Imágenes sin usar, contenedores detenidos y caché de compilación en todos los hosts. Los volúmenes nunca se eliminan."
+  last-run: "La última ejecución liberó {size} {when}."
+  last-run-failed: "{count} host no se pudo limpiar, revisa los logs. | {count} hosts no se pudieron limpiar, revisa los logs."

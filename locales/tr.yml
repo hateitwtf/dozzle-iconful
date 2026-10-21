@@ -8,6 +8,7 @@ toolbar:
   invalid-regex: Geçersiz düzenli ifade
   close-search: Aramayı kapat
   move-search: Taşımak için sürükleyin
+  search-all-containers: Tüm konteynerlerde ara
   show: Sadece {std} göster
   show-all: Tüm akışları göster
   stop: Durdur
@@ -68,6 +69,7 @@ action:
   copy-log: Günlüğü kopyala
   copy-link: Kalıcı bağlantıyı kopyala
   see-in-context: Bağlamda gör
+  search-similar: Benzerlerini ara
   show-details: Detayları göster
   create-alert: Uyarı oluştur
   ask-about-log: Bu log hakkında sor
@@ -842,16 +844,12 @@ cloud-search:
   search-empty-prompt: "Loglarda arama yapmak için bir sorgu yazın."
   searching: "Aranıyor…"
   hits-count: "{n} sonuç"
-  window-suffix: "son 14 gün içinde"
+  window-since: "{time} tarihinden beri"
   hero-title-cloud: "Konteynerleri ve logları ara"
   hero-title-plain: "Konteynerleri ara"
   hero-pill-indexed: "Cloud indeksi"
   modal-placeholder-cloud: "Konteynerleri ve logları ara…"
   modal-placeholder-plain: "Konteynerleri ara…"
-  col-time: "Zaman"
-  col-level: "Seviye"
-  col-container: "Konteyner"
-  col-message: "Mesaj"
   container-removed: "Konteyner silindi"
   cta-settings: "Cloud ayarları"
   container-removed-pill: "silindi"
@@ -1176,3 +1174,7 @@ reclaim:
   failed: "Temizleme başarısız"
   agent-too-old: "Bu agent henüz temizlik yapamıyor. En son sürüme güncelleyin."
   enable-actions: "Buradan temizlemek için konteyner eylemlerini etkinleştirin."
+  schedule-label: "Otomatik temizle"
+  schedule-desc: "Tüm sunuculardaki kullanılmayan imajlar, durdurulmuş konteynerler ve build önbelleği. Volume'lar asla silinmez."
+  last-run: "Son çalışma {when} {size} boşalttı."
+  last-run-failed: "{count} sunucu temizlenemedi, loglara bakın. | {count} sunucu temizlenemedi, loglara bakın."

@@ -8,6 +8,7 @@ toolbar:
   invalid-regex: Ungültiger regulärer Ausdruck
   close-search: Suche schließen
   move-search: Zum Verschieben ziehen
+  search-all-containers: Alle Container durchsuchen
   show: Zeige nur {std}
   show-all: Zeige alle Streams
   stop: Stop
@@ -68,6 +69,7 @@ action:
   copy-log: Log kopieren
   copy-link: Permalink kopieren
   see-in-context: Im Kontext anzeigen
+  search-similar: Ähnliche suchen
   show-details: Details anzeigen
   create-alert: Alarm erstellen
   ask-about-log: Zu diesem Log fragen
@@ -839,16 +841,12 @@ cloud-search:
   search-empty-prompt: "Suchanfrage eingeben, um Logs zu durchsuchen."
   searching: "Suche läuft…"
   hits-count: "{n} Treffer"
-  window-suffix: "in den letzten 14 Tagen"
+  window-since: "seit {time}"
   hero-title-cloud: "Container und Logs durchsuchen"
   hero-title-plain: "Container durchsuchen"
   hero-pill-indexed: "Cloud-Index"
   modal-placeholder-cloud: "Container und Logs durchsuchen…"
   modal-placeholder-plain: "Container durchsuchen…"
-  col-time: "Zeit"
-  col-level: "Level"
-  col-container: "Container"
-  col-message: "Nachricht"
   container-removed: "Container wurde gelöscht"
   cta-settings: "Cloud-Einstellungen"
   container-removed-pill: "gelöscht"
@@ -1170,3 +1168,7 @@ reclaim:
   failed: "Aufräumen fehlgeschlagen"
   agent-too-old: "Dieser Agent kann noch nicht aufräumen. Aktualisieren Sie ihn auf die neueste Version."
   enable-actions: "Aktiviere Container-Aktionen, um hier aufzuräumen."
+  schedule-label: "Automatisch aufräumen"
+  schedule-desc: "Ungenutzte Images, gestoppte Container und Build-Cache auf allen Hosts. Volumes werden nie gelöscht."
+  last-run: "Letzter Lauf hat {size} freigegeben, {when}."
+  last-run-failed: "{count} Host konnte nicht aufgeräumt werden, siehe Logs. | {count} Hosts konnten nicht aufgeräumt werden, siehe Logs."

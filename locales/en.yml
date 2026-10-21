@@ -8,6 +8,7 @@ toolbar:
   invalid-regex: Invalid regular expression
   close-search: Close search
   move-search: Drag to move
+  search-all-containers: Search all containers
   show: Show {std}
   show-all: Show all
   stop: Stop
@@ -68,6 +69,7 @@ action:
   copy-log: Copy log
   copy-link: Copy permalink
   see-in-context: See in context
+  search-similar: Search similar
   show-details: Show details
   create-alert: Create alert
   ask-about-log: Ask about this log
@@ -368,16 +370,12 @@ cloud-search:
   search-empty-prompt: Type a query to search logs across your containers.
   searching: Searching…
   hits-count: "{n} hits"
-  window-suffix: in the last 14 days
+  window-since: "since {time}"
   hero-title-cloud: Search containers and logs
   hero-title-plain: Search containers
   hero-pill-indexed: Cloud index
   modal-placeholder-cloud: Search containers and logs…
   modal-placeholder-plain: Search containers…
-  col-time: Time
-  col-level: Level
-  col-container: Container
-  col-message: Message
   container-removed: Container has been deleted
   cta-settings: "Cloud settings"
   container-removed-pill: removed
@@ -1181,3 +1179,7 @@ reclaim:
   failed: "Clean up failed"
   agent-too-old: "This agent can't clean up yet. Update it to the latest version."
   enable-actions: "Enable container actions to clean up from here."
+  schedule-label: "Clean up automatically"
+  schedule-desc: "Unused images, stopped containers and build cache on every host. Volumes are never deleted."
+  last-run: "Last run freed {size} {when}."
+  last-run-failed: "{count} host could not be cleaned up, see the logs. | {count} hosts could not be cleaned up, see the logs."

@@ -8,6 +8,7 @@ toolbar:
   invalid-regex: Некорректное регулярное выражение
   close-search: Закрыть поиск
   move-search: Перетащите, чтобы переместить
+  search-all-containers: Искать во всех контейнерах
   show: Показать только {std}
   show-all: Показать все потоки
   stop: Остановить
@@ -68,6 +69,7 @@ action:
   copy-log: Копировать лог
   copy-link: Копировать постоянную ссылку
   see-in-context: Посмотреть в контексте
+  search-similar: Найти похожие
   show-details: Показать детали
   create-alert: Создать оповещение
   ask-about-log: Спросить об этой строке
@@ -839,16 +841,12 @@ cloud-search:
   search-empty-prompt: "Введите запрос для поиска по логам."
   searching: "Поиск…"
   hits-count: "{n} результатов"
-  window-suffix: "за последние 14 дней"
+  window-since: "с {time}"
   hero-title-cloud: "Поиск по контейнерам и логам"
   hero-title-plain: "Поиск по контейнерам"
   hero-pill-indexed: "Индекс Cloud"
   modal-placeholder-cloud: "Поиск по контейнерам и логам…"
   modal-placeholder-plain: "Поиск по контейнерам…"
-  col-time: "Время"
-  col-level: "Уровень"
-  col-container: "Контейнер"
-  col-message: "Сообщение"
   container-removed: "Контейнер был удалён"
   cta-settings: "Настройки Cloud"
   container-removed-pill: "удалён"
@@ -1173,3 +1171,7 @@ reclaim:
   failed: "Не удалось очистить"
   agent-too-old: "Этот агент пока не умеет очищать. Обновите его до последней версии."
   enable-actions: "Включите действия с контейнерами, чтобы очищать отсюда."
+  schedule-label: "Очищать автоматически"
+  schedule-desc: "Неиспользуемые образы, остановленные контейнеры и кэш сборки на всех хостах. Тома никогда не удаляются."
+  last-run: "Последний запуск освободил {size} {when}."
+  last-run-failed: "Не удалось очистить {count} хост, смотрите логи. | Не удалось очистить {count} хоста, смотрите логи."
