@@ -282,3 +282,54 @@ describe("host metrics", () => {
     expect(hosts.value.ghost).toBeUndefined();
   });
 });
+
+describe("container store recent updates", () => {
+  const update = (newId: string, at: string) => ({
+    host: "localhost",
+    name: "web",
+    oldId: "old",
+    newId,
+    imageRef: "nginx:latest",
+    at,
+    source: "schedule",
+  });
+
+  // The server replays its recent updates on every connect, so a reconnect sends
+  // ones the megaphone already lists.
+  test("keeps each update once, newest first", async () => {
+    const { store, es } = setup();
+
+    es.emit("container-update", update("a", "2026-10-20T10:00:00Z"));
+    es.emit("container-update", update("b", "2026-10-21T10:00:00Z"));
+    es.emit("container-update", update("a", "2026-10-20T10:00:00Z"));
+    await nextTick();
+
+    expect(store.recentUpdates.map((u) => u.newId)).toEqual(["b", "a"]);
+  });
+
+  test("keeps at most 20", async () => {
+    const { store, es } = setup();
+
+    for (let i = 0; i < 25; i++) {
+      es.emit("container-update", update(`c${i}`, new Date(Date.UTC(2026, 9, 1, i)).toISOString()));
+    }
+    await nextTick();
+
+    expect(store.recentUpdates).toHaveLength(20);
+    expect(store.recentUpdates[0].newId).toBe("c24");
+  });
+
+  test("keeps the last scheduled clean up", async () => {
+    const { store, es } = setup();
+
+    es.emit("auto-prune", { at: "2026-10-21T04:00:00Z", spaceReclaimed: 1024 });
+    await nextTick();
+
+    expect(store.lastAutoPrune).toEqual({ at: "2026-10-21T04:00:00Z", spaceReclaimed: 1024 });
+
+    es.emit("auto-prune", null);
+    await nextTick();
+
+    expect(store.lastAutoPrune).toBeUndefined();
+  });
+});

@@ -150,6 +150,7 @@ label:
   cpu: CPU
   core: 无核心 | 1 个核心 | {count} 个核心
   disk: 磁盘
+  disk-io: 磁盘 I/O
   network: 网络
   reclaimable: 可回收
   unused-images: "未使用的镜像"
@@ -161,6 +162,8 @@ label:
   mem: MEM
   pinned: 固定
   per-page: 每页行数
+  columns: 列
+  moving-average: 使用移动平均
   sort-by: 排序方式
   sort-direction: 切换排序方向
   host-menu: 主机和容器
@@ -192,10 +195,13 @@ tooltip:
   agent-version: "Dozzle 代理 {version}"
   agent-version-mismatch: "代理 {version} 与 Dozzle {current} 不一致，请更新代理。"
 popup:
-  started: 启动
-  finished: 停止
   group: 分组
   ports: 端口
+container-status:
+  up: "已运行 {duration}"
+  paused: "已暂停，已运行 {duration}"
+  restarting: "正在重启，{time}停止"
+  exited: "{time}退出"
 hint:
   learn-more: 了解更多
   dismiss: 不再显示
@@ -364,6 +370,8 @@ releases:
   no_releases: 您拥有最新版本
   newer: "有 1 个更新版本 | 有 {count} 个更新版本"
   all: 所有版本
+  updates_summary: "已更新 1 个容器 | 已更新 {count} 个容器"
+  agents_mismatched: "1 个代理版本不一致 | {count} 个代理版本不一致"
 toasts:
   copied:
     title: 已复制
@@ -401,6 +409,7 @@ analytics:
 updates:
   title: 更新
   count: 1 个更新 | {count} 个更新
+  available: 1 个可用更新 | {count} 个可用更新
   running: 正在更新…
   subtitle: 这些容器运行的镜像比其镜像仓库提供的旧。
   subtitle-running: 每台主机一次更新一个容器。
@@ -742,6 +751,7 @@ cloud:
       unhealthy: "容器变为 unhealthy"
       oom: "被内核终止（OOM）"
       restart: "容器已重启"
+      updated: "容器已由 Dozzle 更新"
       cpu: "CPU 超过 90% 持续 5 分钟"
       memory: "内存超过 90% 持续 5 分钟"
       disk: "卷已用超过 85%"
@@ -1167,8 +1177,12 @@ reclaim:
   freed: "已释放 {size}"
   failed: "清理失败"
   agent-too-old: "此 agent 还不能清理，请更新到最新版本。"
+  preview-note: "清理会在运行时重新检查，所以在此之前不再被使用的内容也会一并删除。"
+  preview-failed: "无法列出它们。"
+  preview-agent-too-old: "请更新此 agent 以查看列表。"
   enable-actions: "启用容器操作即可在此清理。"
   schedule-label: "自动清理"
+  scheduled-run: "定时清理"
   schedule-desc: "清理所有主机上未使用的镜像、已停止的容器和构建缓存。永远不会删除卷。"
   last-run: "上次运行于 {when} 释放了 {size}。"
   last-run-failed: "有 {count} 台主机无法清理，请查看日志。 | 有 {count} 台主机无法清理，请查看日志。"

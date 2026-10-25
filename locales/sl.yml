@@ -118,6 +118,8 @@ label:
   avg-cpu: CPE povprečje
   pinned: Pripeto
   per-page: Vrstic na stran
+  columns: Stolpci
+  moving-average: Uporabi drseče povprečje
   sort-by: Razvrsti po
   sort-direction: Zamenjaj vrstni red
   host-menu: Gostitelji in zabojniki
@@ -149,6 +151,7 @@ label:
   cpu: CPU
   core: Ni jeder | 1 jedro | {count} jeder
   disk: Disk
+  disk-io: Diskovni V/I
   network: Omrežje
   reclaimable: Za sprostitev
   unused-images: "Neuporabljene slike"
@@ -192,10 +195,13 @@ tooltip:
   agent-version: "Agent Dozzle {version}"
   agent-version-mismatch: "Agent {version} se ne ujema z Dozzle {current}. Posodobite agenta."
 popup:
-  started: Zagnan
-  finished: Ustavljen
   group: Skupina
   ports: Vrata
+container-status:
+  up: "Deluje {duration}"
+  paused: "Zaustavljen, deluje {duration}"
+  restarting: "Ponovni zagon, ustavljen {time}"
+  exited: "Končan {time}"
 hint:
   learn-more: Več o tem
   dismiss: Ne prikaži več
@@ -369,6 +375,8 @@ releases:
   no_releases: Imate najnovejšo različico
   newer: "1 novejša izdaja | {count} novejših izdaj"
   all: Vse izdaje
+  updates_summary: "1 posodobljen vsebnik | {count} posodobljenih vsebnikov"
+  agents_mismatched: "1 agent z drugačno različico | {count} agentov z drugačno različico"
 toasts:
   copied:
     title: Kopirano
@@ -406,6 +414,7 @@ analytics:
 updates:
   title: Posodobitve
   count: 1 posodobitev | {count} posodobitev
+  available: Na voljo je 1 posodobitev | Na voljo je {count} posodobitev
   running: Posodabljanje…
   subtitle: Ti vsebniki uporabljajo starejšo sliko, kot jo ponuja njihov register.
   subtitle-running: Vsak gostitelj posodablja po en vsebnik naenkrat.
@@ -747,6 +756,7 @@ cloud:
       unhealthy: "Vsebnik je postal unhealthy"
       oom: "Ubit s strani jedra (OOM)"
       restart: "Vsebnik ponovno zagnan"
+      updated: "Dozzle je posodobil vsebnik"
       cpu: "CPU nad 90% pet minut"
       memory: "Pomnilnik nad 90% pet minut"
       disk: "Nosilec več kot 85% poln"
@@ -1172,8 +1182,12 @@ reclaim:
   freed: "Sproščeno {size}"
   failed: "Čiščenje ni uspelo"
   agent-too-old: "Ta agent še ne zna čistiti. Posodobite ga na najnovejšo različico."
+  preview-note: "Čiščenje ob zagonu znova preveri, zato se izbriše tudi vse, kar se do takrat preneha uporabljati."
+  preview-failed: "Seznama ni bilo mogoče naložiti."
+  preview-agent-too-old: "Posodobite tega agenta, da vidite seznam."
   enable-actions: "Omogočite dejanja vsebnikov, da lahko počistite od tukaj."
   schedule-label: "Samodejno počisti"
+  scheduled-run: "Načrtovano čiščenje"
   schedule-desc: "Neuporabljene slike, ustavljeni vsebniki in predpomnilnik gradnje na vseh gostiteljih. Nosilci se nikoli ne izbrišejo."
   last-run: "Zadnji zagon je sprostil {size} {when}."
   last-run-failed: "{count} gostitelja ni bilo mogoče počistiti, poglejte dnevnike. | {count} gostiteljev ni bilo mogoče počistiti, poglejte dnevnike."

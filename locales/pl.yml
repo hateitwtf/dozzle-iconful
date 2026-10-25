@@ -135,6 +135,7 @@ label:
   cpu: CPU
   core: Brak rdzeni | 1 rdzeń | {count} rdzeni
   disk: Dysk
+  disk-io: "I/O dysku"
   network: Sieć
   reclaimable: Do odzyskania
   unused-images: "Nieużywane obrazy"
@@ -146,6 +147,8 @@ label:
   mem: MEM
   pinned: Przypięte
   per-page: Wierszy na strone
+  columns: "Kolumny"
+  moving-average: "Użyj średniej kroczącej"
   sort-by: Sortuj według
   sort-direction: Zmień kierunek sortowania
   host-menu: Hosty i Kontenery
@@ -192,10 +195,13 @@ tooltip:
   agent-version: "Agent Dozzle {version}"
   agent-version-mismatch: "Agent {version} nie pasuje do Dozzle {current}. Zaktualizuj agenta."
 popup:
-  started: Uruchomiono
-  finished: Zatrzymano
   group: Grupa
   ports: Porty
+container-status:
+  up: "Działa {duration}"
+  paused: "Wstrzymany, działa {duration}"
+  restarting: "Restartowanie, zatrzymany {time}"
+  exited: "Zakończony {time}"
 hint:
   learn-more: Dowiedz się więcej
   dismiss: Nie pokazuj ponownie
@@ -366,6 +372,8 @@ releases:
   no_releases: Masz najnowszą wersję
   newer: "1 nowsze wydanie | {count} nowszych wydań"
   all: Wszystkie wydania
+  updates_summary: "1 kontener zaktualizowany | Zaktualizowane kontenery: {count}"
+  agents_mismatched: "1 agent w innej wersji | Agenci w innej wersji: {count}"
 toasts:
   copied:
     title: Skopiowany
@@ -403,6 +411,7 @@ analytics:
 updates:
   title: Aktualizacje
   count: 1 aktualizacja | {count} aktualizacji
+  available: 1 dostępna aktualizacja | {count} dostępnych aktualizacji
   running: Aktualizowanie…
   subtitle: Te kontenery używają starszego obrazu niż udostępnia ich rejestr.
   subtitle-running: Każdy host aktualizuje jeden kontener naraz.
@@ -744,6 +753,7 @@ cloud:
       unhealthy: "Kontener stał się unhealthy"
       oom: "Zabity przez jądro (OOM)"
       restart: "Kontener zrestartowany"
+      updated: "Kontener zaktualizowany przez Dozzle"
       cpu: "CPU powyżej 90% przez 5 minut"
       memory: "Pamięć powyżej 90% przez 5 minut"
       disk: "Wolumin zapełniony powyżej 85%"
@@ -1169,8 +1179,12 @@ reclaim:
   freed: "Zwolniono {size}"
   failed: "Czyszczenie nie powiodło się"
   agent-too-old: "Ten agent nie potrafi jeszcze czyścić. Zaktualizuj go do najnowszej wersji."
+  preview-note: "Czyszczenie sprawdza wszystko ponownie w chwili uruchomienia, więc usunie też to, co do tego czasu przestanie być używane."
+  preview-failed: "Nie udało się ich wyświetlić."
+  preview-agent-too-old: "Zaktualizuj tego agenta, aby zobaczyć listę."
   enable-actions: "Włącz akcje kontenerów, aby sprzątać stąd."
   schedule-label: "Sprzątaj automatycznie"
+  scheduled-run: "Zaplanowane sprzątanie"
   schedule-desc: "Nieużywane obrazy, zatrzymane kontenery i cache budowania na wszystkich hostach. Wolumeny nigdy nie są usuwane."
   last-run: "Ostatnie uruchomienie zwolniło {size} {when}."
   last-run-failed: "Nie udało się wyczyścić {count} hosta, sprawdź logi. | Nie udało się wyczyścić {count} hostów, sprawdź logi."

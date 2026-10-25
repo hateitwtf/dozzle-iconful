@@ -152,6 +152,11 @@ const ALIASES: Record<string, string> = {
   openobserve: "open-observe",
   "nut-upsd": "nut",
   pasta: "pastatool",
+  datadoghq: "datadog",
+  "3x-ui": "xray",
+  larapaper: "trmnl",
+  "proxmox-backup-server": "proxmox",
+  airflow: "apache-airflow",
 };
 
 const stripSuffix = (name: string) => {

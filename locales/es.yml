@@ -135,6 +135,7 @@ label:
   cpu: CPU
   core: Sin núcleos | 1 núcleo | {count} núcleos
   disk: Disco
+  disk-io: E/S de disco
   network: Red
   reclaimable: Recuperable
   unused-images: "Imágenes sin usar"
@@ -146,6 +147,8 @@ label:
   mem: MEM
   pinned: Fijado
   per-page: Filas por página
+  columns: Columnas
+  moving-average: Usar media móvil
   sort-by: Ordenar por
   sort-direction: Cambiar el orden
   host-menu: Hosts y Contenedores
@@ -192,10 +195,13 @@ tooltip:
   agent-version: "Agente de Dozzle {version}"
   agent-version-mismatch: "El agente {version} no coincide con Dozzle {current}. Actualiza el agente."
 popup:
-  started: Iniciado
-  finished: Finalizado
   group: Grupo
   ports: Puertos
+container-status:
+  up: "Activo desde hace {duration}"
+  paused: "En pausa, activo desde hace {duration}"
+  restarting: "Reiniciando, detenido {time}"
+  exited: "Finalizado {time}"
 hint:
   learn-more: Más información
   dismiss: No volver a mostrar
@@ -484,6 +490,8 @@ releases:
   no_releases: No hay lanzamientos
   newer: "1 versión más reciente | {count} versiones más recientes"
   all: Todas las versiones
+  updates_summary: "1 contenedor actualizado | {count} contenedores actualizados"
+  agents_mismatched: "1 agente con otra versión | {count} agentes con otra versión"
 toasts:
   copied:
     title: Copiado
@@ -521,6 +529,7 @@ analytics:
 updates:
   title: Actualizaciones
   count: 1 actualización | {count} actualizaciones
+  available: 1 actualización disponible | {count} actualizaciones disponibles
   running: Actualizando…
   subtitle: Estos contenedores usan una imagen más antigua que la que ofrece su registro.
   subtitle-running: Cada host actualiza un contenedor a la vez.
@@ -862,6 +871,7 @@ cloud:
       unhealthy: "Contenedor pasó a unhealthy"
       oom: "Terminado por el kernel (OOM)"
       restart: "Contenedor reiniciado"
+      updated: "Contenedor actualizado por Dozzle"
       cpu: "CPU por encima del 90% durante 5 minutos"
       memory: "Memoria por encima del 90% durante 5 minutos"
       disk: "Volumen por encima del 85% lleno"
@@ -1167,8 +1177,12 @@ reclaim:
   freed: "{size} liberados"
   failed: "La limpieza falló"
   agent-too-old: "Este agente aún no puede limpiar. Actualízalo a la última versión."
+  preview-note: "La limpieza vuelve a comprobar al ejecutarse, así que también se borra todo lo que deje de usarse antes."
+  preview-failed: "No se pudieron listar."
+  preview-agent-too-old: "Actualiza este agente para ver la lista."
   enable-actions: "Activa las acciones de contenedor para limpiar desde aquí."
   schedule-label: "Limpiar automáticamente"
+  scheduled-run: "Limpieza programada"
   schedule-desc: "Imágenes sin usar, contenedores detenidos y caché de compilación en todos los hosts. Los volúmenes nunca se eliminan."
   last-run: "La última ejecución liberó {size} {when}."
   last-run-failed: "{count} host no se pudo limpiar, revisa los logs. | {count} hosts no se pudieron limpiar, revisa los logs."

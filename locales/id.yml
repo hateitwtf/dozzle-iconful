@@ -136,6 +136,7 @@ label:
   cpu: CPU
   core: Tidak ada inti | 1 inti | {count} inti
   disk: Disk
+  disk-io: I/O Disk
   network: Jaringan
   reclaimable: Dapat dibebaskan
   unused-images: "Image tidak terpakai"
@@ -147,6 +148,8 @@ label:
   mem: MEM
   pinned: Disematkan
   per-page: Baris per halaman
+  columns: Kolom
+  moving-average: Gunakan rata-rata bergerak
   sort-by: Urutkan menurut
   sort-direction: Ubah arah pengurutan
   host-menu: Host dan Kontainer
@@ -195,10 +198,13 @@ tooltip:
   agent-version: "Agen Dozzle {version}"
   agent-version-mismatch: "Agen {version} tidak cocok dengan Dozzle {current}. Perbarui agennya."
 popup:
-  started: Dimulai
-  finished: Berhenti
   group: Grup
   ports: Port
+container-status:
+  up: "Aktif {duration}"
+  paused: "Dijeda, aktif {duration}"
+  restarting: "Memulai ulang, berhenti {time}"
+  exited: "Keluar {time}"
 hint:
   learn-more: Pelajari lebih lanjut
   dismiss: Jangan tampilkan lagi
@@ -374,6 +380,8 @@ releases:
 
   newer: "1 rilis lebih baru | {count} rilis lebih baru"
   all: Semua rilis
+  updates_summary: "1 kontainer diperbarui | {count} kontainer diperbarui"
+  agents_mismatched: "1 agen dengan versi berbeda | {count} agen dengan versi berbeda"
 
 toasts:
   copied:
@@ -413,6 +421,7 @@ analytics:
 updates:
   title: Pembaruan
   count: 1 pembaruan | {count} pembaruan
+  available: 1 pembaruan tersedia | {count} pembaruan tersedia
   running: Memperbarui…
   subtitle: Container ini menjalankan image yang lebih lama dari yang disediakan registry-nya.
   subtitle-running: Setiap host memperbarui satu container sekaligus.
@@ -754,6 +763,7 @@ cloud:
       unhealthy: "Kontainer menjadi unhealthy"
       oom: "Dihentikan oleh kernel (OOM)"
       restart: "Kontainer dimulai ulang"
+      updated: "Kontainer diperbarui oleh Dozzle"
       cpu: "CPU di atas 90% selama 5 menit"
       memory: "Memori di atas 90% selama 5 menit"
       disk: "Volume terisi lebih dari 85%"
@@ -1182,8 +1192,12 @@ reclaim:
   freed: "{size} dikosongkan"
   failed: "Pembersihan gagal"
   agent-too-old: "Agent ini belum bisa membersihkan. Perbarui ke versi terbaru."
+  preview-note: "Pembersihan memeriksa ulang saat dijalankan, jadi apa pun yang tidak lagi dipakai sebelum itu juga ikut dihapus."
+  preview-failed: "Tidak dapat menampilkan daftarnya."
+  preview-agent-too-old: "Perbarui agent ini untuk melihat daftarnya."
   enable-actions: "Aktifkan aksi kontainer untuk membersihkan dari sini."
   schedule-label: "Bersihkan otomatis"
+  scheduled-run: "Pembersihan terjadwal"
   schedule-desc: "Image yang tidak dipakai, kontainer yang berhenti, dan build cache di semua host. Volume tidak pernah dihapus."
   last-run: "Proses terakhir mengosongkan {size} {when}."
   last-run-failed: "{count} host tidak bisa dibersihkan, lihat log. | {count} host tidak bisa dibersihkan, lihat log."

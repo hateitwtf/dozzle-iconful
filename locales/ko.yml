@@ -135,6 +135,7 @@ label:
   cpu: CPU
   core: 코어 없음 | 코어 1개 | 코어 {count}개
   disk: 디스크
+  disk-io: 디스크 I/O
   network: 네트워크
   reclaimable: 회수 가능
   unused-images: "사용하지 않는 이미지"
@@ -146,6 +147,8 @@ label:
   mem: 메모리
   pinned: 고정됨
   per-page: 페이지당 행 수
+  columns: 열
+  moving-average: 이동 평균 사용
   sort-by: 정렬 기준
   sort-direction: 정렬 순서 전환
   host-menu: 호스트 및 컨테이너
@@ -192,10 +195,13 @@ tooltip:
   agent-version: "Dozzle 에이전트 {version}"
   agent-version-mismatch: "에이전트 {version}이(가) Dozzle {current}과(와) 일치하지 않습니다. 에이전트를 업데이트하세요."
 popup:
-  started: 시작됨
-  finished: 종료됨
   group: 그룹
   ports: 포트
+container-status:
+  up: "{duration} 동안 실행 중"
+  paused: "일시 중지됨, {duration} 동안 실행"
+  restarting: "재시작 중, {time} 중지됨"
+  exited: "{time} 종료됨"
 hint:
   learn-more: 자세히 보기
   dismiss: 다시 표시 안 함
@@ -366,6 +372,8 @@ releases:
   no_releases: 최신 버전을 사용하고 있습니다
   newer: "새 릴리스 1개 | 새 릴리스 {count}개"
   all: 모든 릴리스
+  updates_summary: "컨테이너 1개 업데이트됨 | 컨테이너 {count}개 업데이트됨"
+  agents_mismatched: "에이전트 1개의 버전이 다릅니다 | 에이전트 {count}개의 버전이 다릅니다"
 toasts:
   copied:
     title: 복사 완료
@@ -403,6 +411,7 @@ analytics:
 updates:
   title: 업데이트
   count: 업데이트 1개 | 업데이트 {count}개
+  available: 사용 가능한 업데이트 1개 | 사용 가능한 업데이트 {count}개
   running: 업데이트 중…
   subtitle: 이 컨테이너들은 레지스트리보다 오래된 이미지를 실행 중입니다.
   subtitle-running: 각 호스트는 컨테이너를 한 번에 하나씩 업데이트합니다.
@@ -744,6 +753,7 @@ cloud:
       unhealthy: "컨테이너가 unhealthy 상태가 됨"
       oom: "커널에 의해 종료됨 (OOM)"
       restart: "컨테이너 재시작됨"
+      updated: "Dozzle이 컨테이너를 업데이트함"
       cpu: "CPU가 5분간 90% 초과"
       memory: "메모리가 5분간 90% 초과"
       disk: "볼륨 85% 이상 사용"
@@ -1169,8 +1179,12 @@ reclaim:
   freed: "{size} 확보됨"
   failed: "정리 실패"
   agent-too-old: "이 에이전트는 아직 정리할 수 없습니다. 최신 버전으로 업데이트하세요."
+  preview-note: "정리는 실행할 때 다시 확인하므로, 그 전에 사용되지 않게 된 항목도 함께 삭제됩니다."
+  preview-failed: "목록을 불러올 수 없습니다."
+  preview-agent-too-old: "목록을 보려면 이 에이전트를 업데이트하세요."
   enable-actions: "여기서 정리하려면 컨테이너 작업을 활성화하세요."
   schedule-label: "자동으로 정리"
+  scheduled-run: "예약된 정리"
   schedule-desc: "모든 호스트의 사용하지 않는 이미지, 중지된 컨테이너, 빌드 캐시를 정리합니다. 볼륨은 삭제하지 않습니다."
   last-run: "마지막 실행에서 {when} {size}를 확보했습니다."
   last-run-failed: "호스트 {count}개를 정리하지 못했습니다. 로그를 확인하세요. | 호스트 {count}개를 정리하지 못했습니다. 로그를 확인하세요."

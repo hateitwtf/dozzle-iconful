@@ -135,6 +135,7 @@ label:
   cpu: CPU
   core: Geen kernen | 1 kern | {count} kernen
   disk: Schijf
+  disk-io: Schijf-I/O
   network: Netwerk
   reclaimable: Vrij te maken
   unused-images: "Ongebruikte images"
@@ -146,6 +147,8 @@ label:
   mem: MEM
   pinned: Vastgezet
   per-page: Rijen per pagina
+  columns: Kolommen
+  moving-average: Voortschrijdend gemiddelde gebruiken
   sort-by: Sorteren op
   sort-direction: Sorteervolgorde omkeren
   host-menu: Hosts en Containers
@@ -192,10 +195,13 @@ tooltip:
   agent-version: "Dozzle-agent {version}"
   agent-version-mismatch: "Agent {version} komt niet overeen met Dozzle {current}. Werk de agent bij."
 popup:
-  started: Gestart
-  finished: Gestopt
   group: Groep
   ports: Poorten
+container-status:
+  up: "{duration} actief"
+  paused: "Gepauzeerd, {duration} actief"
+  restarting: "Herstarten, gestopt {time}"
+  exited: "Afgesloten {time}"
 hint:
   learn-more: Meer informatie
   dismiss: Niet meer tonen
@@ -365,6 +371,8 @@ releases:
   no_releases: Je gebruikt de nieuwste versie
   newer: "1 nieuwere versie | {count} nieuwere versies"
   all: Alle versies
+  updates_summary: "1 container bijgewerkt | {count} containers bijgewerkt"
+  agents_mismatched: "1 agent met een andere versie | {count} agents met een andere versie"
 toasts:
   copied:
     title: Gekopieerd
@@ -402,6 +410,7 @@ analytics:
 updates:
   title: Updates
   count: 1 update | {count} updates
+  available: 1 update beschikbaar | {count} updates beschikbaar
   running: Bijwerken…
   subtitle: Deze containers draaien een ouder image dan hun registry aanbiedt.
   subtitle-running: Elke host werkt één container tegelijk bij.
@@ -743,6 +752,7 @@ cloud:
       unhealthy: "Container werd unhealthy"
       oom: "Gedood door de kernel (OOM)"
       restart: "Container herstart"
+      updated: "Container bijgewerkt door Dozzle"
       cpu: "CPU boven 90% gedurende 5 minuten"
       memory: "Geheugen boven 90% gedurende 5 minuten"
       disk: "Volume voor meer dan 85% vol"
@@ -1168,8 +1178,12 @@ reclaim:
   freed: "{size} vrijgemaakt"
   failed: "Opruimen mislukt"
   agent-too-old: "Deze agent kan nog niet opruimen. Werk hem bij naar de nieuwste versie."
+  preview-note: "Opruimen controleert opnieuw wanneer het draait, dus alles wat tot dan buiten gebruik raakt, gaat ook weg."
+  preview-failed: "Kon ze niet ophalen."
+  preview-agent-too-old: "Werk deze agent bij om de lijst te zien."
   enable-actions: "Schakel containeracties in om hier op te ruimen."
   schedule-label: "Automatisch opruimen"
+  scheduled-run: "Geplande opruiming"
   schedule-desc: "Ongebruikte images, gestopte containers en build-cache op alle hosts. Volumes worden nooit verwijderd."
   last-run: "Laatste run maakte {size} vrij, {when}."
   last-run-failed: "{count} host kon niet worden opgeruimd, zie de logs. | {count} hosts konden niet worden opgeruimd, zie de logs."

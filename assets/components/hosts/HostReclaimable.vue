@@ -42,12 +42,35 @@
           </div>
         </div>
 
-        <ul class="border-base-content/15 bg-base-200/40 divide-base-content/10 mt-3 divide-y rounded-lg border">
-          <li v-for="row in selectedRows" :key="row.key" class="flex items-center gap-2 px-2 py-1.5">
-            <component :is="row.icon" class="size-4 shrink-0 opacity-60" />
-            <span class="min-w-0 flex-1 truncate">{{ row.label }}</span>
-            <span v-if="row.count !== undefined" class="text-base-content/40 font-mono">{{ row.count }}</span>
-            <span class="w-20 text-right font-mono">{{ size(row.size) }}</span>
+        <ul
+          class="border-base-content/15 bg-base-200/40 divide-base-content/10 mt-3 divide-y overflow-hidden rounded-lg border"
+        >
+          <li v-for="row in selectedRows" :key="row.key">
+            <!-- Images and volumes open into the names a prune would take. -->
+            <button
+              v-if="listable(row.key)"
+              type="button"
+              class="hover:bg-base-300 flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors"
+              :aria-expanded="expanded === row.key"
+              @click="expand(row.key)"
+            >
+              <component :is="row.icon" class="size-4 shrink-0 opacity-60" />
+              <span class="min-w-0 flex-1 truncate">{{ row.label }}</span>
+              <span v-if="row.count !== undefined" class="text-base-content/40 font-mono">{{ row.count }}</span>
+              <span class="w-20 text-right font-mono">{{ size(row.size) }}</span>
+              <mdi:chevron-down
+                class="-ml-1 size-3.5 shrink-0 opacity-40 transition-transform"
+                :class="{ 'rotate-180': expanded === row.key }"
+              />
+            </button>
+            <div v-else class="flex items-center gap-2 px-2 py-1.5">
+              <component :is="row.icon" class="size-4 shrink-0 opacity-60" />
+              <span class="min-w-0 flex-1 truncate">{{ row.label }}</span>
+              <span v-if="row.count !== undefined" class="text-base-content/40 font-mono">{{ row.count }}</span>
+              <span class="w-20 text-right font-mono">{{ size(row.size) }}</span>
+              <span class="w-2.5 shrink-0"></span>
+            </div>
+            <HostReclaimableItems v-if="expanded === row.key" :kind="row.key as ListKind" :preview="preview" />
           </li>
         </ul>
 
@@ -98,10 +121,25 @@
           <span class="text-base-content/60 text-xs font-semibold tracking-wide uppercase">
             {{ $t("label.reclaimable") }}
           </span>
-          <span class="font-mono font-semibold">{{ size(total) }}</span>
+          <span
+            class="font-mono font-semibold"
+            :title="$t('tooltip.reclaimable-source', { command: 'docker system df' })"
+            >{{ size(total) }}</span
+          >
+        </div>
+        <!-- One bar for the whole total, a segment per kind. A ticked kind is solid,
+             so the bar also shows how much of the total a clean up frees. -->
+        <div class="bg-base-content/10 mt-2 flex h-1.5 gap-px overflow-hidden rounded-full">
+          <div
+            v-for="row in rows.filter((r) => r.size > 0)"
+            :key="row.key"
+            class="h-full transition-[width,background-color] duration-500 motion-reduce:transition-none"
+            :class="!canPrune || picked[row.key] ? 'bg-base-content/50' : 'bg-base-content/20'"
+            :style="{ width: share(row.size) }"
+          ></div>
         </div>
 
-        <ul class="mt-3 space-y-2.5">
+        <ul class="mt-4 space-y-2.5">
           <li v-for="row in rows" :key="row.key" :class="{ 'opacity-50': row.empty }">
             <component :is="canPrune ? 'label' : 'div'" class="flex items-center gap-2">
               <input
@@ -117,22 +155,9 @@
               <span v-if="row.count !== undefined" class="text-base-content/40 font-mono">{{ row.count }}</span>
               <span class="w-20 text-right font-mono">{{ size(row.size) }}</span>
             </component>
-            <!-- each kind's share of the total, neutral like the host card's disk bar -->
-            <div class="bg-base-content/10 mt-1 h-1 overflow-hidden rounded-full" :class="canPrune ? 'ml-7' : 'ml-6'">
-              <div
-                class="bg-base-content/40 h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none"
-                :style="{ width: share(row.size) }"
-              ></div>
-            </div>
           </li>
         </ul>
 
-        <div class="bg-base-content/10 my-3 h-px"></div>
-        <i18n-t scope="global" keypath="tooltip.reclaimable-source" tag="p" class="text-base-content/40 text-xs">
-          <template #command>
-            <code class="font-mono">docker system df</code>
-          </template>
-        </i18n-t>
         <button
           v-if="canPrune"
           type="button"
@@ -163,7 +188,7 @@
 
 <script lang="ts" setup>
 import type { Component } from "vue";
-import type { Host, Reclaimable } from "@/stores/hosts";
+import type { Host, Reclaimable, ReclaimableItems, ReclaimablePreview } from "@/stores/hosts";
 import PhStack from "~icons/ph/stack";
 import PhDatabase from "~icons/ph/database";
 import PhStopCircle from "~icons/ph/stop-circle";
@@ -179,6 +204,7 @@ const { enableActions } = config;
 type Kind = "images" | "volumes" | "containers" | "buildCache";
 type Row = { key: Kind; icon: Component; label: string; count?: number; size: number; empty: boolean };
 type Step = "view" | "confirm" | "running" | "done" | "error";
+type ListKind = "images" | "volumes";
 
 const EMPTY: Reclaimable = {
   images: 0,
@@ -238,7 +264,35 @@ function pick(kind: Kind, value: boolean) {
 
 function confirm() {
   volumesConfirmed.value = false;
+  expanded.value = null;
+  preview.value = { status: "idle" };
   step.value = "confirm";
+}
+
+// The list is read when a row is first opened, not before: it is one more walk of
+// every volume, and most clean ups never look.
+const expanded = ref<ListKind | null>(null);
+const preview = ref<ReclaimablePreview>({ status: "idle" });
+const listable = (kind: Kind): kind is ListKind => kind === "images" || kind === "volumes";
+
+function expand(kind: ListKind) {
+  expanded.value = expanded.value === kind ? null : kind;
+  if (expanded.value && preview.value.status === "idle") loadPreview();
+}
+
+async function loadPreview() {
+  preview.value = { status: "loading" };
+  try {
+    const response = await fetch(withBase(`/api/hosts/${encodeURIComponent(host.id)}/reclaimable`));
+    if (!response.ok) {
+      const error = response.status === 501 ? t("reclaim.preview-agent-too-old") : t("reclaim.preview-failed");
+      preview.value = { status: "error", error };
+      return;
+    }
+    preview.value = { status: "ready", items: (await response.json()) as ReclaimableItems };
+  } catch {
+    preview.value = { status: "error", error: t("reclaim.preview-failed") };
+  }
 }
 
 async function prune() {

@@ -85,7 +85,11 @@ type SetupConfig struct {
 	// UpdateContainers is the mode from --update-containers or its env var, nil
 	// when dozzle.yml decides.
 	UpdateContainers *string
-	StartedAt        time.Time
+	// AutoPruneMode and AutoPruneTime are the clean up schedule from
+	// --auto-cleanup and --auto-cleanup-time, each nil when dozzle.yml decides.
+	AutoPruneMode *string
+	AutoPruneTime *string
+	StartedAt     time.Time
 	// EnvAgents are the agents from DOZZLE_REMOTE_AGENT, which the UI lists but
 	// cannot remove.
 	EnvAgents []string
@@ -115,6 +119,9 @@ type CloudHooks struct {
 	// GetRecentAlerts fetches what fired lately across the instance, for the
 	// notifications page and the container dot. Nil when cloud is not wired.
 	GetRecentAlerts func(ctx context.Context, sinceNs int64, limit int32, subscriptionID string, includeFollowUps bool) (*cloud.AlertResult, error)
+	// GetRecentDeploys fetches the container updates Cloud recorded lately, with
+	// its verdict on each, for the megaphone. Nil when cloud is not wired.
+	GetRecentDeploys func(ctx context.Context, sinceNs int64, limit int32) ([]cloud.RecentDeploy, error)
 	// GetPatternContext asks Cloud's error memory about the lines on screen:
 	// whether each one's pattern is new for its container, or louder than usual.
 	GetPatternContext func(ctx context.Context, lines []cloud.PatternLine, fromNs, toNs int64) ([]cloud.PatternContext, error)
@@ -319,6 +326,7 @@ func createRouter(h *handler) *chi.Mux {
 					r.Post("/hosts/{host}/containers/{id}/actions/{action}", h.containerActions)
 					if h.config.Mode != "k8s" {
 						r.Post("/hosts/{host}/prune", h.pruneHost)
+						r.Get("/hosts/{host}/reclaimable", h.listReclaimable)
 					}
 					r.Post("/updates", h.startBulkUpdate)
 					r.Get("/updates/stream", h.streamBulkUpdate)
@@ -396,6 +404,7 @@ func createRouter(h *handler) *chi.Mux {
 					r.Get("/search/logs", h.cloudSearchLogs)
 					r.Get("/alerts", h.cloudAlerts)
 					r.Get("/alerts/recent", h.cloudRecentAlerts)
+					r.Get("/deploys/recent", h.cloudRecentDeploys)
 					r.Post("/patterns", h.cloudPatterns)
 					r.Get("/hosts/{host}/containers/{id}/metrics", h.cloudContainerMetrics)
 					r.Post("/chat", h.cloudChat)

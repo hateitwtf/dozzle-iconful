@@ -135,6 +135,7 @@ label:
   cpu: CPU
   core: Aucun cœur | 1 cœur | {count} cœurs
   disk: Disque
+  disk-io: E/S disque
   network: Réseau
   reclaimable: Récupérable
   unused-images: "Images inutilisées"
@@ -146,6 +147,8 @@ label:
   mem: MEM
   pinned: Epinglé
   per-page: Colonnes par page
+  columns: Colonnes
+  moving-average: Utiliser la moyenne mobile
   sort-by: Trier par
   sort-direction: Inverser l'ordre de tri
   host-menu: Hôtes et Conteneurs
@@ -192,10 +195,13 @@ tooltip:
   agent-version: "Agent Dozzle {version}"
   agent-version-mismatch: "L'agent {version} ne correspond pas à Dozzle {current}. Mettez à jour l'agent."
 popup:
-  started: Démarré
-  finished: Arrêté
   group: Groupe
   ports: Ports
+container-status:
+  up: "Actif depuis {duration}"
+  paused: "En pause, actif depuis {duration}"
+  restarting: "Redémarrage, arrêté {time}"
+  exited: "Arrêté {time}"
 hint:
   learn-more: En savoir plus
   dismiss: Ne plus afficher
@@ -364,6 +370,8 @@ releases:
   no_releases: Vous avez la dernière version
   newer: "1 version plus récente | {count} versions plus récentes"
   all: Toutes les versions
+  updates_summary: "1 conteneur mis à jour | {count} conteneurs mis à jour"
+  agents_mismatched: "1 agent sur une autre version | {count} agents sur une autre version"
 toasts:
   copied:
     title: Copié
@@ -401,6 +409,7 @@ analytics:
 updates:
   title: Mises à jour
   count: 1 mise à jour | {count} mises à jour
+  available: 1 mise à jour disponible | {count} mises à jour disponibles
   running: Mise à jour…
   subtitle: Ces conteneurs utilisent une image plus ancienne que celle de leur registre.
   subtitle-running: Chaque hôte met à jour un conteneur à la fois.
@@ -742,6 +751,7 @@ cloud:
       unhealthy: "Conteneur devenu unhealthy"
       oom: "Tué par le noyau (OOM)"
       restart: "Conteneur redémarré"
+      updated: "Conteneur mis à jour par Dozzle"
       cpu: "CPU au-dessus de 90% pendant 5 minutes"
       memory: "Mémoire au-dessus de 90% pendant 5 minutes"
       disk: "Volume rempli à plus de 85%"
@@ -1167,8 +1177,12 @@ reclaim:
   freed: "{size} libérés"
   failed: "Échec du nettoyage"
   agent-too-old: "Cet agent ne peut pas encore nettoyer. Mettez-le à jour vers la dernière version."
+  preview-note: "Le nettoyage vérifie à nouveau au moment où il s'exécute, donc tout ce qui cesse d'être utilisé d'ici là sera aussi supprimé."
+  preview-failed: "Impossible de les lister."
+  preview-agent-too-old: "Mettez à jour cet agent pour voir la liste."
   enable-actions: "Activez les actions de conteneur pour nettoyer depuis ici."
   schedule-label: "Nettoyer automatiquement"
+  scheduled-run: "Nettoyage planifié"
   schedule-desc: "Images inutilisées, conteneurs arrêtés et cache de build sur tous les hôtes. Les volumes ne sont jamais supprimés."
   last-run: "Le dernier passage a libéré {size} {when}."
   last-run-failed: "{count} hôte n'a pas pu être nettoyé, voir les logs. | {count} hôtes n'ont pas pu être nettoyés, voir les logs."

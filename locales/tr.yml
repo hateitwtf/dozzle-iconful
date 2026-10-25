@@ -135,6 +135,7 @@ label:
   cpu: CPU
   core: Çekirdek yok | 1 çekirdek | {count} çekirdek
   disk: Disk
+  disk-io: Disk G/Ç
   network: Ağ
   reclaimable: Geri kazanılabilir
   unused-images: "Kullanılmayan imajlar"
@@ -146,6 +147,8 @@ label:
   mem: MEM
   pinned: Sabitlenmiş
   per-page: Sayfa başına satır
+  columns: Sütunlar
+  moving-average: Hareketli ortalama kullan
   sort-by: Sırala
   sort-direction: Sıralama yönünü değiştir
   host-menu: Sunucular ve Konteynerler
@@ -192,10 +195,13 @@ tooltip:
   agent-version: "Dozzle aracısı {version}"
   agent-version-mismatch: "Aracı {version}, Dozzle {current} ile eşleşmiyor. Aracıyı güncelleyin."
 popup:
-  started: Başlatıldı
-  finished: Durduruldu
   group: Grup
   ports: Portlar
+container-status:
+  up: "{duration} süredir çalışıyor"
+  paused: "Duraklatıldı, {duration} süredir çalışıyor"
+  restarting: "Yeniden başlatılıyor, {time} durdu"
+  exited: "{time} çıktı"
 hint:
   learn-more: Daha fazla bilgi
   dismiss: Bir daha gösterme
@@ -367,6 +373,8 @@ releases:
   no_releases: En son sürüme sahipsiniz
   newer: "1 yeni sürüm | {count} yeni sürüm"
   all: Tüm sürümler
+  updates_summary: "1 konteyner güncellendi | {count} konteyner güncellendi"
+  agents_mismatched: "1 aracı farklı bir sürümde | {count} aracı farklı bir sürümde"
 toasts:
   copied:
     title: Kopyalandı
@@ -404,6 +412,7 @@ analytics:
 updates:
   title: Güncellemeler
   count: 1 güncelleme | {count} güncelleme
+  available: 1 güncelleme mevcut | {count} güncelleme mevcut
   running: Güncelleniyor…
   subtitle: Bu container'lar, registry'lerinin sunduğundan daha eski bir image çalıştırıyor.
   subtitle-running: Her host aynı anda bir container günceller.
@@ -745,6 +754,7 @@ cloud:
       unhealthy: "Konteyner unhealthy oldu"
       oom: "Çekirdek tarafından sonlandırıldı (OOM)"
       restart: "Konteyner yeniden başlatıldı"
+      updated: "Konteyner Dozzle tarafından güncellendi"
       cpu: "5 dakika boyunca CPU %90 üzerinde"
       memory: "5 dakika boyunca bellek %90 üzerinde"
       disk: "Birim %85'ten fazla dolu"
@@ -1173,8 +1183,12 @@ reclaim:
   freed: "{size} boşaltıldı"
   failed: "Temizleme başarısız"
   agent-too-old: "Bu agent henüz temizlik yapamıyor. En son sürüme güncelleyin."
+  preview-note: "Temizlik çalıştığında yeniden kontrol eder, bu yüzden o zamana kadar kullanılmaz hale gelen her şey de silinir."
+  preview-failed: "Liste alınamadı."
+  preview-agent-too-old: "Listeyi görmek için bu agent'ı güncelleyin."
   enable-actions: "Buradan temizlemek için konteyner eylemlerini etkinleştirin."
   schedule-label: "Otomatik temizle"
+  scheduled-run: "Zamanlanmış temizlik"
   schedule-desc: "Tüm sunuculardaki kullanılmayan imajlar, durdurulmuş konteynerler ve build önbelleği. Volume'lar asla silinmez."
   last-run: "Son çalışma {when} {size} boşalttı."
   last-run-failed: "{count} sunucu temizlenemedi, loglara bakın. | {count} sunucu temizlenemedi, loglara bakın."

@@ -136,6 +136,7 @@ label:
   core: No cores | 1 core | {count} cores
   mem: MEM
   disk: Disk
+  disk-io: Disk I/O
   network: Network
   reclaimable: Reclaimable
   unused-images: "Unused images"
@@ -146,6 +147,8 @@ label:
   uptime: Uptime
   pinned: Pinned
   per-page: Rows per page
+  columns: Columns
+  moving-average: Use moving average
   sort-by: Sort by
   sort-direction: Toggle sort direction
   host-menu: Hosts and Containers
@@ -192,10 +195,13 @@ tooltip:
   agent-version: "Dozzle agent {version}"
   agent-version-mismatch: "Agent {version} does not match Dozzle {current}. Update the agent."
 popup:
-  started: Started
-  finished: Finished
   group: Group
   ports: Ports
+container-status:
+  up: "Up {duration}"
+  paused: "Paused, up {duration}"
+  restarting: "Restarting, stopped {time}"
+  exited: "Exited {time}"
 hint:
   learn-more: Learn more
   dismiss: Don't show again
@@ -492,6 +498,8 @@ releases:
   no_releases: You have the latest version
   newer: "1 newer release | {count} newer releases"
   all: All releases
+  updates_summary: "1 container updated | {count} containers updated"
+  agents_mismatched: "1 agent on a different version | {count} agents on a different version"
 toasts:
   copied:
     title: Copied
@@ -529,6 +537,7 @@ analytics:
 updates:
   title: Updates
   count: 1 update | {count} updates
+  available: 1 update available | {count} updates available
   running: Updating…
   subtitle: These containers run an older image than their registry serves.
   subtitle-running: Each host updates one container at a time.
@@ -870,6 +879,7 @@ cloud:
       unhealthy: Container became unhealthy
       oom: Killed by the kernel (OOM)
       restart: Container restarted
+      updated: Container updated by Dozzle
       cpu: CPU over 90% for 5 minutes
       memory: Memory over 90% for 5 minutes
       disk: Volume over 85% full
@@ -1178,8 +1188,12 @@ reclaim:
   freed: "Freed {size}"
   failed: "Clean up failed"
   agent-too-old: "This agent can't clean up yet. Update it to the latest version."
+  preview-note: "Clean up checks again when it runs, so anything that falls out of use before then goes too."
+  preview-failed: "Couldn't list them."
+  preview-agent-too-old: "Update this agent to see the list."
   enable-actions: "Enable container actions to clean up from here."
   schedule-label: "Clean up automatically"
+  scheduled-run: "Scheduled clean up"
   schedule-desc: "Unused images, stopped containers and build cache on every host. Volumes are never deleted."
   last-run: "Last run freed {size} {when}."
   last-run-failed: "{count} host could not be cleaned up, see the logs. | {count} hosts could not be cleaned up, see the logs."

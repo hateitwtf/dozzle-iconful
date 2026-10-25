@@ -1,6 +1,7 @@
 ---
 title: Speicherbelegung der Container
-sourceHash: ae2d193dcfc1
+description: Wie Dozzle den Speicherplatz jedes Docker-Containers und seiner Volumes misst, was nicht mitgezählt wird, und wie du ungenutzte Images, Volumes und Build-Cache aufräumst.
+sourceHash: ca705e9363d0
 ---
 
 # Speicherbelegung der Container
@@ -52,7 +53,7 @@ Ein [Agent](/de/guide/agent), der älter ist als das Dozzle, an das er berichtet
 
 Unter **Automatisch aufräumen** unten im selben Popover wählst du täglich oder wöchentlich (Sonntag) und eine Uhrzeit in der Zeitzone des Servers. Standard ist aus. Zu dieser Zeit räumt Dozzle alle verbundenen Hosts nacheinander auf: ungenutzte Images, gestoppte Container und Build-Cache. Volumes werden nach Zeitplan nie gelöscht. Das Popover zeigt, wie viel der letzte Lauf freigegeben hat.
 
-Der Zeitplan wird in `dozzle.yml` neben den Einstellungen für [automatische Updates](/de/guide/updates#auto-updating-containers) gespeichert und gilt ohne Neustart. Er läuft nur im Server-Modus und wartet zuerst, bis ein laufendes Container-Update fertig ist.
+Der Zeitplan wird in `dozzle.yml` neben den Einstellungen für [automatische Updates](/de/guide/updates#auto-updating-containers) gespeichert und gilt ohne Neustart. Er läuft nur im Server-Modus und wartet zuerst, bis ein laufendes Container-Update fertig ist. Wer `DOZZLE_AUTO_CLEANUP` oder `DOZZLE_AUTO_CLEANUP_TIME` setzt, legt den Zeitplan fest, und das Popover zeigt ihn dann nur noch an.
 
 ## Wann der Wert aktualisiert wird
 

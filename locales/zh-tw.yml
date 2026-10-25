@@ -150,6 +150,7 @@ label:
   cpu: CPU
   core: 無核心 | 1 個核心 | {count} 個核心
   disk: 磁碟
+  disk-io: 磁碟 I/O
   network: 網路
   reclaimable: 可回收
   unused-images: "未使用的映像"
@@ -161,6 +162,8 @@ label:
   mem: MEM
   pinned: 已釘選
   per-page: 每頁列數
+  columns: 欄位
+  moving-average: 使用移動平均
   sort-by: 排序方式
   sort-direction: 切換排序方向
   host-menu: 主機和容器
@@ -192,10 +195,13 @@ tooltip:
   agent-version: "Dozzle 代理程式 {version}"
   agent-version-mismatch: "代理程式 {version} 與 Dozzle {current} 不一致，請更新代理程式。"
 popup:
-  started: 啟動
-  finished: 停止
   group: 群組
   ports: 連接埠
+container-status:
+  up: "已運作 {duration}"
+  paused: "已暫停，運作 {duration}"
+  restarting: "重新啟動中，{time}停止"
+  exited: "{time}已結束"
 hint:
   learn-more: 瞭解更多
   dismiss: 不再顯示
@@ -366,6 +372,8 @@ releases:
   no_releases: 您已經是最新版本
   newer: "有 1 個更新版本 | 有 {count} 個更新版本"
   all: 所有版本
+  updates_summary: "已更新 1 個容器 | 已更新 {count} 個容器"
+  agents_mismatched: "1 個代理程式的版本不同 | {count} 個代理程式的版本不同"
 toasts:
   copied:
     title: 已複製
@@ -403,6 +411,7 @@ analytics:
 updates:
   title: 更新
   count: 1 個更新 | {count} 個更新
+  available: 1 個可用更新 | {count} 個可用更新
   running: 正在更新…
   subtitle: 這些容器執行的映像檔比其映像檔倉庫提供的舊。
   subtitle-running: 每台主機一次更新一個容器。
@@ -744,6 +753,7 @@ cloud:
       unhealthy: "容器變為 unhealthy"
       oom: "被核心終止（OOM）"
       restart: "容器已重新啟動"
+      updated: "容器已由 Dozzle 更新"
       cpu: "CPU 超過 90% 持續 5 分鐘"
       memory: "記憶體超過 90% 持續 5 分鐘"
       disk: "磁碟區已用超過 85%"
@@ -1169,8 +1179,12 @@ reclaim:
   freed: "已釋放 {size}"
   failed: "清理失敗"
   agent-too-old: "此 agent 尚無法清理，請更新至最新版本。"
+  preview-note: "清理會在執行時再次檢查，因此在那之前變成未使用的項目也會一併刪除。"
+  preview-failed: "無法列出這些項目。"
+  preview-agent-too-old: "請更新此 agent 以查看清單。"
   enable-actions: "啟用容器操作即可在此清理。"
   schedule-label: "自動清理"
+  scheduled-run: "排程清理"
   schedule-desc: "清理所有主機上未使用的映像、已停止的容器和建置快取。永遠不會刪除磁碟區。"
   last-run: "上次執行於 {when} 釋放了 {size}。"
   last-run-failed: "有 {count} 台主機無法清理，請查看日誌。 | 有 {count} 台主機無法清理，請查看日誌。"

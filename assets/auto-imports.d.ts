@@ -146,6 +146,7 @@ declare global {
   const hasIcon: typeof import('./utils/index').hasIcon
   const hasViewContext: typeof import('./composable/logs/viewContext').hasViewContext
   const hashCode: typeof import('./utils/index').hashCode
+  const hiddenColumns: typeof import('./stores/settings').hiddenColumns
   const highlightErrors: typeof import('./stores/settings').highlightErrors
   const highlightSubstringInHtml: typeof import('./utils/index').highlightSubstringInHtml
   const hourStyle: typeof import('./stores/settings').hourStyle
@@ -197,7 +198,9 @@ declare global {
   const mergeByTime: typeof import('./composable/logs/logLoader').mergeByTime
   const mergeCloudEvents: typeof import('./composable/cloud/cloudAlerts').mergeCloudEvents
   const mergeDeploys: typeof import('./composable/cloud/cloudAlerts').mergeDeploys
+  const mergeRecentDeploys: typeof import('./composable/cloud/recentDeploys').mergeRecentDeploys
   const messageKeyOf: typeof import('./composable/logs/similarSearch').messageKeyOf
+  const movingAverage: typeof import('./stores/settings').movingAverage
   const narrowedLevels: typeof import('./composable/logs/viewContext').narrowedLevels
   const newerThanOnScreen: typeof import('./composable/logs/logWindow').newerThanOnScreen
   const newestOnScreen: typeof import('./composable/logs/logWindow').newestOnScreen
@@ -326,6 +329,7 @@ declare global {
   const throttledWatch: typeof import('@vueuse/core').throttledWatch
   const timeRangeRoute: typeof import('./composable/logs/timeRange').timeRangeRoute
   const toCloudQuery: typeof import('./composable/logs/search').toCloudQuery
+  const toElapsed: typeof import('./utils/index').toElapsed
   const toRaw: typeof import('vue').toRaw
   const toReactive: typeof import('@vueuse/core').toReactive
   const toRef: typeof import('vue').toRef
@@ -519,6 +523,7 @@ declare global {
   const useProfileStorage: typeof import('./composable/app/profileStorage').useProfileStorage
   const useRafFn: typeof import('@vueuse/core').useRafFn
   const useRecentAlerts: typeof import('./composable/cloud/recentAlerts').useRecentAlerts
+  const useRecentDeploys: typeof import('./composable/cloud/recentDeploys').useRecentDeploys
   const useRefHistory: typeof import('@vueuse/core').useRefHistory
   const useResizeObserver: typeof import('@vueuse/core').useResizeObserver
   const useResolvedTheme: typeof import('./composable/app/theme').useResolvedTheme
@@ -662,6 +667,9 @@ declare global {
   export type { PatternContextHit } from './composable/cloud/patternMemory'
   import('./composable/cloud/patternMemory')
   // @ts-ignore
+  export type { RecentDeploy } from './composable/cloud/recentDeploys'
+  import('./composable/cloud/recentDeploys')
+  // @ts-ignore
   export type { VolumeBucket, VolumeColumn } from './composable/cloud/searchVolume'
   import('./composable/cloud/searchVolume')
   // @ts-ignore
@@ -725,7 +733,7 @@ declare global {
   export type { SelfUpdatePhase } from './composable/setup/selfUpdate'
   import('./composable/setup/selfUpdate')
   // @ts-ignore
-  export type { SetupError, SetupStepId, SetupStepState, AutoUpdateMode, AutoUpdateReason, SetupAutoUpdate, SetupAutoPrune, SetupAgent, SetupAgentCert, SetupStatus, SetupNextResult, SetupStepHandle, SetupCloudFacts, SetupPendingChange, SetupErrorCode } from './composable/setup/setup'
+  export type { SetupError, SetupStepId, SetupStepState, AutoUpdateMode, AutoUpdateReason, SetupAutoUpdate, SetupAutoPrune, AutoPruneRun, SetupAgent, SetupAgentCert, SetupStatus, SetupNextResult, SetupStepHandle, SetupCloudFacts, SetupPendingChange, SetupErrorCode } from './composable/setup/setup'
   import('./composable/setup/setup')
   // @ts-ignore
   export type { ScrollSample } from './composable/ui/compactOnScroll'
@@ -737,7 +745,7 @@ declare global {
   export type { Config, Profile } from './stores/config'
   import('./stores/config')
   // @ts-ignore
-  export type { Host, Reclaimable, HostMetrics } from './stores/hosts'
+  export type { Host, Reclaimable, ReclaimableItems, ReclaimablePreview, HostMetrics } from './stores/hosts'
   import('./stores/hosts')
   // @ts-ignore
   export type { K8sNamespace, K8sOwner, K8sOwnerRef } from './stores/k8s'
@@ -884,6 +892,7 @@ declare module 'vue' {
     readonly hasIcon: UnwrapRef<typeof import('./utils/index')['hasIcon']>
     readonly hasViewContext: UnwrapRef<typeof import('./composable/logs/viewContext')['hasViewContext']>
     readonly hashCode: UnwrapRef<typeof import('./utils/index')['hashCode']>
+    readonly hiddenColumns: UnwrapRef<typeof import('./stores/settings')['hiddenColumns']>
     readonly highlightErrors: UnwrapRef<typeof import('./stores/settings')['highlightErrors']>
     readonly hourStyle: UnwrapRef<typeof import('./stores/settings')['hourStyle']>
     readonly iconSlugForImage: UnwrapRef<typeof import('./utils/index')['iconSlugForImage']>
@@ -932,7 +941,9 @@ declare module 'vue' {
     readonly mergeByTime: UnwrapRef<typeof import('./composable/logs/logLoader')['mergeByTime']>
     readonly mergeCloudEvents: UnwrapRef<typeof import('./composable/cloud/cloudAlerts')['mergeCloudEvents']>
     readonly mergeDeploys: UnwrapRef<typeof import('./composable/cloud/cloudAlerts')['mergeDeploys']>
+    readonly mergeRecentDeploys: UnwrapRef<typeof import('./composable/cloud/recentDeploys')['mergeRecentDeploys']>
     readonly messageKeyOf: UnwrapRef<typeof import('./composable/logs/similarSearch')['messageKeyOf']>
+    readonly movingAverage: UnwrapRef<typeof import('./stores/settings')['movingAverage']>
     readonly narrowedLevels: UnwrapRef<typeof import('./composable/logs/viewContext')['narrowedLevels']>
     readonly newerThanOnScreen: UnwrapRef<typeof import('./composable/logs/logWindow')['newerThanOnScreen']>
     readonly newestOnScreen: UnwrapRef<typeof import('./composable/logs/logWindow')['newestOnScreen']>
@@ -1056,6 +1067,7 @@ declare module 'vue' {
     readonly throttledRef: UnwrapRef<typeof import('@vueuse/core')['throttledRef']>
     readonly throttledWatch: UnwrapRef<typeof import('@vueuse/core')['throttledWatch']>
     readonly timeRangeRoute: UnwrapRef<typeof import('./composable/logs/timeRange')['timeRangeRoute']>
+    readonly toElapsed: UnwrapRef<typeof import('./utils/index')['toElapsed']>
     readonly toRaw: UnwrapRef<typeof import('vue')['toRaw']>
     readonly toReactive: UnwrapRef<typeof import('@vueuse/core')['toReactive']>
     readonly toRef: UnwrapRef<typeof import('vue')['toRef']>
@@ -1246,6 +1258,7 @@ declare module 'vue' {
     readonly useProfileStorage: UnwrapRef<typeof import('./composable/app/profileStorage')['useProfileStorage']>
     readonly useRafFn: UnwrapRef<typeof import('@vueuse/core')['useRafFn']>
     readonly useRecentAlerts: UnwrapRef<typeof import('./composable/cloud/recentAlerts')['useRecentAlerts']>
+    readonly useRecentDeploys: UnwrapRef<typeof import('./composable/cloud/recentDeploys')['useRecentDeploys']>
     readonly useRefHistory: UnwrapRef<typeof import('@vueuse/core')['useRefHistory']>
     readonly useResizeObserver: UnwrapRef<typeof import('@vueuse/core')['useResizeObserver']>
     readonly useResolvedTheme: UnwrapRef<typeof import('./composable/app/theme')['useResolvedTheme']>

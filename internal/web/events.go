@@ -82,12 +82,19 @@ func (h *handler) streamEvents(w http.ResponseWriter, r *http.Request) {
 
 	// per-host set of container IDs the caller may see, so stat/event channels stay filtered like the list
 	visibleByHost := make(map[string]map[string]struct{})
+	// per-host container names the caller may see. An update replaces the container, so
+	// an older update is shown by the name it ran under once its container is gone. Only
+	// without a label filter: a name can be reused by a container under other labels.
+	namesByHost := make(map[string]map[string]struct{})
 	setVisible := func(host string, containers []container.Container) {
 		ids := make(map[string]struct{}, len(containers))
+		names := make(map[string]struct{}, len(containers))
 		for _, c := range containers {
 			ids[c.ID] = struct{}{}
+			names[c.Name] = struct{}{}
 		}
 		visibleByHost[host] = ids
+		namesByHost[host] = names
 	}
 
 	// A host whose refresh failed keeps a set that is missing containers started since,
@@ -158,9 +165,26 @@ func (h *handler) streamEvents(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			ids = make(map[string]struct{})
 			visibleByHost[c.Host] = ids
+			namesByHost[c.Host] = make(map[string]struct{})
 		}
 		ids[c.ID] = struct{}{}
+		namesByHost[c.Host][c.Name] = struct{}{}
 	}
+
+	updateVisible := func(u container.UpdateRecord) bool {
+		if isVisible(u.Host, u.NewID) {
+			return true
+		}
+		if userLabels.Exists() {
+			return false
+		}
+		_, ok := namesByHost[u.Host][u.Name]
+		return ok
+	}
+	// subscribed before the replay below, so an update finishing in between is not
+	// missed. One that arrives both ways is sent twice; the browser keys on it.
+	updates := make(chan container.UpdateRecord, 16)
+	container.Updates.Subscribe(r.Context(), updates)
 
 	for _, err := range errors {
 		log.Warn().Err(err).Msg("error listing containers")
@@ -180,6 +204,21 @@ func (h *handler) streamEvents(w http.ResponseWriter, r *http.Request) {
 
 	if err := sseWriter.Event("containers-changed", allContainers); err != nil {
 		logWriteError(err, "error writing containers to event stream")
+	}
+
+	for _, u := range recentUpdates(container.Updates.Recent(), time.Now(), updateVisible) {
+		if err := sseWriter.Event("container-update", u); err != nil {
+			logWriteError(err, "error writing container update to event stream")
+		}
+	}
+
+	// The last scheduled clean up, for the megaphone. A run happens once a day, so the
+	// keep-alive tick below checks for a new one rather than anything subscribing to it.
+	// Sent as null when there is nothing to show, so a reconnect or a newer run that freed
+	// nothing clears a row the browser still holds.
+	sentPrune := lastAutoPrune()
+	if err := sseWriter.Event("auto-prune", autoPruneFeed(sentPrune, time.Now())); err != nil {
+		logWriteError(err, "error writing auto prune to event stream")
 	}
 
 	// The path is read here, not in the goroutine: it is a test seam tests swap.
@@ -202,6 +241,13 @@ func (h *handler) streamEvents(w http.ResponseWriter, r *http.Request) {
 			if err := sseWriter.Event("ping", struct{}{}); err != nil {
 				log.Debug().Err(err).Msg("error writing keep-alive to event stream")
 				return
+			}
+			if run := lastAutoPrune(); run != sentPrune {
+				sentPrune = run
+				if err := sseWriter.Event("auto-prune", autoPruneFeed(run, time.Now())); err != nil {
+					logWriteError(err, "error writing auto prune to event stream")
+					return
+				}
 			}
 		case refresh := <-refreshes:
 			delete(repairing, refresh.host)
@@ -321,6 +367,14 @@ func (h *handler) streamEvents(w http.ResponseWriter, r *http.Request) {
 					logWriteError(err, "error writing event to event stream")
 					return
 				}
+			}
+		case u := <-updates:
+			if !updateVisible(u) {
+				continue
+			}
+			if err := sseWriter.Event("container-update", u); err != nil {
+				logWriteError(err, "error writing container update to event stream")
+				return
 			}
 		case batch := <-hostMetricsUpdates:
 			// Its own event rather than update-host: the raw client's Host() has no
