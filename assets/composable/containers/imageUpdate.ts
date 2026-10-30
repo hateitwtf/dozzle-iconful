@@ -1,4 +1,5 @@
 import { Container } from "@/models/Container";
+import { checkOnly } from "@/composable/containers/updatePolicy";
 
 export type ImageUpdateStatus =
   "up-to-date" | "update-available" | "pinned" | "not-checkable" | "auth-required" | "skipped" | "unknown";
@@ -10,7 +11,16 @@ export interface ImageUpdateResult {
   remoteDigest?: string;
   checkedAt: string;
   reason?: string;
+  // What the running and the newer image declare in
+  // org.opencontainers.image.version (or a plain "version" label). Only set
+  // for an available update, and either may be missing.
+  currentVersion?: string;
+  latestVersion?: string;
+  // Why an available update has no latestVersion.
+  versionReason?: ImageVersionReason;
 }
+
+export type ImageVersionReason = "undeclared" | "rate-limited" | "auth" | "failed";
 
 // Results are shared across every consumer of a container so the toolbar and
 // the notification agree, and so a container is only fetched once no matter
@@ -80,16 +90,34 @@ function offerable(container: Container) {
  * Whether Dozzle can update this container itself, whether or not an update is
  * waiting. Kubernetes rolls out images through the workload, so a single pod has
  * nothing to update, and a stopped container is never updated: it has to be
- * started first. Shared by the toolbar and the command palette.
+ * started first. One labelled dev.dozzle.update=check is updated outside Dozzle.
+ * Shared by the toolbar and the command palette.
  */
 export function canUpdate(container: Container) {
   return (
-    !!config.enableActions &&
+    !!config.enableUpdates &&
     config.mode !== "k8s" &&
     !mayBeSelf(container) &&
     offerable(container) &&
-    container.state === "running"
+    container.state === "running" &&
+    !checkOnly(container)
   );
+}
+
+// "1.0 → 1.1" for the notification, which is HTML. Image versions are
+// arbitrary strings from a registry, so they are escaped. Reads the same as
+// ImageUpdateVersions.
+function versionsHtml(t: (key: string, values?: Record<string, unknown>) => string, result?: ImageUpdateResult) {
+  if (!result?.latestVersion) {
+    if (!result?.versionReason) return "";
+    const reason = t(`updates.version.${result.versionReason}`);
+    return `<span class="text-xs">${escapeHtml(t("updates.version.unknown", { reason }))}</span>`;
+  }
+  const latest = escapeHtml(result.latestVersion);
+  let versions = latest;
+  if (result.currentVersion === result.latestVersion) versions += ` (${escapeHtml(t("updates.version.rebuilt"))})`;
+  else if (result.currentVersion) versions = `${escapeHtml(result.currentVersion)} &rarr; ${latest}`;
+  return `<span class="font-mono text-xs">${versions}</span>`;
 }
 
 const checkingAll = ref(false);
@@ -225,6 +253,8 @@ export const useImageUpdate = (container: Ref<Container>, historical: Ref<boolea
       // rendered as HTML so it can carry a docs link. Image names are
       // arbitrary strings, in k8s especially.
       let message = t("alert.image-update.message", { image: escapeHtml(container.value.image) });
+      const versions = versionsHtml(t, result.value);
+      if (versions) message += `<br>${versions}`;
       // Kubernetes rolls images out through the workload, so turning actions
       // on would not give this pod an update button.
       if (!config.enableActions && config.mode !== "k8s") {

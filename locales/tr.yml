@@ -422,6 +422,7 @@ updates:
   auto: Otomatik
   auto-hint: Otomatik güncelleme zamanlamasıyla da güncellenir
   auto-footnote: Bir container'ı otomatik güncelleme zamanlamasıyla güncellemek için ona {label} etiketini ekleyin.
+  check-only: "{label} etiketi var, bu yüzden Dozzle dışında güncellenir."
   scheduled-running: Otomatik güncelleme zamanlaması şu anda çalışıyor.
   progress: "{total} içinden {done} tamamlandı"
   back: Geri
@@ -437,6 +438,14 @@ updates:
     rolled-back: Geri alındı
     up-to-date: Güncel
     error: Başarısız
+  release-notes: Sürüm notları
+  version:
+    rebuilt: yeniden derlendi
+    unknown: Sürüm bilinmiyor ({reason})
+    undeclared: image sürüm belirtmiyor
+    rate-limited: registry istek sınırı
+    auth: registry giriş gerektiriyor
+    failed: sorgulama başarısız
 drawer:
   maximize: Büyüt
   restore: Geri yükle

@@ -419,6 +419,7 @@ updates:
   auto: 自动
   auto-hint: 也会按自动更新计划更新
   auto-footnote: 为容器添加标签 {label}，即可按自动更新计划更新它。
+  check-only: 已添加标签 {label}，因此在 Dozzle 之外更新。
   scheduled-running: 自动更新计划正在运行。
   progress: 已完成 {done}/{total}
   back: 返回
@@ -434,6 +435,14 @@ updates:
     rolled-back: 已回滚
     up-to-date: 最新
     error: 失败
+  release-notes: 发布说明
+  version:
+    rebuilt: 已重建
+    unknown: 版本未知（{reason}）
+    undeclared: 镜像未声明版本
+    rate-limited: 镜像仓库限流
+    auth: 镜像仓库需要登录
+    failed: 查询失败
 drawer:
   maximize: 最大化
   restore: 还原

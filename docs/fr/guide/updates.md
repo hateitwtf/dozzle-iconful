@@ -1,7 +1,7 @@
 ---
 title: Mises à jour des conteneurs
 description: Comment Dozzle détecte les images plus récentes de vos conteneurs Docker et les met à jour à la main ou selon un planning, avec restauration automatique et nettoyage des anciennes images.
-sourceHash: b47472c411ae
+sourceHash: 07392b3a10d8
 ---
 
 # Mises à jour des conteneurs
@@ -22,7 +22,36 @@ La vérification demande au registre l'empreinte du tag à partir duquel le cont
 
 Comme la comparaison porte sur ce que le conteneur _exécute_, un conteneur reste obsolète jusqu'à sa recréation, même si une image plus récente a déjà été téléchargée sur l'hôte.
 
+### Quel tag est suivi {#which-tag-is-followed}
+
+Dozzle ne suit jamais que le tag exact de la référence d'image du conteneur, comme le fait Watchtower. Il ne regarde jamais les autres tags et ne compare pas de numéros de version, donc une mise à jour signifie toujours « ce tag pointe maintenant vers une autre image », et mettre à jour récupère de nouveau ce même tag. Le tag que vous choisissez décide jusqu'où un conteneur peut aller :
+
+| Référence d'image                            | Ce qu'apporte une mise à jour                                                             |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `nginx:latest`                               | Ce que l'éditeur appelle latest, y compris une nouvelle version majeure                   |
+| `postgres:18`                                | Les nouvelles versions 18.x, si l'éditeur fait avancer le tag `18`                        |
+| `postgres:18.1`                              | Les correctifs et reconstructions de 18.1, si l'éditeur déplace ce tag                    |
+| `linuxserver/speedtest-tracker:1.15.0`       | Uniquement les reconstructions de 1.15.0 (par exemple de `1.15.0-ls175` à `1.15.0-ls176`) |
+| `linuxserver/speedtest-tracker:1.15.0-ls176` | Rien, sauf si l'éditeur republie exactement ce tag                                        |
+| `postgres:18@sha256:…`                       | Rien. Une référence figée sur une empreinte n'est [pas vérifiée](#what-cannot-be-checked) |
+
+Pour rester sur une version mineure, l'éditeur doit publier un tag pour celle-ci. S'il ne publie que des versions complètes, figez-en une et changez-la vous-même quand vous voulez avancer. Un tag peut aussi être reconstruit sur place, souvent pour une image de base corrigée, donc une mise à jour peut porter le même numéro de version qu'avant.
+
 La vérification est indépendante des actions. Savoir qu'un conteneur est obsolète est utile, que Dozzle ait le droit d'y faire quelque chose ou non, donc l'avertissement apparaît même si `DOZZLE_ENABLE_ACTIONS` est désactivé. Seul le bouton `Update` nécessite les actions.
+
+### Notes de version {#release-notes}
+
+Quand une mise à jour est disponible, Dozzle affiche un lien vers les notes de version de l'image, pour vérifier les changements incompatibles avant de mettre à jour. Le lien vient des labels que l'image porte déjà : un dépôt GitHub dans `org.opencontainers.image.source` (ou l'ancien `org.label-schema.vcs-url`) mène à la page des releases de ce dépôt. Beaucoup d'images publiées le définissent, mais la plupart des images officielles de Docker Hub comme `nginx` et `postgres` ne le font pas, et certaines pointent vers un dépôt de packaging plutôt que vers l'application.
+
+Pour définir ou corriger le lien, ajoutez au conteneur un label avec n'importe quelle URL `http` ou `https` :
+
+```yaml [docker-compose.yml]
+services:
+  database:
+    image: postgres:18
+    labels:
+      dev.dozzle.releases: https://www.postgresql.org/docs/release/
+```
 
 ### Désactiver la vérification
 
@@ -91,11 +120,12 @@ Dozzle peut mettre à jour des conteneurs selon un planning. Cela se règle dans
 
 Un label sur le conteneur décide du reste :
 
-| `dev.dozzle.update` | Ce qui se passe                                                                                                      |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `auto`              | Mis à jour selon le planning, sauf si **Quels conteneurs** vaut **Dozzle seulement**                                 |
-| _(aucun label)_     | Mis à jour selon le planning avec **Tout**. Sinon vérifié et affiché comme mise à jour, que vous appliquez vous-même |
-| `off`               | Jamais vérifié, jamais mis à jour                                                                                    |
+| `dev.dozzle.update` | Ce qui se passe                                                                                                                   |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `auto`              | Mis à jour selon le planning, sauf si **Quels conteneurs** vaut **Dozzle seulement**                                              |
+| _(aucun label)_     | Mis à jour selon le planning avec **Tout**. Sinon vérifié et affiché comme mise à jour, que vous appliquez vous-même              |
+| `check`             | Vérifié et affiché comme mise à jour, jamais mis à jour par Dozzle. Mettez-le à jour vous-même, par exemple avec `docker compose` |
+| `off`               | Jamais vérifié, jamais mis à jour                                                                                                 |
 
 ```yaml
 services:

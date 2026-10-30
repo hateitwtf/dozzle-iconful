@@ -419,6 +419,7 @@ updates:
   auto: Auto
   auto-hint: Também atualizado pelo agendamento de atualização automática
   auto-footnote: Adicione a label {label} a um contêiner para atualizá-lo pelo agendamento de atualização automática.
+  check-only: Tem a label {label}, então é atualizado fora do Dozzle.
   scheduled-running: A atualização automática agendada está em execução.
   progress: "{done} de {total} concluídos"
   back: Voltar
@@ -434,6 +435,14 @@ updates:
     rolled-back: Revertido
     up-to-date: Em dia
     error: Falhou
+  release-notes: Notas de versão
+  version:
+    rebuilt: reconstruída
+    unknown: Versão desconhecida ({reason})
+    undeclared: a imagem não declara nenhuma
+    rate-limited: limite de requisições do registro
+    auth: o registro exige login
+    failed: falha na consulta
 drawer:
   maximize: Maximizar
   restore: Restaurar

@@ -419,6 +419,7 @@ updates:
   auto: Auto
   auto-hint: Wird auch nach dem Zeitplan für automatische Updates aktualisiert
   auto-footnote: Versieh einen Container mit dem Label {label}, damit er nach dem Zeitplan für automatische Updates aktualisiert wird.
+  check-only: Hat das Label {label} und wird daher außerhalb von Dozzle aktualisiert.
   scheduled-running: Der Zeitplan für automatische Updates läuft gerade.
   progress: "{done} von {total} fertig"
   back: Zurück
@@ -434,6 +435,14 @@ updates:
     rolled-back: Zurückgerollt
     up-to-date: Aktuell
     error: Fehler
+  release-notes: Versionshinweise
+  version:
+    rebuilt: neu gebaut
+    unknown: Version unbekannt ({reason})
+    undeclared: Image gibt keine an
+    rate-limited: Registry-Ratenlimit
+    auth: Registry verlangt Login
+    failed: Abfrage fehlgeschlagen
 drawer:
   maximize: Maximieren
   restore: Wiederherstellen

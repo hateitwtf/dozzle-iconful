@@ -60,6 +60,7 @@ declare global {
   const canHover: typeof import('./composable/ui/media').canHover
   const canSelfUpdate: typeof import('./composable/setup/selfUpdate').canSelfUpdate
   const canUpdate: typeof import('./composable/containers/imageUpdate').canUpdate
+  const checkOnly: typeof import('./composable/containers/updatePolicy').checkOnly
   const checkSession: typeof import('./composable/app/session').checkSession
   const chipMoment: typeof import('./composable/cloud/patternMemory').chipMoment
   const clearAim: typeof import('./composable/ui/pointerAim').clearAim
@@ -682,7 +683,7 @@ declare global {
   export type { UpdateProgress } from './composable/containers/containerActions'
   import('./composable/containers/containerActions')
   // @ts-ignore
-  export type { ImageUpdateStatus, ImageUpdateResult } from './composable/containers/imageUpdate'
+  export type { ImageUpdateStatus, ImageUpdateResult, ImageVersionReason } from './composable/containers/imageUpdate'
   import('./composable/containers/imageUpdate')
   // @ts-ignore
   export type { K8sWorkload } from './composable/containers/rolloutRestart'
@@ -809,6 +810,7 @@ declare module 'vue' {
     readonly canHover: UnwrapRef<typeof import('./composable/ui/media')['canHover']>
     readonly canSelfUpdate: UnwrapRef<typeof import('./composable/setup/selfUpdate')['canSelfUpdate']>
     readonly canUpdate: UnwrapRef<typeof import('./composable/containers/imageUpdate')['canUpdate']>
+    readonly checkOnly: UnwrapRef<typeof import('./composable/containers/updatePolicy')['checkOnly']>
     readonly checkSession: UnwrapRef<typeof import('./composable/app/session')['checkSession']>
     readonly chipMoment: UnwrapRef<typeof import('./composable/cloud/patternMemory')['chipMoment']>
     readonly clearAim: UnwrapRef<typeof import('./composable/ui/pointerAim')['clearAim']>

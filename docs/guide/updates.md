@@ -21,7 +21,36 @@ The check asks the registry for the digest of the tag the container was created 
 
 Because the comparison is against what the container is _running_, a container stays out of date until it is recreated, even if a newer image was already pulled onto the host.
 
+### Which tag is followed {#which-tag-is-followed}
+
+Dozzle only ever follows the exact tag in the container's image reference, the same way Watchtower does. It never looks at other tags and does not compare version numbers, so an update always means "this tag now points to a different image", and updating pulls that same tag again. How far a container can move is decided by the tag you pick:
+
+| Image reference                              | What an update brings                                                  |
+| -------------------------------------------- | ---------------------------------------------------------------------- |
+| `nginx:latest`                               | Whatever the publisher calls latest, including a new major version     |
+| `postgres:18`                                | New 18.x releases, if the publisher keeps the `18` tag moving          |
+| `postgres:18.1`                              | Patch releases and rebuilds of 18.1, if the publisher moves that tag   |
+| `linuxserver/speedtest-tracker:1.15.0`       | Rebuilds of 1.15.0 only (for example `1.15.0-ls175` to `1.15.0-ls176`) |
+| `linuxserver/speedtest-tracker:1.15.0-ls176` | Nothing, unless the publisher re-pushes that exact tag                 |
+| `postgres:18@sha256:…`                       | Nothing. A digest pin is [not checked](#what-cannot-be-checked)        |
+
+To stay on a minor version, the publisher has to publish a tag for it. If it only publishes full versions, pin one and change it yourself when you want to move on. A tag can also be rebuilt in place, often for a patched base image, so an update can carry the same version number it already had.
+
 Checking is separate from actions. Knowing a container is out of date is useful whether or not Dozzle is allowed to do anything about it, so the notice appears even when `DOZZLE_ENABLE_ACTIONS` is off. Only the `Update` button requires actions.
+
+### Release notes {#release-notes}
+
+When an update is available, Dozzle links to the image's release notes so you can check for breaking changes first. The link is read from the labels the image already carries: a GitHub repository in `org.opencontainers.image.source` (or the older `org.label-schema.vcs-url`) links to that repository's releases page. Many published images set it, but most official Docker Hub images such as `nginx` and `postgres` do not, and some point at a packaging repository rather than the app.
+
+To set or correct the link, label the container with any `http` or `https` URL:
+
+```yaml [docker-compose.yml]
+services:
+  database:
+    image: postgres:18
+    labels:
+      dev.dozzle.releases: https://www.postgresql.org/docs/release/
+```
 
 ### Turning it off
 
@@ -94,6 +123,7 @@ One label on a container decides the rest:
 | ------------------- | ------------------------------------------------------------------------------------------------------- |
 | `auto`              | Updated on the schedule, unless **Which containers** is **Dozzle only**                                 |
 | _(no label)_        | Updated on the schedule under **Everything**. Otherwise checked and shown as an update, which you apply |
+| `check`             | Checked and shown as an update, never updated by Dozzle. Update it yourself, say with `docker compose`  |
 | `off`               | Never checked, never updated                                                                            |
 
 ```yaml

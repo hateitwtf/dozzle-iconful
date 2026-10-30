@@ -27,9 +27,11 @@ func RingBufferFrom[T any](size int, data []T) *RingBuffer[T] {
 	if len(data) > size {
 		data = data[len(data)-size:]
 	}
+	owned := make([]T, len(data), size)
+	copy(owned, data)
 	return &RingBuffer[T]{
 		Size:  size,
-		data:  data,
+		data:  owned,
 		start: 0,
 	}
 }
@@ -66,11 +68,12 @@ func (r *RingBuffer[T]) Clear() {
 func (r *RingBuffer[T]) Data() []T {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	if len(r.data) == r.Size {
-		return append(r.data[r.start:], r.data[:r.start]...)
-	} else {
-		return r.data
-	}
+	// Keep snapshots independent from storage that Push can overwrite once
+	// the read lock is released, including while MarshalJSON reads them.
+	data := make([]T, len(r.data))
+	n := copy(data, r.data[r.start:])
+	copy(data[n:], r.data[:r.start])
+	return data
 }
 
 func (r *RingBuffer[T]) MarshalJSON() ([]byte, error) {

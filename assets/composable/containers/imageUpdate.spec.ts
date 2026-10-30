@@ -10,6 +10,7 @@ const holder = vi.hoisted(() => ({
   config: {
     imageCheckMode: "automatic",
     enableActions: true,
+    enableUpdates: true,
     selfContainerId: "5e1f00000000" + "0".repeat(52),
     hosts: [
       { id: "localhost", type: "local" },
@@ -110,6 +111,7 @@ describe("useImageUpdate", () => {
   beforeEach(() => {
     holder.config.imageCheckMode = "automatic";
     holder.config.enableActions = true;
+    holder.config.enableUpdates = true;
     holder.config.hosts = [
       { id: "localhost", type: "local" },
       { id: "remote", type: "agent" },
@@ -169,6 +171,17 @@ describe("useImageUpdate", () => {
   // The alert is informational, so it survives actions being disabled.
   test("alerts even when actions are disabled", async () => {
     holder.config.enableActions = false;
+    holder.config.enableUpdates = false;
+    mockCheck({ status: "update-available", remoteDigest: "sha256:new" });
+    const { result } = await run(container());
+
+    expect(result.showAlert.value).toBe(true);
+    expect(result.updatable.value).toBe(false);
+  });
+
+  // A user with actions but not the update role can restart, not update.
+  test("is not updatable without the update role", async () => {
+    holder.config.enableUpdates = false;
     mockCheck({ status: "update-available", remoteDigest: "sha256:new" });
     const { result } = await run(container());
 
@@ -280,6 +293,50 @@ describe("useImageUpdate", () => {
     expect(holder.toasts[0].message).toContain("&lt;img");
   });
 
+  test("names the versions in the notification, escaped", async () => {
+    holder.showAlertSetting!.value = true;
+    mockCheck({
+      status: "update-available",
+      remoteDigest: "sha256:new",
+      currentVersion: "1.0",
+      latestVersion: "<b>1.1</b>",
+    });
+    await run(container());
+
+    expect(holder.toasts[0].message).toContain("1.0 &rarr; &lt;b&gt;1.1&lt;/b&gt;");
+  });
+
+  // A tag rebuilt in place (new base image, same release) keeps its version.
+  test("marks a rebuild of the same version in the notification", async () => {
+    holder.showAlertSetting!.value = true;
+    mockCheck({
+      status: "update-available",
+      remoteDigest: "sha256:new",
+      currentVersion: "35.0.2-apache",
+      latestVersion: "35.0.2-apache",
+    });
+    await run(container());
+
+    expect(holder.toasts[0].message).toContain("35.0.2-apache (updates.version.rebuilt)");
+    expect(holder.toasts[0].message).not.toContain("&rarr;");
+  });
+
+  test("says why the version is unknown in the notification", async () => {
+    holder.showAlertSetting!.value = true;
+    mockCheck({ status: "update-available", remoteDigest: "sha256:new", versionReason: "rate-limited" });
+    await run(container());
+
+    expect(holder.toasts[0].message).toContain("updates.version.unknown");
+  });
+
+  test("leaves versions out of the notification when the image declares none", async () => {
+    holder.showAlertSetting!.value = true;
+    mockCheck({ status: "update-available", remoteDigest: "sha256:new" });
+    await run(container());
+
+    expect(holder.toasts[0].message).not.toContain("&rarr;");
+  });
+
   test("a failed check does not surface an alert", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
 
@@ -352,6 +409,7 @@ describe("useImageUpdate", () => {
     // Actions are off by default, so the notice has to say what to do about it.
     test("explains how to enable actions when they are disabled", async () => {
       holder.config.enableActions = false;
+      holder.config.enableUpdates = false;
       holder.showAlertSetting!.value = true;
       mockCheck({ status: "update-available", remoteDigest: "sha256:new" });
       await run(container());
@@ -364,6 +422,7 @@ describe("useImageUpdate", () => {
     test("neither offers an update nor suggests actions in Kubernetes mode", async () => {
       holder.config.mode = "k8s";
       holder.config.enableActions = false;
+      holder.config.enableUpdates = false;
       holder.showAlertSetting!.value = true;
       try {
         mockCheck({ status: "update-available", remoteDigest: "sha256:new" });
@@ -447,6 +506,13 @@ describe("useImageUpdates", () => {
     expect(hasUpdate(stopped)).toBe(true);
     expect(canUpdate(stopped)).toBe(false);
     expect(canUpdate(container({ state: "running" }))).toBe(true);
+  });
+
+  test("lists a container labelled check, but never offers to update it", async () => {
+    const checked = container({ state: "running", labels: { "dev.dozzle.update": "check" } });
+    const { hasUpdate } = await checkAll(checked);
+    expect(hasUpdate(checked)).toBe(true);
+    expect(canUpdate(checked)).toBe(false);
   });
 
   test("skips an exited swarm task but offers the running one", async () => {

@@ -11,6 +11,7 @@ import (
 	"github.com/amir20/dozzle/internal/auth"
 	"github.com/amir20/dozzle/internal/container"
 	"github.com/amir20/dozzle/internal/hostservice"
+	"github.com/amir20/dozzle/internal/updatepolicy"
 	"github.com/amir20/dozzle/internal/web/sse"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
@@ -44,6 +45,16 @@ func (h *handler) permitActions(r *http.Request) bool {
 	return false
 }
 
+// permitUpdate reports whether the caller may replace a container's image,
+// which takes the update role on top of actions.
+func (h *handler) permitUpdate(r *http.Request) bool {
+	if h.config.Authorization.Provider == NONE || auth.UserFromContext(r.Context()).Roles.Has(auth.Actions|auth.Update) {
+		return true
+	}
+	log.Warn().Msg("user is not permitted to update containers")
+	return false
+}
+
 func (h *handler) containerActions(w http.ResponseWriter, r *http.Request) {
 	action := chi.URLParam(r, "action")
 
@@ -71,6 +82,10 @@ func (h *handler) containerActions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) containerUpdate(w http.ResponseWriter, r *http.Request) {
+	if !h.permitUpdate(r) {
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return
+	}
 	containerService, ok := h.findContainerWithActions(w, r)
 	if !ok {
 		return
@@ -79,6 +94,11 @@ func (h *handler) containerUpdate(w http.ResponseWriter, r *http.Request) {
 	// this answers before the progress stream opens.
 	if containerService.Container.State != "running" {
 		http.Error(w, container.ErrNotRunning.Error(), http.StatusConflict)
+		return
+	}
+	// ContainerService.Update refuses it too, but only once the stream is open.
+	if updatepolicy.CheckOnly(containerService.Container.Labels) {
+		http.Error(w, container.ErrCheckOnly.Error(), http.StatusForbidden)
 		return
 	}
 	analytics.Count("action.update")
