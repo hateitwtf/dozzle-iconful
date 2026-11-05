@@ -8,6 +8,7 @@ import { SimpleLogEntry } from "@/models/LogEntry";
 import { allLevels, loggingContextKey } from "@/composable/logs/logContext";
 import { useContainerStore } from "@/stores/container";
 import LogItem from "./LogItem.vue";
+import { containerFixture } from "@/testing/containerFixture";
 
 vi.mock("@/stores/config", () => ({
   default: { base: "", hosts: [{ id: "host", name: "test host" }] },
@@ -26,11 +27,11 @@ vi.mock("@/stores/container", async () => {
   };
 });
 
-function mountItem(containerID: string) {
+function mountItem(containerID: string, namePrefix = "") {
   setActivePinia(createPinia());
   const store = useContainerStore();
   store.containers = [
-    new Container("known", new Date(), new Date(), new Date(), "nginx", "web", "", "host", {}, "running", 0, 0, []),
+    containerFixture({ id: "known", image: "nginx", name: "myapp-web-1", command: "", host: "host" }),
   ];
   const entry = new SimpleLogEntry("hello", containerID, 1, new Date(), "info", "stdout", "hello");
   return mount(LogItem, {
@@ -46,6 +47,7 @@ function mountItem(containerID: string) {
           levels: new Set(allLevels),
           showContainerName: true,
           showHostname: true,
+          namePrefix,
           historical: false,
         }),
       },
@@ -56,8 +58,14 @@ function mountItem(containerID: string) {
 describe("<LogItem />", () => {
   test("names the container and host a line came from", () => {
     const text = mountItem("known").text();
-    expect(text).toContain("web");
+    expect(text).toContain("myapp-web-1");
     expect(text).toContain("test host");
+  });
+
+  test("drops the prefix the view's containers share, keeping the full name as a tooltip", () => {
+    const tag = mountItem("known", "myapp-").find("[title]");
+    expect(tag.text()).toBe("web-1");
+    expect(tag.attributes("title")).toBe("myapp-web-1");
   });
 
   // An update replaces a container under a new id while the lines it already

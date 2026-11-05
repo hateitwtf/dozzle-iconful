@@ -181,6 +181,29 @@ func (d *Service) FindContainer(ctx context.Context, id string, labels container
 	return d.store.FindContainer(ctx, id, labels)
 }
 
+// HealthLog reads State.Health.Log from a fresh inspect.
+func (d *Service) HealthLog(ctx context.Context, c container.Container) ([]container.HealthProbe, error) {
+	inspect, err := d.client.ContainerInspect(ctx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	return healthProbes(inspect.State), nil
+}
+
+func healthProbes(state *docker_types.State) []container.HealthProbe {
+	if state == nil || state.Health == nil {
+		return nil
+	}
+	probes := make([]container.HealthProbe, 0, len(state.Health.Log))
+	for _, r := range state.Health.Log {
+		if r == nil {
+			continue
+		}
+		probes = append(probes, container.HealthProbe{Start: r.Start, End: r.End, ExitCode: r.ExitCode, Output: r.Output})
+	}
+	return probes
+}
+
 func (d *Service) ContainerAction(ctx context.Context, container container.Container, action container.ContainerAction) error {
 	return d.client.ContainerActions(ctx, action, container.ID)
 }
@@ -495,6 +518,22 @@ func (d *Service) ListReclaimable(ctx context.Context) (container.ReclaimableIte
 		return container.ReclaimableItems{}, errors.ErrUnsupported
 	}
 	return lister.ListReclaimable(ctx)
+}
+
+func (d *Service) InspectNetwork(ctx context.Context, name string) (container.Network, error) {
+	inspector, ok := d.client.(container.ResourceInspector)
+	if !ok {
+		return container.Network{}, errors.ErrUnsupported
+	}
+	return inspector.InspectNetwork(ctx, name)
+}
+
+func (d *Service) InspectVolume(ctx context.Context, name string) (container.Volume, error) {
+	inspector, ok := d.client.(container.ResourceInspector)
+	if !ok {
+		return container.Volume{}, errors.ErrUnsupported
+	}
+	return inspector.InspectVolume(ctx, name)
 }
 
 func (d *Service) SubscribeStats(ctx context.Context, stats chan<- container.ContainerStat) {

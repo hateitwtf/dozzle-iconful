@@ -193,7 +193,7 @@ tooltip:
   volume-full: "{destination} está al {pct}"
   open-container-url: "Abrir {url}"
   agent-version: "Agente de Dozzle {version}"
-  agent-version-mismatch: "El agente {version} no coincide con Dozzle {current}. Actualiza el agente."
+  agent-version-mismatch: "El agente {version} y Dozzle {current} tienen versiones distintas. Usa la misma versión en ambos."
 popup:
   group: Grupo
   ports: Puertos
@@ -395,6 +395,30 @@ command-palette:
   toggle-std: Alternar etiquetas stdout/stderr
   toggle-scrollbars: Alternar barras de desplazamiento más pequeñas
   open-settings: Abrir configuración
+  section-updates: "Actualizaciones disponibles"
+  section-hosts: "Hosts"
+  open-analytics: "Abrir análisis de logs"
+  clear-logs: "Borrar logs"
+  attach-shell: "Adjuntar a {name}"
+  exec-shell: "Abrir una shell en {name}"
+  open-assistant: "Preguntar al asistente"
+  check-container-updates: "Buscar actualizaciones de {name}"
+  skip-update: "Omitir esta actualización de {name}"
+  review-updates: "Revisar 1 actualización | Revisar {count} actualizaciones"
+  confirm-stop: "Pulsa ↵ de nuevo para detener {name}"
+  confirm-update: "Pulsa ↵ de nuevo para actualizar {name}"
+  confirm-hint: "confirmar"
+  open-settings-page: "Configuración: {page}"
+  open-notifications: "Abrir notificaciones"
+  open-logs: "Abrir logs"
+  state-on: "Activado"
+  state-off: "Desactivado"
+  prefix-commands: "comandos"
+  prefix-hosts: "hosts"
+  prefix-ask: "preguntar"
+  actions-hint: "acciones"
+  actions-placeholder: "Filtrar acciones…"
+  back-hint: "volver"
 settings:
   subtitle: Preferencias para este navegador. Los cambios se guardan automáticamente.
   subtitle-server: "Ajustes de este Dozzle, compartidos por todos los que lo usan."
@@ -536,6 +560,7 @@ updates:
   none: Todos los contenedores usan la imagen más reciente de su etiqueta.
   update-selected: Actualizar | Actualizar 1 | Actualizar {count}
   self-last: Dozzle se actualiza al final y luego se reinicia.
+  read-only: Para actualizar desde aquí se necesitan las acciones de contenedor y el rol update.
   auto: Auto
   auto-hint: También se actualiza con la programación de actualización automática
   auto-footnote: Añade la etiqueta {label} a un contenedor para actualizarlo con la programación de actualización automática.
@@ -773,6 +798,7 @@ notifications:
     remove-header: Quitar cabecera
     test: Probar
     test-success: Prueba exitosa
+    test-unsupported: "Esta plantilla falla con las alertas de tipo {kinds}, así que no se enviarán aquí."
     cancel: Cancelar
     close: Cerrar
     save: Guardar
@@ -1173,6 +1199,20 @@ inspect:
   hide-value: "Ocultar valor"
   env-hidden: "Los valores están ocultos. Leerlos requiere acceso a la shell."
   load-failed: "No se pudieron cargar los detalles del contenedor."
+  networks: "Redes"
+  container-count: "1 contenedor | {count} contenedores"
+  subnet: "Subred"
+  gateway: "Puerta de enlace"
+  ip-usage: "IPs en uso"
+  connected-containers: "Contenedores conectados"
+  this-container: "este contenedor"
+  driver: "Driver"
+  scope: "Ámbito"
+  driver-options: "Opciones del driver"
+  mounted-by: "Montado por"
+  details-failed: "No se pudieron cargar los detalles."
+  size: "Tamaño"
+  mountpoint: "Punto de montaje"
 reclaim:
   clean-up: "Limpiar"
   free-up: "Liberar {size}"

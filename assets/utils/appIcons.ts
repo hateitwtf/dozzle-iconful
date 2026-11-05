@@ -104,6 +104,7 @@ const ALIASES: Record<string, string> = {
   louislam: "uptime-kuma",
   containrrr: "watchtower",
   jc21: "nginx-proxy-manager",
+  npmplus: "nginx-proxy-manager",
   "immich-server": "immich",
   "coolify-helper": "coolify",
   "beszel-agent": "beszel",
@@ -159,7 +160,8 @@ const ALIASES: Record<string, string> = {
   airflow: "apache-airflow",
   collabora: "collabora-office",
   code: "collabora-office", // alias for collabora/code
-  "whats-up-docker": "wud"
+  "whats-up-docker": "wud",
+  "bentopdf-simple": "bentopdf",
 };
 
 const stripSuffix = (name: string) => {

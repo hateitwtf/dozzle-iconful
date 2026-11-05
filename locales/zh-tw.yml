@@ -193,7 +193,7 @@ tooltip:
   volume-full: "{destination} 已使用 {pct}"
   open-container-url: "開啟 {url}"
   agent-version: "Dozzle 代理程式 {version}"
-  agent-version-mismatch: "代理程式 {version} 與 Dozzle {current} 不一致，請更新代理程式。"
+  agent-version-mismatch: "代理程式 {version} 與 Dozzle {current} 版本不同，請在兩邊執行相同版本。"
 popup:
   group: 群組
   ports: 連接埠
@@ -418,6 +418,7 @@ updates:
   none: 所有容器都在執行其標籤指向的最新映像檔。
   update-selected: 更新 | 更新 1 個 | 更新 {count} 個
   self-last: Dozzle 最後更新，然後重新啟動。
+  read-only: 在此更新需要啟用容器操作並擁有 update 角色。
   auto: 自動
   auto-hint: 也會依自動更新排程更新
   auto-footnote: 為容器加上標籤 {label}，即可依自動更新排程更新它。
@@ -655,6 +656,7 @@ notifications:
     remove-header: 移除標頭
     test: 測試
     test-success: 測試成功
+    test-unsupported: "此範本在 {kinds} 警示時會失敗，因此這些警示不會傳送到這裡。"
     cancel: 取消
     close: 關閉
     save: 儲存
@@ -889,6 +891,30 @@ command-palette:
   toggle-std: 切換 stdout/stderr 標籤
   toggle-scrollbars: 切換較小的捲軸
   open-settings: 開啟設定
+  section-updates: "有可用更新"
+  section-hosts: "主機"
+  open-analytics: "開啟日誌分析"
+  clear-logs: "清除日誌"
+  attach-shell: "附加到 {name}"
+  exec-shell: "在 {name} 中開啟 Shell"
+  open-assistant: "詢問助理"
+  check-container-updates: "檢查 {name} 的更新"
+  skip-update: "略過 {name} 的此更新"
+  review-updates: "檢視 1 個更新 | 檢視 {count} 個更新"
+  confirm-stop: "再按一次 ↵ 停止 {name}"
+  confirm-update: "再按一次 ↵ 更新 {name}"
+  confirm-hint: "確認"
+  open-settings-page: "設定：{page}"
+  open-notifications: "開啟通知"
+  open-logs: "開啟日誌"
+  state-on: "開"
+  state-off: "關"
+  prefix-commands: "命令"
+  prefix-hosts: "主機"
+  prefix-ask: "提問"
+  actions-hint: "操作"
+  actions-placeholder: "篩選操作…"
+  back-hint: "返回"
 setup:
   title: 設定 Dozzle
   next: 下一步
@@ -1175,6 +1201,20 @@ inspect:
   hide-value: "隱藏值"
   env-hidden: "值已隱藏。檢視需要 shell 權限。"
   load-failed: "無法載入容器詳細資料。"
+  networks: "網路"
+  container-count: "1 個容器 | {count} 個容器"
+  subnet: "子網路"
+  gateway: "閘道"
+  ip-usage: "已使用的 IP"
+  connected-containers: "已連接的容器"
+  this-container: "此容器"
+  driver: "驅動程式"
+  scope: "範圍"
+  driver-options: "驅動程式選項"
+  mounted-by: "掛載者"
+  details-failed: "無法載入詳細資料。"
+  size: "大小"
+  mountpoint: "掛載點"
 reclaim:
   clean-up: "清理"
   free-up: "釋放 {size}"

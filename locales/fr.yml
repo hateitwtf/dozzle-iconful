@@ -193,7 +193,7 @@ tooltip:
   volume-full: "{destination} est plein à {pct}"
   open-container-url: "Ouvrir {url}"
   agent-version: "Agent Dozzle {version}"
-  agent-version-mismatch: "L'agent {version} ne correspond pas à Dozzle {current}. Mettez à jour l'agent."
+  agent-version-mismatch: "L'agent {version} et Dozzle {current} ne sont pas sur la même version. Utilisez la même version sur les deux."
 popup:
   group: Groupe
   ports: Ports
@@ -416,6 +416,7 @@ updates:
   none: Tous les conteneurs utilisent la dernière image de leur tag.
   update-selected: Mettre à jour | Mettre à jour 1 | Mettre à jour {count}
   self-last: Dozzle se met à jour en dernier, puis redémarre.
+  read-only: Pour mettre à jour depuis ici, il faut les actions sur les conteneurs et le rôle update.
   auto: Auto
   auto-hint: Aussi mis à jour selon la planification automatique
   auto-footnote: Ajoutez le label {label} à un conteneur pour le mettre à jour selon la planification automatique.
@@ -653,6 +654,7 @@ notifications:
     remove-header: Supprimer l'en-tête
     test: Tester
     test-success: Test réussi
+    test-unsupported: "Ce modèle échoue pour les alertes {kinds}, elles ne seront donc pas envoyées ici."
     cancel: Annuler
     close: Fermer
     save: Enregistrer
@@ -887,6 +889,30 @@ command-palette:
   toggle-std: Basculer les étiquettes stdout/stderr
   toggle-scrollbars: Basculer les barres de défilement réduites
   open-settings: Ouvrir les paramètres
+  section-updates: "Mises à jour disponibles"
+  section-hosts: "Hôtes"
+  open-analytics: "Ouvrir l'analyse des logs"
+  clear-logs: "Effacer les logs"
+  attach-shell: "S'attacher à {name}"
+  exec-shell: "Ouvrir un shell dans {name}"
+  open-assistant: "Demander à l'assistant"
+  check-container-updates: "Rechercher des mises à jour pour {name}"
+  skip-update: "Ignorer cette mise à jour pour {name}"
+  review-updates: "Examiner 1 mise à jour | Examiner {count} mises à jour"
+  confirm-stop: "Appuyez à nouveau sur ↵ pour arrêter {name}"
+  confirm-update: "Appuyez à nouveau sur ↵ pour mettre à jour {name}"
+  confirm-hint: "confirmer"
+  open-settings-page: "Paramètres : {page}"
+  open-notifications: "Ouvrir les notifications"
+  open-logs: "Ouvrir les logs"
+  state-on: "Activé"
+  state-off: "Désactivé"
+  prefix-commands: "commandes"
+  prefix-hosts: "hôtes"
+  prefix-ask: "demander"
+  actions-hint: "actions"
+  actions-placeholder: "Filtrer les actions…"
+  back-hint: "retour"
 setup:
   title: "Configurer Dozzle"
   next: "Suivant"
@@ -1173,6 +1199,20 @@ inspect:
   hide-value: "Masquer la valeur"
   env-hidden: "Les valeurs sont masquées. Les lire nécessite l'accès shell."
   load-failed: "Impossible de charger les détails du conteneur."
+  networks: "Réseaux"
+  container-count: "1 conteneur | {count} conteneurs"
+  subnet: "Sous-réseau"
+  gateway: "Passerelle"
+  ip-usage: "IP utilisées"
+  connected-containers: "Conteneurs connectés"
+  this-container: "ce conteneur"
+  driver: "Pilote"
+  scope: "Portée"
+  driver-options: "Options du pilote"
+  mounted-by: "Monté par"
+  details-failed: "Impossible de charger les détails."
+  size: "Taille"
+  mountpoint: "Point de montage"
 reclaim:
   clean-up: "Nettoyer"
   free-up: "Libérer {size}"

@@ -193,7 +193,7 @@ tooltip:
   volume-full: "{destination} is {pct} vol"
   open-container-url: "{url} openen"
   agent-version: "Dozzle-agent {version}"
-  agent-version-mismatch: "Agent {version} komt niet overeen met Dozzle {current}. Werk de agent bij."
+  agent-version-mismatch: "Agent {version} en Dozzle {current} hebben verschillende versies. Gebruik op beide dezelfde versie."
 popup:
   group: Groep
   ports: Poorten
@@ -417,6 +417,7 @@ updates:
   none: Alle containers draaien het nieuwste image van hun tag.
   update-selected: Bijwerken | 1 bijwerken | {count} bijwerken
   self-last: Dozzle wordt als laatste bijgewerkt en herstart daarna.
+  read-only: Om hier bij te werken zijn containeracties en de update-rol nodig.
   auto: Auto
   auto-hint: Wordt ook bijgewerkt volgens het schema voor automatische updates
   auto-footnote: Geef een container het label {label} om hem volgens het schema voor automatische updates bij te werken.
@@ -654,6 +655,7 @@ notifications:
     remove-header: Header verwijderen
     test: Testen
     test-success: Test geslaagd
+    test-unsupported: "Deze sjabloon faalt voor {kinds}-meldingen, dus die worden hier niet verzonden."
     cancel: Annuleren
     close: Sluiten
     save: Opslaan
@@ -888,6 +890,30 @@ command-palette:
   toggle-std: stdout/stderr-labels omschakelen
   toggle-scrollbars: Kleinere schuifbalken omschakelen
   open-settings: Instellingen openen
+  section-updates: "Updates beschikbaar"
+  section-hosts: "Hosts"
+  open-analytics: "Loganalyse openen"
+  clear-logs: "Logs wissen"
+  attach-shell: "Koppelen aan {name}"
+  exec-shell: "Shell openen in {name}"
+  open-assistant: "De assistent vragen"
+  check-container-updates: "{name} controleren op updates"
+  skip-update: "Deze update voor {name} overslaan"
+  review-updates: "1 update bekijken | {count} updates bekijken"
+  confirm-stop: "Druk nogmaals op ↵ om {name} te stoppen"
+  confirm-update: "Druk nogmaals op ↵ om {name} bij te werken"
+  confirm-hint: "bevestigen"
+  open-settings-page: "Instellingen: {page}"
+  open-notifications: "Meldingen openen"
+  open-logs: "Logs openen"
+  state-on: "Aan"
+  state-off: "Uit"
+  prefix-commands: "opdrachten"
+  prefix-hosts: "hosts"
+  prefix-ask: "vragen"
+  actions-hint: "acties"
+  actions-placeholder: "Acties filteren…"
+  back-hint: "terug"
 setup:
   title: Dozzle instellen
   next: Volgende
@@ -1174,6 +1200,20 @@ inspect:
   hide-value: "Waarde verbergen"
   env-hidden: "Waarden zijn verborgen. Om ze te lezen is shell-toegang nodig."
   load-failed: "Containerdetails konden niet worden geladen."
+  networks: "Netwerken"
+  container-count: "1 container | {count} containers"
+  subnet: "Subnet"
+  gateway: "Gateway"
+  ip-usage: "IP's in gebruik"
+  connected-containers: "Verbonden containers"
+  this-container: "deze container"
+  driver: "Driver"
+  scope: "Bereik"
+  driver-options: "Driveropties"
+  mounted-by: "Gemount door"
+  details-failed: "Details konden niet worden geladen."
+  size: "Grootte"
+  mountpoint: "Koppelpunt"
 reclaim:
   clean-up: "Opruimen"
   free-up: "{size} vrijmaken"

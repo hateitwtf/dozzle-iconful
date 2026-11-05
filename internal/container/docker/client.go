@@ -58,6 +58,8 @@ type CLI interface {
 	ImagePrune(ctx context.Context, opts client.ImagePruneOptions) (client.ImagePruneResult, error)
 	VolumePrune(ctx context.Context, options client.VolumePruneOptions) (client.VolumePruneResult, error)
 	BuildCachePrune(ctx context.Context, opts client.BuildCachePruneOptions) (client.BuildCachePruneResult, error)
+	NetworkInspect(ctx context.Context, networkID string, options client.NetworkInspectOptions) (client.NetworkInspectResult, error)
+	VolumeInspect(ctx context.Context, volumeID string, options client.VolumeInspectOptions) (client.VolumeInspectResult, error)
 }
 
 type Client struct {
@@ -458,7 +460,8 @@ func (d *Client) ListReclaimable(ctx context.Context) (container.ReclaimableItem
 func (d *Client) Prune(ctx context.Context, opts container.PruneOptions) (container.PruneResult, error) {
 	var result container.PruneResult
 	if opts.Containers {
-		r, err := d.cli.ContainerPrune(ctx, client.ContainerPruneOptions{})
+		// a container labelled dev.dozzle.keep=true is stopped on purpose
+		r, err := d.cli.ContainerPrune(ctx, client.ContainerPruneOptions{Filters: make(client.Filters).Add("label!", container.KeepLabel+"=true")})
 		if err != nil {
 			return result, fmt.Errorf("pruning containers: %w", err)
 		}
@@ -927,7 +930,20 @@ func newContainerFromJSON(c docker.InspectResponse, host string) container.Conta
 			Source:      m.Source,
 			Destination: m.Destination,
 			RW:          m.RW,
+			Name:        m.Name,
 		})
+	}
+
+	var networks []container.ContainerNetwork
+	if c.NetworkSettings != nil {
+		for name, endpoint := range c.NetworkSettings.Networks {
+			n := container.ContainerNetwork{Name: name}
+			if endpoint != nil && endpoint.IPAddress.IsValid() {
+				n.IP = endpoint.IPAddress.String()
+			}
+			networks = append(networks, n)
+		}
+		slices.SortFunc(networks, func(a, b container.ContainerNetwork) int { return cmp.Compare(a.Name, b.Name) })
 	}
 
 	restartPolicy := ""
@@ -953,6 +969,7 @@ func newContainerFromJSON(c docker.InspectResponse, host string) container.Conta
 		Mounts:        mounts,
 		RestartPolicy: restartPolicy,
 		NetworkMode:   string(c.HostConfig.NetworkMode),
+		Networks:      networks,
 		FullyLoaded:   true,
 		RestartCount:  c.RestartCount,
 	}

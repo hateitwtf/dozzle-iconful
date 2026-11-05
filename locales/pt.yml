@@ -193,7 +193,7 @@ tooltip:
   volume-full: "{destination} está {pct} cheio"
   open-container-url: "Abrir {url}"
   agent-version: "Agente Dozzle {version}"
-  agent-version-mismatch: "O agente {version} não corresponde ao Dozzle {current}. Atualize o agente."
+  agent-version-mismatch: "O agente {version} e o Dozzle {current} estão em versões diferentes. Use a mesma versão em ambos."
 popup:
   group: Grupo
   ports: Portas
@@ -416,6 +416,7 @@ updates:
   none: Todos os contêineres usam a imagem mais recente da sua tag.
   update-selected: Atualizar | Atualizar 1 | Atualizar {count}
   self-last: O Dozzle é atualizado por último e depois reinicia.
+  read-only: Atualizar a partir daqui requer as ações de contêiner e a função update.
   auto: Auto
   auto-hint: Também atualizado pelo agendamento de atualização automática
   auto-footnote: Adicione a label {label} a um contêiner para atualizá-lo pelo agendamento de atualização automática.
@@ -653,6 +654,7 @@ notifications:
     remove-header: Remover cabeçalho
     test: Testar
     test-success: Teste bem-sucedido
+    test-unsupported: "Este modelo falha para alertas {kinds}, então eles não serão enviados para cá."
     cancel: Cancelar
     close: Fechar
     save: Salvar
@@ -887,6 +889,30 @@ command-palette:
   toggle-std: Alternar rótulos stdout/stderr
   toggle-scrollbars: Alternar barras de rolagem menores
   open-settings: Abrir configurações
+  section-updates: "Atualizações disponíveis"
+  section-hosts: "Hosts"
+  open-analytics: "Abrir análise de logs"
+  clear-logs: "Limpar logs"
+  attach-shell: "Anexar a {name}"
+  exec-shell: "Abrir um shell em {name}"
+  open-assistant: "Perguntar ao assistente"
+  check-container-updates: "Verificar atualizações de {name}"
+  skip-update: "Ignorar esta atualização de {name}"
+  review-updates: "Revisar 1 atualização | Revisar {count} atualizações"
+  confirm-stop: "Pressione ↵ novamente para parar {name}"
+  confirm-update: "Pressione ↵ novamente para atualizar {name}"
+  confirm-hint: "confirmar"
+  open-settings-page: "Configurações: {page}"
+  open-notifications: "Abrir notificações"
+  open-logs: "Abrir logs"
+  state-on: "Ligado"
+  state-off: "Desligado"
+  prefix-commands: "comandos"
+  prefix-hosts: "hosts"
+  prefix-ask: "perguntar"
+  actions-hint: "ações"
+  actions-placeholder: "Filtrar ações…"
+  back-hint: "voltar"
 setup:
   title: Configurar o Dozzle
   next: Próximo
@@ -1173,6 +1199,20 @@ inspect:
   hide-value: "Ocultar valor"
   env-hidden: "Os valores estão ocultos. Lê-los requer acesso ao shell."
   load-failed: "Não foi possível carregar os detalhes do contêiner."
+  networks: "Redes"
+  container-count: "1 contêiner | {count} contêineres"
+  subnet: "Sub-rede"
+  gateway: "Gateway"
+  ip-usage: "IPs em uso"
+  connected-containers: "Contêineres conectados"
+  this-container: "este contêiner"
+  driver: "Driver"
+  scope: "Escopo"
+  driver-options: "Opções do driver"
+  mounted-by: "Montado por"
+  details-failed: "Não foi possível carregar os detalhes."
+  size: "Tamanho"
+  mountpoint: "Ponto de montagem"
 reclaim:
   clean-up: "Limpar"
   free-up: "Liberar {size}"

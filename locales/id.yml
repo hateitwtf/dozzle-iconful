@@ -196,7 +196,7 @@ tooltip:
 
   open-container-url: "Buka {url}"
   agent-version: "Agen Dozzle {version}"
-  agent-version-mismatch: "Agen {version} tidak cocok dengan Dozzle {current}. Perbarui agennya."
+  agent-version-mismatch: "Agen {version} dan Dozzle {current} menggunakan versi yang berbeda. Jalankan versi yang sama di keduanya."
 popup:
   group: Grup
   ports: Port
@@ -428,6 +428,7 @@ updates:
   none: Semua container menjalankan image terbaru dari tag-nya.
   update-selected: Perbarui | Perbarui 1 | Perbarui {count}
   self-last: Dozzle diperbarui terakhir, lalu dimulai ulang.
+  read-only: Memperbarui dari sini memerlukan aksi kontainer dan peran update.
   auto: Otomatis
   auto-hint: Juga diperbarui sesuai jadwal pembaruan otomatis
   auto-footnote: Beri label {label} pada container agar diperbarui sesuai jadwal pembaruan otomatis.
@@ -665,6 +666,7 @@ notifications:
     remove-header: Hapus header
     test: Test
     test-success: Test berhasil
+    test-unsupported: "Template ini gagal untuk peringatan {kinds}, jadi peringatan tersebut tidak akan dikirim ke sini."
     cancel: Batal
     close: Tutup
     save: Simpan
@@ -899,6 +901,30 @@ command-palette:
   toggle-std: Alihkan label stdout/stderr
   toggle-scrollbars: Alihkan bilah gulir lebih kecil
   open-settings: Buka pengaturan
+  section-updates: "Pembaruan tersedia"
+  section-hosts: "Host"
+  open-analytics: "Buka analitik log"
+  clear-logs: "Bersihkan log"
+  attach-shell: "Lampirkan ke {name}"
+  exec-shell: "Buka shell di {name}"
+  open-assistant: "Tanya asisten"
+  check-container-updates: "Periksa pembaruan untuk {name}"
+  skip-update: "Lewati pembaruan ini untuk {name}"
+  review-updates: "Tinjau 1 pembaruan | Tinjau {count} pembaruan"
+  confirm-stop: "Tekan ↵ lagi untuk menghentikan {name}"
+  confirm-update: "Tekan ↵ lagi untuk memperbarui {name}"
+  confirm-hint: "konfirmasi"
+  open-settings-page: "Pengaturan: {page}"
+  open-notifications: "Buka notifikasi"
+  open-logs: "Buka log"
+  state-on: "Aktif"
+  state-off: "Nonaktif"
+  prefix-commands: "perintah"
+  prefix-hosts: "host"
+  prefix-ask: "tanya"
+  actions-hint: "tindakan"
+  actions-placeholder: "Filter tindakan…"
+  back-hint: "kembali"
 setup:
   title: "Siapkan Dozzle"
   next: "Berikutnya"
@@ -1188,6 +1214,20 @@ inspect:
   hide-value: "Sembunyikan nilai"
   env-hidden: "Nilai disembunyikan. Membacanya memerlukan akses shell."
   load-failed: "Gagal memuat detail kontainer."
+  networks: "Jaringan"
+  container-count: "1 kontainer | {count} kontainer"
+  subnet: "Subnet"
+  gateway: "Gateway"
+  ip-usage: "IP terpakai"
+  connected-containers: "Kontainer terhubung"
+  this-container: "kontainer ini"
+  driver: "Driver"
+  scope: "Cakupan"
+  driver-options: "Opsi driver"
+  mounted-by: "Dipasang oleh"
+  details-failed: "Gagal memuat detail."
+  size: "Ukuran"
+  mountpoint: "Titik mount"
 reclaim:
   clean-up: "Bersihkan"
   free-up: "Kosongkan {size}"

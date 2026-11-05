@@ -193,7 +193,7 @@ tooltip:
   volume-full: "{destination} {pct} dolu"
   open-container-url: "{url} adresini aç"
   agent-version: "Dozzle aracısı {version}"
-  agent-version-mismatch: "Aracı {version}, Dozzle {current} ile eşleşmiyor. Aracıyı güncelleyin."
+  agent-version-mismatch: "Aracı {version} ve Dozzle {current} farklı sürümlerde. Her ikisinde de aynı sürümü çalıştırın."
 popup:
   group: Grup
   ports: Portlar
@@ -419,6 +419,7 @@ updates:
   none: Tüm container'lar tag'lerinin en güncel image'ını çalıştırıyor.
   update-selected: Güncelle | 1 güncelle | {count} güncelle
   self-last: Dozzle en son güncellenir, ardından yeniden başlar.
+  read-only: Buradan güncellemek için konteyner eylemleri ve update rolü gerekir.
   auto: Otomatik
   auto-hint: Otomatik güncelleme zamanlamasıyla da güncellenir
   auto-footnote: Bir container'ı otomatik güncelleme zamanlamasıyla güncellemek için ona {label} etiketini ekleyin.
@@ -656,6 +657,7 @@ notifications:
     remove-header: Başlığı kaldır
     test: Test
     test-success: Test başarılı
+    test-unsupported: "Bu şablon {kinds} uyarılarında başarısız oluyor, bu yüzden bu uyarılar buraya gönderilmeyecek."
     cancel: İptal
     close: Kapat
     save: Kaydet
@@ -890,6 +892,30 @@ command-palette:
   toggle-std: stdout/stderr etiketlerini aç/kapat
   toggle-scrollbars: Daha küçük kaydırma çubuklarını aç/kapat
   open-settings: Ayarları aç
+  section-updates: "Güncellemeler mevcut"
+  section-hosts: "Sunucular"
+  open-analytics: "Log analizini aç"
+  clear-logs: "Logları temizle"
+  attach-shell: "{name} kapsayıcısına bağlan"
+  exec-shell: "{name} içinde kabuk aç"
+  open-assistant: "Asistana sor"
+  check-container-updates: "{name} için güncellemeleri denetle"
+  skip-update: "{name} için bu güncellemeyi atla"
+  review-updates: "1 güncellemeyi incele | {count} güncellemeyi incele"
+  confirm-stop: "{name} kapsayıcısını durdurmak için tekrar ↵ tuşuna basın"
+  confirm-update: "{name} kapsayıcısını güncellemek için tekrar ↵ tuşuna basın"
+  confirm-hint: "onayla"
+  open-settings-page: "Ayarlar: {page}"
+  open-notifications: "Bildirimleri aç"
+  open-logs: "Logları aç"
+  state-on: "Açık"
+  state-off: "Kapalı"
+  prefix-commands: "komutlar"
+  prefix-hosts: "sunucular"
+  prefix-ask: "sor"
+  actions-hint: "eylemler"
+  actions-placeholder: "Eylemleri filtrele…"
+  back-hint: "geri"
 setup:
   title: Dozzle kurulumu
   next: İleri
@@ -1179,6 +1205,20 @@ inspect:
   hide-value: "Değeri gizle"
   env-hidden: "Değerler gizli. Okumak için kabuk erişimi gerekir."
   load-failed: "Konteyner ayrıntıları yüklenemedi."
+  networks: "Ağlar"
+  container-count: "1 konteyner | {count} konteyner"
+  subnet: "Alt ağ"
+  gateway: "Ağ geçidi"
+  ip-usage: "Kullanımdaki IP'ler"
+  connected-containers: "Bağlı konteynerler"
+  this-container: "bu konteyner"
+  driver: "Sürücü"
+  scope: "Kapsam"
+  driver-options: "Sürücü seçenekleri"
+  mounted-by: "Bağlayan konteynerler"
+  details-failed: "Ayrıntılar yüklenemedi."
+  size: "Boyut"
+  mountpoint: "Bağlama noktası"
 reclaim:
   clean-up: "Temizle"
   free-up: "{size} boşalt"

@@ -427,6 +427,11 @@ type ToolDeps struct {
 	// unset field never grants more than it used to.
 	Principal           Principal
 	NotificationService NotificationService
+	// ConfigHostService is the hosts whose container configs this process
+	// sends, or nil to send none. It is narrower than HostService on a server
+	// with --remote-agent: each agent sends its own, hashed with its own key,
+	// so the server must not send them too.
+	ConfigHostService ConfigStreamHostService
 }
 
 // scoped returns the host service already confined to the principal's labels.
@@ -472,7 +477,7 @@ func executeTool(ctx context.Context, name string, argsJSON string, deps ToolDep
 	case toolFetchContainerLogs:
 		return executeFetchContainerLogs(ctx, argsJSON, deps)
 	case toolInspectContainer:
-		return executeInspectContainer(argsJSON, deps)
+		return executeInspectContainer(ctx, argsJSON, deps)
 	case toolRetroScan:
 		return executeRetroScan(ctx, argsJSON, deps)
 	case toolInspectContainers:

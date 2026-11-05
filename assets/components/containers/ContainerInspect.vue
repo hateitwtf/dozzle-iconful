@@ -60,23 +60,42 @@
         </ul>
       </section>
 
+      <section v-if="details?.networks.length" class="space-y-3">
+        <h3 class="text-base-content/60 text-xs font-semibold tracking-wide uppercase">{{ $t("inspect.networks") }}</h3>
+        <ul
+          class="border-base-content/15 bg-base-200/40 divide-base-content/10 divide-y overflow-hidden rounded-lg border"
+        >
+          <InspectNetworkRow
+            v-for="network in details.networks"
+            :key="`${container.host}/${container.id}/${network.name}`"
+            :container="container"
+            :network="network"
+          />
+        </ul>
+      </section>
+
       <section v-if="container.mounts.length" class="space-y-3">
         <h3 class="text-base-content/60 text-xs font-semibold tracking-wide uppercase">{{ $t("inspect.mounts") }}</h3>
-        <ul class="border-base-content/15 bg-base-200/40 divide-base-content/10 divide-y rounded-lg border">
-          <li
-            v-for="mount in container.mounts"
-            :key="mount.destination"
-            class="flex items-center gap-3 px-4 py-3 font-mono text-xs"
-          >
-            <span class="min-w-0 flex-1 wrap-anywhere">
-              <span class="text-base-content/60">{{ mount.source || mount.type }}</span>
-              <span class="text-base-content/40"> → </span>
-              <span class="font-semibold">{{ mount.destination }}</span>
-            </span>
-            <span class="status-pill shrink-0" :class="mount.rw ? 'status-pill-neutral' : 'status-pill-secondary'">
-              {{ mount.rw ? "rw" : "ro" }}
-            </span>
-          </li>
+        <ul
+          class="border-base-content/15 bg-base-200/40 divide-base-content/10 divide-y overflow-hidden rounded-lg border"
+        >
+          <template v-for="mount in container.mounts" :key="`${container.host}/${container.id}/${mount.destination}`">
+            <InspectVolumeRow
+              v-if="mount.type === 'volume' && mount.name"
+              :container="container"
+              :mount="{ ...mount, name: mount.name }"
+            />
+            <li v-else class="flex items-center gap-3 px-4 py-3 font-mono text-xs">
+              <span class="min-w-0 flex-1 wrap-anywhere">
+                <span class="text-base-content/60">{{ mount.source || mount.type }}</span>
+                <span class="text-base-content/40"> → </span>
+                <span class="font-semibold">{{ mount.destination }}</span>
+              </span>
+              <span class="status-pill shrink-0" :class="mount.rw ? 'status-pill-neutral' : 'status-pill-secondary'">
+                {{ mount.rw ? "rw" : "ro" }}
+              </span>
+            </li>
+          </template>
         </ul>
       </section>
 
@@ -125,21 +144,12 @@
 
 <script lang="ts" setup>
 import { Container } from "@/models/Container";
-
-interface InspectDetails {
-  restartPolicy?: string;
-  restartCount: number;
-  oomKilled: boolean;
-  exitCode: number;
-  networkMode?: string;
-  env: { key: string; value?: string }[];
-  envRevealed: boolean;
-}
+import type { ContainerInspect } from "@/types/Container";
 
 const { container } = defineProps<{ container: Container }>();
 const { t } = useI18n();
 
-const details = ref<InspectDetails>();
+const details = ref<ContainerInspect>();
 const error = ref(false);
 const revealed = ref(new Set<number>());
 const labelsCollapsed = ref(true);
@@ -213,7 +223,10 @@ const overview = computed(() => {
   rows.push({ label: t("inspect.id"), value: container.id.slice(0, 12) });
   if (details.value?.restartPolicy)
     rows.push({ label: t("inspect.restart-policy"), value: details.value.restartPolicy });
-  if (details.value?.networkMode) rows.push({ label: t("inspect.network"), value: details.value.networkMode });
+  // The Networks section names each network a container is attached to. Only a
+  // container sharing another's stack (`container:<id>`) has none to list.
+  if (details.value?.networkMode && !details.value.networks.length)
+    rows.push({ label: t("inspect.network"), value: details.value.networkMode });
   // "Unlimited" is Docker's default, not a setting anyone chose, so it is muted to let
   // a real limit stand out.
   rows.push({

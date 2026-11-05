@@ -193,7 +193,7 @@ tooltip:
   volume-full: "{destination} заполнено на {pct}"
   open-container-url: "Открыть {url}"
   agent-version: "Агент Dozzle {version}"
-  agent-version-mismatch: "Агент {version} не совпадает с Dozzle {current}. Обновите агент."
+  agent-version-mismatch: "Агент {version} и Dozzle {current} работают на разных версиях. Используйте одну и ту же версию на обоих."
 popup:
   group: Группа
   ports: Порты
@@ -416,6 +416,7 @@ updates:
   none: Все контейнеры используют последний образ своего тега.
   update-selected: Обновить | Обновить 1 | Обновить {count}
   self-last: Dozzle обновляется последним и затем перезапускается.
+  read-only: Для обновления отсюда нужны действия с контейнерами и роль update.
   auto: Авто
   auto-hint: Также обновляется по расписанию автообновления
   auto-footnote: Добавьте контейнеру метку {label}, чтобы он обновлялся по расписанию автообновления.
@@ -653,6 +654,7 @@ notifications:
     remove-header: Удалить заголовок
     test: Тест
     test-success: Тест успешен
+    test-unsupported: "Этот шаблон не работает для оповещений типа {kinds}, поэтому они не будут сюда отправлены."
     cancel: Отмена
     close: Закрыть
     save: Сохранить
@@ -887,6 +889,30 @@ command-palette:
   toggle-std: Переключить метки stdout/stderr
   toggle-scrollbars: Переключить уменьшенные полосы прокрутки
   open-settings: Открыть настройки
+  section-updates: "Доступны обновления"
+  section-hosts: "Хосты"
+  open-analytics: "Открыть анализ логов"
+  clear-logs: "Очистить логи"
+  attach-shell: "Подключиться к {name}"
+  exec-shell: "Открыть оболочку в {name}"
+  open-assistant: "Спросить ассистента"
+  check-container-updates: "Проверить обновления для {name}"
+  skip-update: "Пропустить это обновление для {name}"
+  review-updates: "Просмотреть обновления: 1 | Просмотреть обновления: {count}"
+  confirm-stop: "Нажмите ↵ ещё раз, чтобы остановить {name}"
+  confirm-update: "Нажмите ↵ ещё раз, чтобы обновить {name}"
+  confirm-hint: "подтвердить"
+  open-settings-page: "Настройки: {page}"
+  open-notifications: "Открыть уведомления"
+  open-logs: "Открыть логи"
+  state-on: "Вкл"
+  state-off: "Выкл"
+  prefix-commands: "команды"
+  prefix-hosts: "хосты"
+  prefix-ask: "спросить"
+  actions-hint: "действия"
+  actions-placeholder: "Фильтр действий…"
+  back-hint: "назад"
 setup:
   title: Настройка Dozzle
   next: Далее
@@ -1176,6 +1202,20 @@ inspect:
   hide-value: "Скрыть значение"
   env-hidden: "Значения скрыты. Для их чтения нужен доступ к shell."
   load-failed: "Не удалось загрузить сведения о контейнере."
+  networks: "Сети"
+  container-count: "1 контейнер | Контейнеров: {count}"
+  subnet: "Подсеть"
+  gateway: "Шлюз"
+  ip-usage: "Используемые IP"
+  connected-containers: "Подключённые контейнеры"
+  this-container: "этот контейнер"
+  driver: "Драйвер"
+  scope: "Область"
+  driver-options: "Параметры драйвера"
+  mounted-by: "Смонтирован в"
+  details-failed: "Не удалось загрузить сведения."
+  size: "Размер"
+  mountpoint: "Точка монтирования"
 reclaim:
   clean-up: "Очистить"
   free-up: "Освободить {size}"

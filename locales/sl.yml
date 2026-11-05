@@ -193,7 +193,7 @@ tooltip:
   volume-full: "{destination} je {pct} poln"
   open-container-url: "Odpri {url}"
   agent-version: "Agent Dozzle {version}"
-  agent-version-mismatch: "Agent {version} se ne ujema z Dozzle {current}. Posodobite agenta."
+  agent-version-mismatch: "Agent {version} in Dozzle {current} imata različni različici. Na obeh uporabite isto različico."
 popup:
   group: Skupina
   ports: Vrata
@@ -421,6 +421,7 @@ updates:
   none: Vsi vsebniki uporabljajo najnovejšo sliko svoje oznake.
   update-selected: Posodobi | Posodobi 1 | Posodobi {count}
   self-last: Dozzle se posodobi zadnji in se nato znova zažene.
+  read-only: Posodabljanje od tu zahteva dejanja vsebnikov in vlogo update.
   auto: Samodejno
   auto-hint: Posodablja se tudi po urniku samodejnih posodobitev
   auto-footnote: Vsebniku dodajte oznako {label}, da se posodablja po urniku samodejnih posodobitev.
@@ -658,6 +659,7 @@ notifications:
     remove-header: Odstrani glavo
     test: Test
     test-success: Test uspešen
+    test-unsupported: "Ta predloga ne deluje za opozorila {kinds}, zato ne bodo poslana sem."
     cancel: Prekliči
     close: Zapri
     save: Shrani
@@ -892,6 +894,30 @@ command-palette:
   toggle-std: Preklopi oznake stdout/stderr
   toggle-scrollbars: Preklopi manjše drsnike
   open-settings: Odpri nastavitve
+  section-updates: "Na voljo so posodobitve"
+  section-hosts: "Gostitelji"
+  open-analytics: "Odpri analizo dnevnikov"
+  clear-logs: "Počisti dnevnike"
+  attach-shell: "Priključi se na {name}"
+  exec-shell: "Odpri lupino v {name}"
+  open-assistant: "Vprašaj pomočnika"
+  check-container-updates: "Preveri posodobitve za {name}"
+  skip-update: "Preskoči to posodobitev za {name}"
+  review-updates: "Preglej posodobitve: 1 | Preglej posodobitve: {count}"
+  confirm-stop: "Znova pritisnite ↵, da ustavite {name}"
+  confirm-update: "Znova pritisnite ↵, da posodobite {name}"
+  confirm-hint: "potrdi"
+  open-settings-page: "Nastavitve: {page}"
+  open-notifications: "Odpri obvestila"
+  open-logs: "Odpri dnevnike"
+  state-on: "Vklopljeno"
+  state-off: "Izklopljeno"
+  prefix-commands: "ukazi"
+  prefix-hosts: "gostitelji"
+  prefix-ask: "vprašaj"
+  actions-hint: "dejanja"
+  actions-placeholder: "Filtriraj dejanja…"
+  back-hint: "nazaj"
 setup:
   title: Nastavitev Dozzle
   next: Naprej
@@ -1178,6 +1204,20 @@ inspect:
   hide-value: "Skrij vrednost"
   env-hidden: "Vrednosti so skrite. Za branje je potreben dostop do lupine."
   load-failed: "Podrobnosti vsebnika ni bilo mogoče naložiti."
+  networks: "Omrežja"
+  container-count: "1 vsebnik | {count} vsebnikov"
+  subnet: "Podomrežje"
+  gateway: "Prehod"
+  ip-usage: "Uporabljeni IP-ji"
+  connected-containers: "Povezani vsebniki"
+  this-container: "ta vsebnik"
+  driver: "Gonilnik"
+  scope: "Obseg"
+  driver-options: "Možnosti gonilnika"
+  mounted-by: "Priklopljeno v"
+  details-failed: "Podrobnosti ni bilo mogoče naložiti."
+  size: "Velikost"
+  mountpoint: "Točka priklopa"
 reclaim:
   clean-up: "Počisti"
   free-up: "Sprosti {size}"

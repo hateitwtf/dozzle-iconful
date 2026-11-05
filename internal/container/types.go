@@ -22,12 +22,12 @@ type Container struct {
 	Created       time.Time                        `json:"created"`
 	StartedAt     time.Time                        `json:"startedAt"`
 	FinishedAt    time.Time                        `json:"finishedAt"`
-	State         string                           `json:"state"`
-	Health        string                           `json:"health,omitempty"`
+	State         string                           `json:"state" tstype:"ContainerState"`
+	Health        string                           `json:"health,omitempty" tstype:"ContainerHealth"`
 	Host          string                           `json:"host,omitempty"`
 	Tty           bool                             `json:"-"`
 	Labels        map[string]string                `json:"labels,omitempty"`
-	Stats         *utils.RingBuffer[ContainerStat] `json:"stats,omitempty"`
+	Stats         *utils.RingBuffer[ContainerStat] `json:"stats,omitempty" tstype:"StatColumns"`
 	MemoryLimit   uint64                           `json:"memoryLimit"`
 	CPULimit      float64                          `json:"cpuLimit"`
 	Group         string                           `json:"group,omitempty"`
@@ -57,6 +57,9 @@ type Container struct {
 	// Docker measures every volume on the host in one walk, so these refresh far less
 	// often than SizeRw. Bind mounts are never here: Docker cannot measure them.
 	Volumes []VolumeUsage `json:"volumes,omitempty"`
+	// Networks are the networks the container is attached to, from its inspect.
+	// A list entry has none.
+	Networks []ContainerNetwork `json:"-"`
 }
 
 // VolumeUsage is one volume a container mounts.
@@ -75,6 +78,8 @@ type Mount struct {
 	Source      string `json:"source"`
 	Destination string `json:"destination"`
 	RW          bool   `json:"rw"`
+	// Name is the volume's name, empty for a bind mount.
+	Name string `json:"name,omitempty"`
 }
 
 // String returns a display form for legacy consumers.
@@ -358,6 +363,10 @@ type UpdateResult struct {
 	RolledBack bool
 }
 
+// KeepLabel set to "true" keeps a stopped container out of every clean up, for
+// one that is stopped on purpose and started again later.
+const KeepLabel = "dev.dozzle.keep"
+
 // Labels an update leaves on the container it creates, and reads back on the
 // next one.
 const (
@@ -423,12 +432,12 @@ func SameImageID(a, b string) bool {
 
 type LogEvent struct {
 	Type        LogType `json:"t,omitempty"`
-	Message     any     `json:"m,omitempty"`
+	Message     any     `json:"m,omitempty" tstype:"string | LogFragment[] | JSONObject"`
 	RawMessage  string  `json:"rm,omitempty"`
 	Timestamp   int64   `json:"ts"`
 	Id          uint32  `json:"id,omitempty"`
-	Level       string  `json:"l,omitempty"`
-	Stream      string  `json:"s,omitempty"`
+	Level       string  `json:"l,omitempty" tstype:"Level"`
+	Stream      string  `json:"s,omitempty" tstype:"'stdout' | 'stderr' | 'unknown'"`
 	ContainerID string  `json:"c,omitempty"`
 	// TimestampPrefix is the byte length of a timestamp the app printed at the
 	// start of a single line when it agrees with Timestamp, so the UI can hide

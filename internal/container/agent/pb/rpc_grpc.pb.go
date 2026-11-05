@@ -40,6 +40,9 @@ const (
 	AgentService_LogHistogram_FullMethodName             = "/protobuf.AgentService/LogHistogram"
 	AgentService_PruneHost_FullMethodName                = "/protobuf.AgentService/PruneHost"
 	AgentService_ListReclaimable_FullMethodName          = "/protobuf.AgentService/ListReclaimable"
+	AgentService_HealthLog_FullMethodName                = "/protobuf.AgentService/HealthLog"
+	AgentService_InspectNetwork_FullMethodName           = "/protobuf.AgentService/InspectNetwork"
+	AgentService_InspectVolume_FullMethodName            = "/protobuf.AgentService/InspectVolume"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -67,6 +70,9 @@ type AgentServiceClient interface {
 	LogHistogram(ctx context.Context, in *LogHistogramRequest, opts ...grpc.CallOption) (*LogHistogramResponse, error)
 	PruneHost(ctx context.Context, in *PruneHostRequest, opts ...grpc.CallOption) (*PruneHostResponse, error)
 	ListReclaimable(ctx context.Context, in *ListReclaimableRequest, opts ...grpc.CallOption) (*ListReclaimableResponse, error)
+	HealthLog(ctx context.Context, in *HealthLogRequest, opts ...grpc.CallOption) (*HealthLogResponse, error)
+	InspectNetwork(ctx context.Context, in *InspectNetworkRequest, opts ...grpc.CallOption) (*InspectNetworkResponse, error)
+	InspectVolume(ctx context.Context, in *InspectVolumeRequest, opts ...grpc.CallOption) (*InspectVolumeResponse, error)
 }
 
 type agentServiceClient struct {
@@ -365,6 +371,36 @@ func (c *agentServiceClient) ListReclaimable(ctx context.Context, in *ListReclai
 	return out, nil
 }
 
+func (c *agentServiceClient) HealthLog(ctx context.Context, in *HealthLogRequest, opts ...grpc.CallOption) (*HealthLogResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HealthLogResponse)
+	err := c.cc.Invoke(ctx, AgentService_HealthLog_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) InspectNetwork(ctx context.Context, in *InspectNetworkRequest, opts ...grpc.CallOption) (*InspectNetworkResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InspectNetworkResponse)
+	err := c.cc.Invoke(ctx, AgentService_InspectNetwork_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) InspectVolume(ctx context.Context, in *InspectVolumeRequest, opts ...grpc.CallOption) (*InspectVolumeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InspectVolumeResponse)
+	err := c.cc.Invoke(ctx, AgentService_InspectVolume_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -390,6 +426,9 @@ type AgentServiceServer interface {
 	LogHistogram(context.Context, *LogHistogramRequest) (*LogHistogramResponse, error)
 	PruneHost(context.Context, *PruneHostRequest) (*PruneHostResponse, error)
 	ListReclaimable(context.Context, *ListReclaimableRequest) (*ListReclaimableResponse, error)
+	HealthLog(context.Context, *HealthLogRequest) (*HealthLogResponse, error)
+	InspectNetwork(context.Context, *InspectNetworkRequest) (*InspectNetworkResponse, error)
+	InspectVolume(context.Context, *InspectVolumeRequest) (*InspectVolumeResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -462,6 +501,15 @@ func (UnimplementedAgentServiceServer) PruneHost(context.Context, *PruneHostRequ
 }
 func (UnimplementedAgentServiceServer) ListReclaimable(context.Context, *ListReclaimableRequest) (*ListReclaimableResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListReclaimable not implemented")
+}
+func (UnimplementedAgentServiceServer) HealthLog(context.Context, *HealthLogRequest) (*HealthLogResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method HealthLog not implemented")
+}
+func (UnimplementedAgentServiceServer) InspectNetwork(context.Context, *InspectNetworkRequest) (*InspectNetworkResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InspectNetwork not implemented")
+}
+func (UnimplementedAgentServiceServer) InspectVolume(context.Context, *InspectVolumeRequest) (*InspectVolumeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InspectVolume not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -784,6 +832,60 @@ func _AgentService_ListReclaimable_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_HealthLog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthLogRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).HealthLog(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_HealthLog_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).HealthLog(ctx, req.(*HealthLogRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_InspectNetwork_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InspectNetworkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).InspectNetwork(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_InspectNetwork_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).InspectNetwork(ctx, req.(*InspectNetworkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_InspectVolume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InspectVolumeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).InspectVolume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_InspectVolume_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).InspectVolume(ctx, req.(*InspectVolumeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -834,6 +936,18 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListReclaimable",
 			Handler:    _AgentService_ListReclaimable_Handler,
+		},
+		{
+			MethodName: "HealthLog",
+			Handler:    _AgentService_HealthLog_Handler,
+		},
+		{
+			MethodName: "InspectNetwork",
+			Handler:    _AgentService_InspectNetwork_Handler,
+		},
+		{
+			MethodName: "InspectVolume",
+			Handler:    _AgentService_InspectVolume_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
