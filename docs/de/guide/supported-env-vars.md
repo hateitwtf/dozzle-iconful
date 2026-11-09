@@ -1,7 +1,7 @@
 ---
 title: Umgebungsvariablen und Unterbefehle
 description: Alle Umgebungsvariablen und Optionen von Dozzle, einschließlich der Authentifizierung, dazu die Unterbefehle generate, agent, generate-certs und healthcheck.
-sourceHash: 258ed3c33972
+sourceHash: 0ca047caacaf
 ---
 
 # Umgebungsvariablen
@@ -46,6 +46,7 @@ DOZZLE_REMOTE_AGENT=167.99.1.1:7007,167.99.1.2:7007
 | `DOZZLE_ENABLE_ACTIONS`<br>`--enable-actions`             | Erlaubt Starten, Stoppen, Neustarten, Entfernen und Aktualisieren von Containern aus der Oberfläche. Siehe [Aktionen](/de/guide/actions).                                                                                                                   | `true`, `false`              | `false`                         |
 | `DOZZLE_ENABLE_SHELL`<br>`--enable-shell`                 | Erlaubt, sich aus der Oberfläche an Container anzuhängen und darin eine Shell zu starten. Siehe [Shell](/de/guide/shell).                                                                                                                                   | `true`, `false`              | `false`                         |
 | `DOZZLE_ENABLE_MCP`<br>`--enable-mcp`                     | Stellt den [MCP](/de/guide/mcp)-Endpunkt für LLM-Clients bereit.                                                                                                                                                                                            | `true`, `false`              | `false`                         |
+| `DOZZLE_MCP_TOKEN`<br>`--mcp-token`                       | Statisches Bearer-Token, das [MCP](/de/guide/mcp#statisches-token-fur-clients-ohne-browser) für Clients ohne Browser akzeptiert. Mindestens 32 Zeichen.                                                                                                     | string                       |                                 |
 | `DOZZLE_DISABLE_AVATARS`<br>`--disable-avatars`           | Blendet Benutzeravatare aus, wenn die Authentifizierung aktiv ist.                                                                                                                                                                                          | `true`, `false`              | `false`                         |
 | `DOZZLE_DISABLE_SETUP_WIZARD`<br>`--disable-setup-wizard` | Verhindert, dass sich der [Einrichtungsassistent](/de/guide/setup-wizard) bei einer frischen Installation von selbst öffnet. Unter **Einstellungen → Über** lässt er sich weiterhin starten.                                                                | `true`, `false`              | `false`                         |
 | `DOZZLE_RELEASE_CHECK_MODE`<br>`--release-check-mode`     | Ob Dozzle nach neuen eigenen Releases sucht. `manual` prüft nur, wenn du danach fragst.                                                                                                                                                                     | `automatic`, `manual`        | `automatic`                     |
@@ -55,6 +56,8 @@ DOZZLE_REMOTE_AGENT=167.99.1.1:7007,167.99.1.2:7007
 | `DOZZLE_AUTO_CLEANUP`<br>`--auto-cleanup`                 | Räumt jeden Host nach Zeitplan auf, nie Volumes. `weekly` läuft am Sonntag. Erfordert `DOZZLE_ENABLE_ACTIONS`. Siehe [Speicherplatz](/de/guide/container-disk-usage).                                                                                       | `off`, `daily`, `weekly`     | `off`                           |
 | `DOZZLE_AUTO_CLEANUP_TIME`<br>`--auto-cleanup-time`       | Uhrzeit, zu der das geplante Aufräumen läuft, in der lokalen Zeit des Servers.                                                                                                                                                                              | `HH:MM`, z. B. `05:00`       | `04:00`                         |
 | `DOZZLE_UPDATE_CONTAINERS`<br>`--update-containers`       | Welche Container das automatische Update neben Dozzle aktualisiert: `off` nur Dozzle, `labelled` die mit `dev.dozzle.update=auto` markierten, `all` jeden Container ohne `dev.dozzle.update=off`.                                                           | `off`, `labelled`, `all`     | `labelled`                      |
+
+`DOCKER_CONFIG` ist Dockers eigene Variable und keine Dozzle-Option. Sie nennt das Verzeichnis mit der `config.json`, die deine [Zugangsdaten für private Registries](/de/guide/updates#private-registries) enthält. Ohne sie sucht Dozzle nach `/config.json`.
 
 ## Authentifizierung
 

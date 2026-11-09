@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"slices"
 	"sort"
 	"strconv"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/amir20/dozzle/internal/container"
 	"github.com/amir20/dozzle/internal/container/docker/swap"
+	"github.com/amir20/dozzle/internal/imagecheck"
 	"github.com/amir20/dozzle/internal/selfupdate"
 	"github.com/amir20/dozzle/internal/utils"
 	docker "github.com/moby/moby/api/types/container"
@@ -290,7 +292,7 @@ func (d *Client) ContainerActions(ctx context.Context, action container.Containe
 }
 
 func (d *Client) ImagePull(ctx context.Context, imageName string) (io.ReadCloser, error) {
-	return d.cli.ImagePull(ctx, imageName, client.ImagePullOptions{})
+	return d.cli.ImagePull(ctx, imageName, swap.PullOptions(imageName))
 }
 
 // ImageRepoDigests returns the "repo@sha256:..." digests recorded for a
@@ -546,16 +548,44 @@ func (d *Client) ServiceUpdate(ctx context.Context, serviceID string, imageName 
 	svc := inspectResult.Service
 	svc.Spec.TaskTemplate.ContainerSpec.Image = imageName
 	svc.Spec.TaskTemplate.ForceUpdate++
-	_, err = d.cli.ServiceUpdate(ctx, serviceID, client.ServiceUpdateOptions{Version: svc.Version, Spec: svc.Spec})
+	_, err = d.cli.ServiceUpdate(ctx, serviceID, client.ServiceUpdateOptions{
+		Version:             svc.Version,
+		Spec:                svc.Spec,
+		EncodedRegistryAuth: imagecheck.PullAuth(imageName),
+	})
 	return err
+}
+
+// daemonFilters builds the filter sent to the daemon. The daemon requires every "label"
+// filter to match, and a container has one value per key, so team=a,team=b could never
+// match. A key given several values is sent as just the key, and returned in anyOf for
+// the caller to check against the listed containers.
+func daemonFilters(labels container.ContainerLabels) (client.Filters, container.ContainerLabels) {
+	anyOf := make(container.ContainerLabels)
+	for _, label := range labels["label"] {
+		if key, value, ok := strings.Cut(label, "="); ok {
+			anyOf[key] = append(anyOf[key], value)
+		}
+	}
+	maps.DeleteFunc(anyOf, func(_ string, values []string) bool { return len(values) < 2 })
+
+	filterArgs := make(client.Filters)
+	for key, values := range labels {
+		for _, value := range values {
+			if key == "label" {
+				if labelKey, _, _ := strings.Cut(value, "="); len(anyOf[labelKey]) > 0 {
+					value = labelKey
+				}
+			}
+			filterArgs.Add(key, value)
+		}
+	}
+	return filterArgs, anyOf
 }
 
 func (d *Client) ListContainers(ctx context.Context, labels container.ContainerLabels) ([]container.Container, error) {
 	log.Debug().Interface("labels", labels).Str("host", d.host.Name).Msg("Listing containers")
-	filterArgs := make(client.Filters)
-	for key, values := range labels {
-		filterArgs.Add(key, values...)
-	}
+	filterArgs, anyOf := daemonFilters(labels)
 	containerListOptions := client.ContainerListOptions{
 		Filters: filterArgs,
 		All:     true,
@@ -564,6 +594,9 @@ func (d *Client) ListContainers(ctx context.Context, labels container.ContainerL
 	if err != nil {
 		return nil, err
 	}
+	list.Items = slices.DeleteFunc(list.Items, func(c docker.Summary) bool {
+		return !container.MatchesLabels(c.Labels, anyOf)
+	})
 
 	var containers = make([]container.Container, 0, len(list.Items))
 	for _, c := range list.Items {
