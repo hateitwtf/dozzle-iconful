@@ -11,6 +11,7 @@ declare global {
   const AIM_IDLE: typeof import('./composable/ui/pointerAim').AIM_IDLE
   const BULK_CONCURRENCY: typeof import('./composable/containers/bulkContainerActions').BULK_CONCURRENCY
   const COMPACT_OFFSET_PX: typeof import('./composable/ui/compactOnScroll').COMPACT_OFFSET_PX
+  const COOLDOWN_STOPS: typeof import('./composable/notifications/alertForm').COOLDOWN_STOPS
   const COPY_CONCURRENCY: typeof import('./composable/logs/copyLogs').COPY_CONCURRENCY
   const DEFAULT_MENU_WIDTH: typeof import('./stores/settings').DEFAULT_MENU_WIDTH
   const DEFAULT_SETTINGS: typeof import('./stores/settings').DEFAULT_SETTINGS
@@ -19,6 +20,7 @@ declare global {
   const FETCH_PAGE: typeof import('./composable/logs/logLoader').FETCH_PAGE
   const K8sNamespace: typeof import('./stores/k8s').K8sNamespace
   const K8sOwner: typeof import('./stores/k8s').K8sOwner
+  const LOG_COOLDOWN_STOPS: typeof import('./composable/notifications/alertForm').LOG_COOLDOWN_STOPS
   const MARKER_START_SLACK_MS: typeof import('./composable/logs/updateMarkers').MARKER_START_SLACK_MS
   const MAX_PATTERN_LINES: typeof import('./composable/cloud/patternMemory').MAX_PATTERN_LINES
   const MIN_MENU_WIDTH: typeof import('./stores/settings').MIN_MENU_WIDTH
@@ -26,6 +28,7 @@ declare global {
   const PREFERENCE_PAGES: typeof import('./composable/app/settingsPages').PREFERENCE_PAGES
   const RAIL_WIDTH: typeof import('./composable/cloud/cloudRail').RAIL_WIDTH
   const RELATIVE_SPANS: typeof import('./composable/logs/timeRange').RELATIVE_SPANS
+  const SAMPLE_WINDOW_STOPS: typeof import('./composable/notifications/alertForm').SAMPLE_WINDOW_STOPS
   const SCROLL_JITTER_PX: typeof import('./composable/ui/compactOnScroll').SCROLL_JITTER_PX
   const SERVER_PAGES: typeof import('./composable/app/settingsPages').SERVER_PAGES
   const SETTINGS_PAGE_ICONS: typeof import('./composable/app/settingsPages').SETTINGS_PAGE_ICONS
@@ -39,6 +42,7 @@ declare global {
   const UPDATE_LABEL: typeof import('./composable/containers/updatePolicy').UPDATE_LABEL
   const USAGE_FLUSH_INTERVAL: typeof import('./composable/app/usage').USAGE_FLUSH_INTERVAL
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
+  const actionsAllowedOn: typeof import('./composable/containers/hostRestrictions').actionsAllowedOn
   const agentComposeSnippet: typeof import('./composable/setup/setup').agentComposeSnippet
   const agentImage: typeof import('./composable/setup/setup').agentImage
   const aimAt: typeof import('./composable/ui/pointerAim').aimAt
@@ -136,6 +140,7 @@ declare global {
   const formatCopyBlocks: typeof import('./composable/logs/copyLogs').formatCopyBlocks
   const formatDuration: typeof import('./utils/index').formatDuration
   const formatRange: typeof import('./composable/logs/timeRange').formatRange
+  const formatRate: typeof import('./utils/index').formatRate
   const formatSpan: typeof import('./composable/logs/timeRange').formatSpan
   const formatTime: typeof import('./composable/logs/timeRange').formatTime
   const getActivePinia: typeof import('pinia').getActivePinia
@@ -314,6 +319,7 @@ declare global {
   const shallowReadonly: typeof import('vue').shallowReadonly
   const shallowRef: typeof import('vue').shallowRef
   const sharedNamePrefix: typeof import('./composable/logs/logContext').sharedNamePrefix
+  const shellAllowedOn: typeof import('./composable/containers/hostRestrictions').shellAllowedOn
   const shortImageRef: typeof import('./utils/index').shortImageRef
   const showAllContainers: typeof import('./stores/settings').showAllContainers
   const showAppIcons: typeof import('./stores/settings').showAppIcons
@@ -360,6 +366,7 @@ declare global {
   const unrefElement: typeof import('@vueuse/core').unrefElement
   const until: typeof import('@vueuse/core').until
   const updateErrorText: typeof import('./composable/containers/containerActions').updateErrorText
+  const updatesAllowedOn: typeof import('./composable/containers/hostRestrictions').updatesAllowedOn
   const updatesVisible: typeof import('./composable/containers/imageUpdate').updatesVisible
   const useActiveElement: typeof import('@vueuse/core').useActiveElement
   const useAlertForm: typeof import('./composable/notifications/alertForm').useAlertForm
@@ -465,7 +472,6 @@ declare global {
   const useGamepad: typeof import('@vueuse/core').useGamepad
   const useGeolocation: typeof import('@vueuse/core').useGeolocation
   const useGroupedStream: typeof import('./composable/logs/eventStreams').useGroupedStream
-  const useHead: typeof import('@vueuse/head').useHead
   const useHistoricalContainerLog: typeof import('./composable/logs/historicalLogs').useHistoricalContainerLog
   const useHostGroupStream: typeof import('./composable/logs/eventStreams').useHostGroupStream
   const useHostStream: typeof import('./composable/logs/eventStreams').useHostStream
@@ -554,7 +560,6 @@ declare global {
   const useSearchFilter: typeof import('./composable/logs/search').useSearchFilter
   const useSelfUpdate: typeof import('./composable/setup/selfUpdate').useSelfUpdate
   const useSelfUpdateCheck: typeof import('./composable/setup/selfUpdate').useSelfUpdateCheck
-  const useSeoMeta: typeof import('@vueuse/head').useSeoMeta
   const useServiceStream: typeof import('./composable/logs/eventStreams').useServiceStream
   const useSessionStorage: typeof import('@vueuse/core').useSessionStorage
   const useSetup: typeof import('./composable/setup/setup').useSetup
@@ -776,18 +781,21 @@ declare module 'vue' {
     readonly AIM_IDLE: UnwrapRef<typeof import('./composable/ui/pointerAim')['AIM_IDLE']>
     readonly BULK_CONCURRENCY: UnwrapRef<typeof import('./composable/containers/bulkContainerActions')['BULK_CONCURRENCY']>
     readonly COMPACT_OFFSET_PX: UnwrapRef<typeof import('./composable/ui/compactOnScroll')['COMPACT_OFFSET_PX']>
+    readonly COOLDOWN_STOPS: UnwrapRef<typeof import('./composable/notifications/alertForm')['COOLDOWN_STOPS']>
     readonly DEFAULT_SETTINGS: UnwrapRef<typeof import('./stores/settings')['DEFAULT_SETTINGS']>
     readonly DEFAULT_UPDATE_CONTAINERS_MODE: UnwrapRef<typeof import('./composable/containers/updatePolicy')['DEFAULT_UPDATE_CONTAINERS_MODE']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly FETCH_PAGE: UnwrapRef<typeof import('./composable/logs/logLoader')['FETCH_PAGE']>
     readonly K8sNamespace: UnwrapRef<typeof import('./stores/k8s')['K8sNamespace']>
     readonly K8sOwner: UnwrapRef<typeof import('./stores/k8s')['K8sOwner']>
+    readonly LOG_COOLDOWN_STOPS: UnwrapRef<typeof import('./composable/notifications/alertForm')['LOG_COOLDOWN_STOPS']>
     readonly MARKER_START_SLACK_MS: UnwrapRef<typeof import('./composable/logs/updateMarkers')['MARKER_START_SLACK_MS']>
     readonly MAX_PATTERN_LINES: UnwrapRef<typeof import('./composable/cloud/patternMemory')['MAX_PATTERN_LINES']>
     readonly NOT_RUNNING_ERROR: UnwrapRef<typeof import('./composable/containers/containerActions')['NOT_RUNNING_ERROR']>
     readonly PREFERENCE_PAGES: UnwrapRef<typeof import('./composable/app/settingsPages')['PREFERENCE_PAGES']>
     readonly RAIL_WIDTH: UnwrapRef<typeof import('./composable/cloud/cloudRail')['RAIL_WIDTH']>
     readonly RELATIVE_SPANS: UnwrapRef<typeof import('./composable/logs/timeRange')['RELATIVE_SPANS']>
+    readonly SAMPLE_WINDOW_STOPS: UnwrapRef<typeof import('./composable/notifications/alertForm')['SAMPLE_WINDOW_STOPS']>
     readonly SCROLL_JITTER_PX: UnwrapRef<typeof import('./composable/ui/compactOnScroll')['SCROLL_JITTER_PX']>
     readonly SERVER_PAGES: UnwrapRef<typeof import('./composable/app/settingsPages')['SERVER_PAGES']>
     readonly SETTINGS_PAGE_ICONS: UnwrapRef<typeof import('./composable/app/settingsPages')['SETTINGS_PAGE_ICONS']>
@@ -801,6 +809,7 @@ declare module 'vue' {
     readonly UPDATE_LABEL: UnwrapRef<typeof import('./composable/containers/updatePolicy')['UPDATE_LABEL']>
     readonly USAGE_FLUSH_INTERVAL: UnwrapRef<typeof import('./composable/app/usage')['USAGE_FLUSH_INTERVAL']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
+    readonly actionsAllowedOn: UnwrapRef<typeof import('./composable/containers/hostRestrictions')['actionsAllowedOn']>
     readonly agentComposeSnippet: UnwrapRef<typeof import('./composable/setup/setup')['agentComposeSnippet']>
     readonly agentImage: UnwrapRef<typeof import('./composable/setup/setup')['agentImage']>
     readonly aimAt: UnwrapRef<typeof import('./composable/ui/pointerAim')['aimAt']>
@@ -894,6 +903,7 @@ declare module 'vue' {
     readonly formatBytes: UnwrapRef<typeof import('./utils/index')['formatBytes']>
     readonly formatDuration: UnwrapRef<typeof import('./utils/index')['formatDuration']>
     readonly formatRange: UnwrapRef<typeof import('./composable/logs/timeRange')['formatRange']>
+    readonly formatRate: UnwrapRef<typeof import('./utils/index')['formatRate']>
     readonly formatSpan: UnwrapRef<typeof import('./composable/logs/timeRange')['formatSpan']>
     readonly formatTime: UnwrapRef<typeof import('./composable/logs/timeRange')['formatTime']>
     readonly getActivePinia: UnwrapRef<typeof import('pinia')['getActivePinia']>
@@ -1067,6 +1077,7 @@ declare module 'vue' {
     readonly shallowReadonly: UnwrapRef<typeof import('vue')['shallowReadonly']>
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>
     readonly sharedNamePrefix: UnwrapRef<typeof import('./composable/logs/logContext')['sharedNamePrefix']>
+    readonly shellAllowedOn: UnwrapRef<typeof import('./composable/containers/hostRestrictions')['shellAllowedOn']>
     readonly shortImageRef: UnwrapRef<typeof import('./utils/index')['shortImageRef']>
     readonly showAllContainers: UnwrapRef<typeof import('./stores/settings')['showAllContainers']>
     readonly showAppIcons: UnwrapRef<typeof import('./stores/settings')['showAppIcons']>
@@ -1109,6 +1120,7 @@ declare module 'vue' {
     readonly unrefElement: UnwrapRef<typeof import('@vueuse/core')['unrefElement']>
     readonly until: UnwrapRef<typeof import('@vueuse/core')['until']>
     readonly updateErrorText: UnwrapRef<typeof import('./composable/containers/containerActions')['updateErrorText']>
+    readonly updatesAllowedOn: UnwrapRef<typeof import('./composable/containers/hostRestrictions')['updatesAllowedOn']>
     readonly updatesVisible: UnwrapRef<typeof import('./composable/containers/imageUpdate')['updatesVisible']>
     readonly useActiveElement: UnwrapRef<typeof import('@vueuse/core')['useActiveElement']>
     readonly useAlertForm: UnwrapRef<typeof import('./composable/notifications/alertForm')['useAlertForm']>
@@ -1212,7 +1224,6 @@ declare module 'vue' {
     readonly useGamepad: UnwrapRef<typeof import('@vueuse/core')['useGamepad']>
     readonly useGeolocation: UnwrapRef<typeof import('@vueuse/core')['useGeolocation']>
     readonly useGroupedStream: UnwrapRef<typeof import('./composable/logs/eventStreams')['useGroupedStream']>
-    readonly useHead: UnwrapRef<typeof import('@vueuse/head')['useHead']>
     readonly useHistoricalContainerLog: UnwrapRef<typeof import('./composable/logs/historicalLogs')['useHistoricalContainerLog']>
     readonly useHostGroupStream: UnwrapRef<typeof import('./composable/logs/eventStreams')['useHostGroupStream']>
     readonly useHostStream: UnwrapRef<typeof import('./composable/logs/eventStreams')['useHostStream']>
@@ -1301,7 +1312,6 @@ declare module 'vue' {
     readonly useSearchFilter: UnwrapRef<typeof import('./composable/logs/search')['useSearchFilter']>
     readonly useSelfUpdate: UnwrapRef<typeof import('./composable/setup/selfUpdate')['useSelfUpdate']>
     readonly useSelfUpdateCheck: UnwrapRef<typeof import('./composable/setup/selfUpdate')['useSelfUpdateCheck']>
-    readonly useSeoMeta: UnwrapRef<typeof import('@vueuse/head')['useSeoMeta']>
     readonly useServiceStream: UnwrapRef<typeof import('./composable/logs/eventStreams')['useServiceStream']>
     readonly useSessionStorage: UnwrapRef<typeof import('@vueuse/core')['useSessionStorage']>
     readonly useSetup: UnwrapRef<typeof import('./composable/setup/setup')['useSetup']>

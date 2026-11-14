@@ -2,13 +2,18 @@ package cli
 
 import (
 	"embed"
+	"errors"
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/alexflint/go-arg"
 	"github.com/amir20/dozzle/internal/imagecheck"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 var Version = "head"
@@ -38,8 +43,8 @@ type Args struct {
 	AuthOidcRolesClaim     string              `arg:"--auth-oidc-roles-claim,env:DOZZLE_AUTH_OIDC_ROLES_CLAIM" help:"sets the dot-separated claim path roles are read from with the oidc auth provider, replacing the default search of dozzle_roles, resource_access.<client-id>.roles and roles."`
 	AuthOidcFiltersClaim   string              `arg:"--auth-oidc-filters-claim,env:DOZZLE_AUTH_OIDC_FILTERS_CLAIM" help:"sets the dot-separated claim path container filters are read from with the oidc auth provider, replacing the default search of dozzle_filters, resource_access.<client-id>.filters and filters."`
 	AuthOidcScopes         string              `arg:"--auth-oidc-scopes,env:DOZZLE_AUTH_OIDC_SCOPES" help:"sets extra OpenID Connect scopes to request on top of openid, profile and email, separated by commas. Needed when the issuer only releases the roles claim for a custom scope, as Authelia does."`
-	EnableActions          bool                `arg:"--enable-actions,env:DOZZLE_ENABLE_ACTIONS" default:"false" help:"enables essential actions on containers from the web interface."`
-	EnableShell            bool                `arg:"--enable-shell,env:DOZZLE_ENABLE_SHELL" default:"false" help:"enables shell access to containers from the web interface."`
+	EnableActions          bool                `arg:"--enable-actions,env:DOZZLE_ENABLE_ACTIONS" default:"false" help:"enables essential actions on containers from the web interface. On an agent, false refuses them from any hub."`
+	EnableShell            bool                `arg:"--enable-shell,env:DOZZLE_ENABLE_SHELL" default:"false" help:"enables shell access to containers from the web interface. On an agent, false refuses it from any hub."`
 	AutoUpdate             string              `arg:"--auto-update,env:DOZZLE_AUTO_UPDATE" default:"" help:"updates Dozzle, and the containers set to update automatically, on a schedule: off, daily or weekly (Sunday). Requires --enable-actions."`
 	AutoUpdateTime         string              `arg:"--auto-update-time,env:DOZZLE_AUTO_UPDATE_TIME" default:"" help:"sets the HH:MM, in server local time, that --auto-update runs at. Defaults to 03:00."`
 	AutoCleanup            string              `arg:"--auto-cleanup,env:DOZZLE_AUTO_CLEANUP" default:"" help:"deletes unused images, stopped containers and build cache on every host on a schedule: off, daily or weekly (Sunday). Never volumes. Requires --enable-actions."`
@@ -53,12 +58,12 @@ type Args struct {
 	Filter                 map[string][]string `arg:"-"`
 	ReleaseCheckMode       string              `arg:"--release-check-mode,env:DOZZLE_RELEASE_CHECK_MODE" default:"automatic" help:"sets the release check mode. When manual, releases will not be automatically fetched."`
 	ImageCheckMode         string              `arg:"--image-check-mode,env:DOZZLE_IMAGE_CHECK_MODE" help:"controls checking container registries for newer images (automatic, manual, off). Defaults to --release-check-mode."`
+	ImageCheckInterval     time.Duration       `arg:"--image-check-interval,env:DOZZLE_IMAGE_CHECK_INTERVAL" default:"24h" help:"sets how often update_available alerts check registries for newer images, such as 6h. At least 1h."`
 	RemoteHost             []string            `arg:"env:DOZZLE_REMOTE_HOST,--remote-host,separate" help:"list of hosts to connect remotely"`
 	RemoteAgent            []string            `arg:"env:DOZZLE_REMOTE_AGENT,--remote-agent,separate" help:"list of agents to connect remotely"`
 	NoAnalytics            bool                `arg:"--no-analytics,env:DOZZLE_NO_ANALYTICS" help:"disables anonymous analytics"`
-	Mode                   string              `arg:"env:DOZZLE_MODE" default:"server" help:"sets the mode to run in (server, swarm)"`
-	TimeoutString          string              `arg:"--timeout,env:DOZZLE_TIMEOUT" default:"10s" help:"sets the timeout for docker client"`
-	Timeout                time.Duration       `arg:"-"`
+	Mode                   string              `arg:"env:DOZZLE_MODE" default:"server" help:"sets the mode to run in (server, swarm or k8s)"`
+	Timeout                time.Duration       `arg:"--timeout,env:DOZZLE_TIMEOUT" default:"10s" help:"sets the timeout for docker client"`
 	Namespace              []string            `arg:"env:DOZZLE_NAMESPACE" help:"sets the namespace to use in k8s"`
 	CertPath               string              `arg:"--cert,env:DOZZLE_CERT" default:"dozzle_cert.pem" help:"path to custom TLS certificate"`
 	KeyPath                string              `arg:"--key,env:DOZZLE_KEY" default:"dozzle_key.pem" help:"path to custom TLS key"`
@@ -68,7 +73,10 @@ type Args struct {
 	Agent                  *AgentCmd           `arg:"subcommand:agent" help:"starts the agent"`
 	AgentTest              *AgentTestCmd       `arg:"subcommand:agent-test" help:"tests an agent"`
 	SelfUpdate             *SelfUpdateCmd      `arg:"subcommand:self-update" help:"replaces a Dozzle container with one on its newer image (used internally by self-update)"`
-	Locked                 Locked              `arg:"-"`
+	// SessionTTL is --auth-ttl parsed, zero for "session". Set by validateServer,
+	// so only the server ever reads --auth-ttl.
+	SessionTTL time.Duration `arg:"-"`
+	Locked     Locked        `arg:"-"`
 	// EnvAgents are the RemoteAgent entries from the flag or env var, before
 	// dozzle.yml's were appended.
 	EnvAgents []string `arg:"-"`
@@ -91,6 +99,9 @@ func ParseArgs() (Args, any) {
 	var args Args
 	parser := arg.MustParse(&args)
 
+	if _, err := zerolog.ParseLevel(args.Level); err != nil {
+		parser.Fail("level should be one of trace, debug, info, warn, error, fatal or panic")
+	}
 	ConfigureLogger(args.Level)
 
 	// Before dozzle.yml, whose agents are matched against these and appended.
@@ -134,16 +145,13 @@ func ParseArgs() (Args, any) {
 		parser.Fail(err.Error())
 	}
 
-	if err := applyFileBackedSecrets(&args, os.Getenv); err != nil {
-		parser.Fail(err.Error())
+	// Every check goes to the registry for every container, past the digest cache.
+	if args.ImageCheckInterval < time.Hour {
+		parser.Fail("image-check-interval should be at least 1h")
 	}
 
-	if args.TimeoutString != "" {
-		timeout, err := time.ParseDuration(args.TimeoutString)
-		if err != nil {
-			parser.Fail("timeout should be a valid duration")
-		}
-		args.Timeout = timeout
+	if err := applyFileBackedSecrets(&args, os.Getenv); err != nil {
+		parser.Fail(err.Error())
 	}
 
 	// The host id is a path segment in every /api/hosts/{host}/... route, so a
@@ -152,5 +160,77 @@ func ParseArgs() (Args, any) {
 		parser.Fail("host-id should only contain letters, numbers, dashes, underscores and dots")
 	}
 
+	// Subcommands share these flags but never run the server, so an agent is
+	// not refused over a server setting it ignores.
+	if parser.Subcommand() == nil {
+		if err := args.validateServer(); err != nil {
+			parser.Fail(err.Error())
+		}
+	}
+
 	return args, parser.Subcommand()
+}
+
+// validateServer checks the settings only the server reads, so a bad one stops
+// Dozzle before it connects to anything. It also resolves the auth provider
+// aliases and parses --auth-ttl into SessionTTL.
+func (args *Args) validateServer() error {
+	// "github" and "google" are aliases for simple auth. OAuth is a second way to
+	// prove you are one of the users in users.yml, not a provider of its own, but
+	// they are the first thing someone reaches for, and hitting a fatal there is a
+	// bad first five minutes.
+	switch args.AuthProvider {
+	case "github", "google":
+		log.Debug().Str("alias", args.AuthProvider).Msg("Auth provider is an alias for simple")
+		args.AuthProvider = "simple"
+	case "none", "forward-proxy", "simple", "oidc":
+	default:
+		return fmt.Errorf("invalid auth provider %q (expected none, simple, oidc or forward-proxy)", args.AuthProvider)
+	}
+
+	args.SessionTTL = 0
+	if args.AuthTTL != "session" {
+		ttl, err := time.ParseDuration(args.AuthTTL)
+		if err != nil {
+			return fmt.Errorf("invalid auth ttl %q (expected session or a duration like 12h)", args.AuthTTL)
+		}
+		args.SessionTTL = ttl
+	}
+
+	switch args.Mode {
+	case "server", "swarm", "k8s":
+	default:
+		return fmt.Errorf("invalid mode %q (expected server, swarm or k8s)", args.Mode)
+	}
+
+	switch args.ReleaseCheckMode {
+	case "automatic", "manual":
+	default:
+		return fmt.Errorf("invalid release check mode %q (expected automatic or manual)", args.ReleaseCheckMode)
+	}
+
+	if args.AuthProvider == "oidc" {
+		if args.AuthOidcIssuer == "" || args.AuthOidcClientID == "" || args.AuthOidcClientSecret == "" {
+			return errors.New("--auth-oidc-issuer, --auth-oidc-client-id and --auth-oidc-client-secret are required with --auth-provider oidc")
+		}
+		// GitHub is not an OpenID Connect issuer and publishes no claims to read
+		// roles from, so it cannot be a user database. Failing here beats a button
+		// that signs nobody in.
+		if args.AuthGithubClientID != "" || args.AuthGithubClientSecret != "" {
+			return errors.New("--auth-github-client-id and --auth-github-client-secret cannot be used with --auth-provider oidc; use --auth-provider simple to sign users.yml users in with GitHub")
+		}
+	}
+
+	if args.MCPToken != "" {
+		if len(args.MCPToken) < 32 {
+			return errors.New("--mcp-token must be at least 32 characters")
+		}
+		// The Authorization header is split on whitespace, so a token with a space
+		// in it could never match.
+		if strings.ContainsFunc(args.MCPToken, unicode.IsSpace) {
+			return errors.New("--mcp-token must not contain whitespace")
+		}
+	}
+
+	return nil
 }

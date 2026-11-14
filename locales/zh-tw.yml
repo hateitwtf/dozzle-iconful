@@ -552,7 +552,6 @@ notifications:
     checking: 檢查中…
     examples: "範例："
     use-example: 使用此範例
-    seconds-unit: 秒
     log-filter: 日誌條件
     log-filter-hint: 哪些日誌行會觸發警示。
     logs-match: "最近 {window} 內有 1 行符合 | 最近 {window} 內有 {count} 行符合"
@@ -589,6 +588,8 @@ notifications:
     cooldown-label: 冷卻時間
     cooldown-hint: "每個容器警報間隔 {duration}"
     no-cooldown: 無冷卻時間
+    immediate-label: "立即傳送"
+    immediate-hint: "不經 Dozzle Cloud 審查，立即傳送每個符合項目，上限為方案的每日警示數量。"
     alert-type: 警報類型
     log-alert: 日誌警報
     metric-alert: 指標警報
@@ -720,9 +721,9 @@ cloud:
     privacy: "日誌和容器指標會離開你的執行個體。環境變數永遠不會，而且你可以排除任何容器。"
     privacy-link: "傳送了哪些內容"
     beat-now: "現在"
-    beat-now-detail: "Cloud 開始從你的容器收集錯誤和警告。"
+    beat-now-detail: "Cloud 開始收集錯誤和警告。對於你的第一個實例，它還會讀取過去 24 小時，因此首批調查結果幾分鐘內就會準備好。"
     beat-tomorrow: "{day}早上"
-    beat-tomorrow-detail: "首批調查結果會出現在 Cloud 和你的收件匣中。"
+    beat-tomorrow-detail: "每日掃描執行，並將值得修正的內容寄給你。"
     beat-after: "此後每天"
     beat-after-detail: "調查結果會一直保持開啟，直到背後的錯誤停止。"
     next-alerts: "下一步：即時提醒"
@@ -746,7 +747,7 @@ cloud:
     done-title: "已經設定好了"
     done-body: "以下是每類通知出現的位置。"
     where-findings: "每日調查結果"
-    where-findings-detail: "在「調查結果」頁面中排序，並透過電子郵件寄給你。首次掃描在{day}早上。"
+    where-findings-detail: "在「調查結果」頁面中排序，並透過電子郵件寄給你。第一個實例的首批結果幾分鐘內就會準備好；每日掃描在{day}早上進行。"
     open-findings: "調查結果"
     where-alerts: "即時提醒"
     where-alerts-detail: "{rules}，傳送至 {destination}。"

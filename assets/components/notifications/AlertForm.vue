@@ -90,6 +90,7 @@
             ref="fieldsRef"
             :alert="alert"
             :prefill="prefill"
+            :immediate="sendsImmediately"
             :container-expression="containerExpression"
             :has-containers="hasContainers"
             :is-loading="isLoading"
@@ -148,12 +149,8 @@
               />
               <div class="min-w-0">
                 <div class="truncate font-semibold">{{ dest.name }}</div>
-                <div class="text-base-content/60 text-xs">
-                  {{
-                    dest.type === "webhook"
-                      ? $t("notifications.destination.http-webhook")
-                      : $t("notifications.destination.dozzle-cloud")
-                  }}
+                <div v-if="destinationType(dest) !== dest.name" class="text-base-content/60 text-xs">
+                  {{ destinationType(dest) }}
                 </div>
               </div>
               <mdi:check v-if="dispatcherId === dest.id" class="text-primary ml-auto shrink-0" />
@@ -165,6 +162,13 @@
           <mdi:plus />
           {{ $t("notifications.add-destination") }}
         </button>
+        <label v-if="canSendImmediately" class="mt-3 flex cursor-pointer items-start gap-3">
+          <input v-model="immediate" type="checkbox" class="checkbox checkbox-primary checkbox-sm mt-0.5" />
+          <span>
+            <span class="block text-sm font-semibold">{{ $t("notifications.alert-form.immediate-label") }}</span>
+            <span class="text-base-content/60 block text-xs">{{ $t("notifications.alert-form.immediate-hint") }}</span>
+          </span>
+        </label>
       </section>
 
       <!-- 5. Name -->
@@ -251,6 +255,7 @@ const {
   containerExpression,
   dispatcherId,
   destinations,
+  selectedDestination,
   containerResult,
   containerHints,
   isLoading,
@@ -287,6 +292,17 @@ const fieldsRef = ref<
   InstanceType<typeof LogAlertFields> | InstanceType<typeof MetricAlertFields> | InstanceType<typeof EventAlertFields>
 >();
 
+// A webhook has no review to skip, so the option only exists for Dozzle Cloud.
+const immediate = ref(props.alert?.immediate ?? props.prefill?.immediate ?? false);
+const canSendImmediately = computed(() => !!selectedDestination.value && selectedDestination.value.type !== "webhook");
+// Not canSendImmediately: destinations load after mount, and an edit must not read as changed when they arrive.
+const sendsImmediately = computed(() => immediate.value && selectedDestination.value?.type !== "webhook");
+
+const savedFields = computed(() => ({
+  ...fieldsRef.value?.typeFields,
+  immediate: sendsImmediately.value,
+}));
+
 const matchedContainers = computed(() => containerResult.value?.containers ?? []);
 const hasContainers = computed(() => matchedContainers.value.length > 0);
 const matchedNames = computed(() => {
@@ -316,12 +332,15 @@ const blockers = computed<SaveBlocker[]>(() => {
 });
 const blockerLabels = computed(() => blockers.value.map((b) => t(`notifications.alert-form.missing.${b}`)).join(", "));
 
+const destinationType = (dest: Dispatcher) =>
+  dest.type === "webhook" ? t("notifications.destination.http-webhook") : t("notifications.destination.dozzle-cloud");
+
 const canSave = computed(() => baseCanSave.value && (fieldsRef.value?.canSave ?? false));
 
 async function save() {
   if (!canSave.value || !fieldsRef.value) return;
   registerGuard(null);
-  await saveAlert(fieldsRef.value.typeFields);
+  await saveAlert(savedFields.value);
 }
 
 // Scoped to the button, so the shortcut is gone while the footer asks to confirm a discard.
@@ -343,7 +362,7 @@ const snapshot = computed(() =>
     alertName: alertName.value,
     containerExpression: containerExpression.value,
     dispatcherId: dispatcherId.value,
-    typeFields: fieldsRef.value?.typeFields,
+    typeFields: savedFields.value,
   }),
 );
 onMounted(async () => {
@@ -373,7 +392,7 @@ function addDestination() {
     name: nameTouched.value ? alertName.value : undefined,
     alertType: alertType.value,
     containerExpression: containerExpression.value,
-    ...(fieldsRef.value?.typeFields as Partial<AlertPrefill>),
+    ...(savedFields.value as Partial<AlertPrefill>),
   };
   registerGuard(null);
   showDrawer(

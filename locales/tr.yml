@@ -553,7 +553,6 @@ notifications:
     checking: Kontrol ediliyor…
     examples: "Örnekler:"
     use-example: Bu örneği kullan
-    seconds-unit: sn
     log-filter: Log koşulu
     log-filter-hint: Hangi log satırlarının uyarıyı tetiklediği.
     logs-match: "Son {window} içinde 1 eşleşen satır | Son {window} içinde {count} eşleşen satır"
@@ -590,6 +589,8 @@ notifications:
     cooldown-label: Bekleme süresi
     cooldown-hint: "Konteyner başına uyarılar arası {duration}"
     no-cooldown: Bekleme süresi yok
+    immediate-label: "Hemen gönder"
+    immediate-hint: "Her eşleşmeyi Dozzle Cloud incelemesi olmadan anında iletir; planınızın günlük uyarı sınırına kadar geçerlidir."
     alert-type: Uyarı Türü
     log-alert: Günlük Uyarısı
     metric-alert: Metrik Uyarısı
@@ -721,9 +722,9 @@ cloud:
     privacy: "Loglar ve konteyner metrikleri örneğinizden çıkar. Ortam değişkenleri asla çıkmaz ve istediğiniz konteyneri hariç tutabilirsiniz."
     privacy-link: "Neler gönderiliyor"
     beat-now: "Şimdi"
-    beat-now-detail: "Cloud konteynerlerinizden hata ve uyarı toplamaya başlıyor."
+    beat-now-detail: "Cloud hata ve uyarıları toplamaya başlıyor. İlk örneğinizde son 24 saati de okur, böylece ilk bulgular birkaç dakika içinde hazır olur."
     beat-tomorrow: "{day} sabahı"
-    beat-tomorrow-detail: "İlk bulgularınız Cloud'da ve gelen kutunuzda görünür."
+    beat-tomorrow-detail: "Günlük tarama çalışır ve düzeltmeye değer olanları e-postayla gönderir."
     beat-after: "Sonraki her gün"
     beat-after-detail: "Bulgular, arkalarındaki hatalar durana kadar açık kalır."
     next-alerts: "Sıradaki: gerçek zamanlı uyarılar"
@@ -747,7 +748,7 @@ cloud:
     done-title: "Her şey hazır"
     done-body: "Her bildirim türünün nerede göründüğü aşağıda."
     where-findings: "Günlük bulgular"
-    where-findings-detail: "Bulgular sayfasında sıralanır ve size e-postayla gönderilir. İlk tarama {day} sabahı."
+    where-findings-detail: "Bulgular sayfasında sıralanır ve size e-postayla gönderilir. İlk örneğinizde ilk bulgular birkaç dakika içinde hazır olur; günlük tarama {day} sabahı gelir."
     open-findings: "Bulgular"
     where-alerts: "Gerçek zamanlı uyarılar"
     where-alerts-detail: "{rules}, {destination} adresine gönderiliyor."

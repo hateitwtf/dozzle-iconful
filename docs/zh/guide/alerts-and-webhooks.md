@@ -1,7 +1,7 @@
 ---
 title: 警报
 description: 为 Docker 容器日志、CPU 和内存指标以及生命周期事件设置 Dozzle 警报，并发送到 webhook、Slack、Discord 或 ntfy。
-sourceHash: 5a3bc907b39a
+sourceHash: 435658ff19fc
 ---
 
 # 警报
@@ -161,6 +161,12 @@ message.status >= 500 && message.path contains "/api"
 
 支持的字符串运算符包括 `contains`、`startsWith`、`endsWith` 和 `matches`（正则）。
 
+### 冷却时间
+
+冷却时间将每条日志规则限制为在设定时段内对每个容器最多发送一次警报。后续匹配会被跳过，即使消息内容或严重程度发生变化。其他容器和规则不受影响。
+
+冷却默认关闭，启用**立即发送**的 Dozzle Cloud 规则则默认为 10 秒。如果目标需要接收每次匹配，请保持冷却关闭。
+
 ### 日志示例
 
 **对生产环境容器的所有错误发出警报：**
@@ -264,7 +270,7 @@ Metric:    memoryUsage > 1073741824
 
 ### 有可用更新
 
-当某个容器的镜像发布了新版本时，Dozzle 还会产生一个 `update_available` 事件。它每天在一个随机时间检查所有未标记 `dev.dozzle.update: off` 的容器，每个新镜像只发出一次警报。重启 Dozzle 后，已经发送过的更新可能会再次触发警报。只有在至少启用了一条事件警报时才会执行检查；当 `--image-check-mode` 为 `manual` 或 `off` 时则完全不会检查。
+当某个容器的镜像发布了新版本时，Dozzle 还会产生一个 `update_available` 事件。它每天在一个随机时间检查所有未标记 `dev.dozzle.update: off` 的容器，每个新镜像只发出一次警报。如需调整检查频率，请将 `DOZZLE_IMAGE_CHECK_INTERVAL` 设置为一个时长，例如 `6h`，最小值为 `1h`。重启 Dozzle 后，已经发送过的更新可能会再次触发警报。只有在至少启用了一条事件警报时才会执行检查；当 `--image-check-mode` 为 `manual` 或 `off` 时则完全不会检查。
 
 | 属性             | 说明               |
 | ---------------- | ------------------ |

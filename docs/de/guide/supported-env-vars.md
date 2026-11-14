@@ -1,7 +1,7 @@
 ---
 title: Umgebungsvariablen und Unterbefehle
 description: Alle Umgebungsvariablen und Optionen von Dozzle, einschließlich der Authentifizierung, dazu die Unterbefehle generate, agent, generate-certs und healthcheck.
-sourceHash: 0ca047caacaf
+sourceHash: 20f0b8f77f21
 ---
 
 # Umgebungsvariablen
@@ -51,6 +51,7 @@ DOZZLE_REMOTE_AGENT=167.99.1.1:7007,167.99.1.2:7007
 | `DOZZLE_DISABLE_SETUP_WIZARD`<br>`--disable-setup-wizard` | Verhindert, dass sich der [Einrichtungsassistent](/de/guide/setup-wizard) bei einer frischen Installation von selbst öffnet. Unter **Einstellungen → Über** lässt er sich weiterhin starten.                                                                | `true`, `false`              | `false`                         |
 | `DOZZLE_RELEASE_CHECK_MODE`<br>`--release-check-mode`     | Ob Dozzle nach neuen eigenen Releases sucht. `manual` prüft nur, wenn du danach fragst.                                                                                                                                                                     | `automatic`, `manual`        | `automatic`                     |
 | `DOZZLE_IMAGE_CHECK_MODE`<br>`--image-check-mode`         | Ob Dozzle in Registries nach neueren Container-Images sucht. Siehe [Update-Prüfung](/de/guide/updates#update-checking).                                                                                                                                     | `automatic`, `manual`, `off` | wie `DOZZLE_RELEASE_CHECK_MODE` |
+| `DOZZLE_IMAGE_CHECK_INTERVAL`<br>`--image-check-interval` | Wie oft [`update_available`-Alarme](/de/guide/alerts-and-webhooks#update-verfugbar) Registries nach neueren Images durchsuchen. Mindestens `1h`.                                                                                                            | eine Dauer, z. B. `6h`       | `24h`                           |
 | `DOZZLE_AUTO_UPDATE`<br>`--auto-update`                   | Aktualisiert Dozzle und die Container, die automatisch aktualisiert werden sollen, nach Zeitplan. `weekly` läuft am Sonntag. Setzt `DOZZLE_ENABLE_ACTIONS` voraus. Siehe [Container automatisch aktualisieren](/de/guide/updates#auto-updating-containers). | `off`, `daily`, `weekly`     | `off`                           |
 | `DOZZLE_AUTO_UPDATE_TIME`<br>`--auto-update-time`         | Uhrzeit, zu der das automatische Update läuft, in der lokalen Zeit des Servers. Es startet zufällig 1–10 Minuten später, nicht zur vollen Stunde.                                                                                                           | `HH:MM`, z. B. `04:30`       | `03:00`                         |
 | `DOZZLE_AUTO_CLEANUP`<br>`--auto-cleanup`                 | Räumt jeden Host nach Zeitplan auf, nie Volumes. `weekly` läuft am Sonntag. Erfordert `DOZZLE_ENABLE_ACTIONS`. Siehe [Speicherplatz](/de/guide/container-disk-usage).                                                                                       | `off`, `daily`, `weekly`     | `off`                           |
@@ -133,9 +134,11 @@ Startet Dozzle als [Agent](/de/guide/agent), mit dem sich eine andere Dozzle-Ins
 docker run -v /var/run/docker.sock:/var/run/docker.sock -p 7007:7007 amir20/dozzle agent
 ```
 
-| Variable                              | Beschreibung                                   | Werte       | Standard |
-| ------------------------------------- | ---------------------------------------------- | ----------- | -------- |
-| `DOZZLE_AGENT_ADDR`<br>`--agent-addr` | Adresse und Port, auf denen der Agent lauscht. | `host:port` | `:7007`  |
+| Variable                                      | Beschreibung                                                                                                                                                                                                                          | Werte           | Standard      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ------------- |
+| `DOZZLE_AGENT_ADDR`<br>`--agent-addr`         | Adresse und Port, auf denen der Agent lauscht.                                                                                                                                                                                        | `host:port`     | `:7007`       |
+| `DOZZLE_ENABLE_ACTIONS`<br>`--enable-actions` | Auf einem Agent verweigert `false` Starten, Stoppen, Neustarten, Entfernen, Aktualisieren und Aufräumen von jedem Hub. Nicht gesetzt entscheidet der Hub. Siehe [Aktionen deaktivieren](/de/guide/agent#disabling-actions-and-shell). | `true`, `false` | nicht gesetzt |
+| `DOZZLE_ENABLE_SHELL`<br>`--enable-shell`     | Auf einem Agent verweigert `false` Attach und Shell von jedem Hub. Nicht gesetzt entscheidet der Hub. Siehe [Aktionen deaktivieren](/de/guide/agent#disabling-actions-and-shell).                                                     | `true`, `false` | nicht gesetzt |
 
 ### generate-certs
 

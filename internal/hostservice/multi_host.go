@@ -407,14 +407,14 @@ func (m *MultiHostService) TotalClients() int {
 }
 
 // StartNotificationManager initializes and starts the notification manager
-func (m *MultiHostService) StartNotificationManager(ctx context.Context, imageChecks bool, labels container.ContainerLabels) error {
+func (m *MultiHostService) StartNotificationManager(ctx context.Context, imageChecks bool, imageCheckInterval time.Duration, labels container.ContainerLabels) error {
 	clients := m.manager.LocalClientServices()
 	listener := notification.NewContainerLogListener(ctx, clients)
 	statsListener := notification.NewContainerStatsListener(ctx, clients)
 	eventListener := notification.NewContainerEventListener(ctx, clients)
 	eventListener.ListenToUpdates(container.Updates, func() []container.ClientService { return m.ClientServices(false) })
 	if imageChecks {
-		eventListener.CheckForUpdates(func(ctx context.Context) []container.ImageUpdate {
+		eventListener.CheckForUpdates(imageCheckInterval, func(ctx context.Context) []container.ImageUpdate {
 			containers, _ := m.ListAllContainers(labels)
 			return container.CheckImageUpdates(ctx, m, containers, true)
 		})
@@ -515,6 +515,7 @@ type NotificationConfigUpdater interface {
 
 // broadcastNotificationConfig sends current notification config to all agent clients
 func (m *MultiHostService) broadcastNotificationConfig() {
+	start := time.Now()
 	// Held across read and send, so an older snapshot can never go out last.
 	m.configMu.Lock()
 	defer m.configMu.Unlock()
@@ -534,6 +535,7 @@ func (m *MultiHostService) broadcastNotificationConfig() {
 			EventExpression:     sub.EventExpression,
 			Cooldown:            sub.Cooldown,
 			SampleWindow:        sub.SampleWindow,
+			Immediate:           sub.Immediate,
 		}
 	}
 
@@ -566,6 +568,7 @@ func (m *MultiHostService) broadcastNotificationConfig() {
 		}
 	}
 	wg.Wait()
+	log.Debug().Dur("took", time.Since(start)).Msg("Broadcast notification config to agents")
 }
 
 // broadcastCloudConfig sends current cloud config to all agent clients

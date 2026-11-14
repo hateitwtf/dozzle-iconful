@@ -160,6 +160,7 @@ func (m *Manager) UpdateSubscription(id int, updates map[string]any) error {
 			EventCooldowns:        sub.EventCooldowns,
 			Cooldown:              sub.Cooldown,
 			SampleWindow:          sub.SampleWindow,
+			Immediate:             sub.Immediate,
 			MetricCooldowns:       sub.MetricCooldowns,
 			MetricSampleBuffers:   sub.MetricSampleBuffers,
 			TriggeredContainerIDs: sub.TriggeredContainerIDs,
@@ -248,6 +249,10 @@ func (m *Manager) UpdateSubscription(id int, updates map[string]any) error {
 					updated.SampleWindow = sw
 					updated.MetricSampleBuffers = xsync.NewMap[string, *utils.RingBuffer[bool]]()
 				}
+			case "immediate":
+				if immediate, ok := value.(bool); ok {
+					updated.Immediate = immediate
+				}
 			}
 		}
 
@@ -271,6 +276,9 @@ func (m *Manager) UpdateSubscription(id int, updates map[string]any) error {
 
 // updateListeners updates log and stats listeners based on current subscriptions
 func (m *Manager) updateListeners() {
+	start := time.Now()
+	defer func() { log.Debug().Dur("took", time.Since(start)).Msg("Updated notification listeners") }()
+
 	m.listener.UpdateStreams()
 
 	hasMetric := false

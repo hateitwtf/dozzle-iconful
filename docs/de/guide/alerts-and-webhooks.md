@@ -1,7 +1,7 @@
 ---
 title: Alarme
 description: Richte in Dozzle Alarme für Docker-Container-Logs, CPU- und Speichermetriken sowie Lebenszyklus-Ereignisse ein und sende sie an einen Webhook, Slack, Discord oder ntfy.
-sourceHash: 5a3bc907b39a
+sourceHash: 435658ff19fc
 ---
 
 # Alarme
@@ -161,6 +161,12 @@ message.status >= 500 && message.path contains "/api"
 
 Zu den unterstützten String-Operatoren gehören `contains`, `startsWith`, `endsWith` und `matches` (Regex).
 
+### Abklingzeit
+
+Die Abklingzeit begrenzt jede Log-Regel im gewählten Zeitraum auf einen Alarm pro Container. Weitere Treffer werden übersprungen, auch wenn sich die Meldung oder der Schweregrad ändert. Andere Container und Regeln sind davon nicht betroffen.
+
+Standardmäßig ist sie deaktiviert. Für Dozzle-Cloud-Regeln mit **Sofort senden** beträgt sie 10 Sekunden. Lass sie deaktiviert, wenn dein Ziel jeden Treffer benötigt.
+
 ### Log-Beispiele
 
 **Alarm bei allen Fehlern aus Produktionscontainern:**
@@ -264,7 +270,7 @@ Bei `health_status`-Ereignissen stellt Dozzle den aktuellen Zustand als `attribu
 
 ### Update verfügbar
 
-Dozzle löst außerdem ein `update_available`-Ereignis aus, wenn für einen Container ein neueres Image veröffentlicht wird. Einmal am Tag, zu einer zufälligen Uhrzeit, prüft es jeden Container, der nicht mit `dev.dozzle.update: off` gelabelt ist, und alarmiert einmal pro neuem Image. Nach einem Neustart von Dozzle kann ein Alarm für ein bereits gemeldetes Update erneut kommen. Die Prüfung läuft nur, solange mindestens ein Ereignis-Alarm aktiviert ist, und gar nicht, wenn `--image-check-mode` auf `manual` oder `off` steht.
+Dozzle löst außerdem ein `update_available`-Ereignis aus, wenn für einen Container ein neueres Image veröffentlicht wird. Einmal am Tag, zu einer zufälligen Uhrzeit, prüft es jeden Container, der nicht mit `dev.dozzle.update: off` gelabelt ist, und alarmiert einmal pro neuem Image. Um häufiger oder seltener zu prüfen, setze `DOZZLE_IMAGE_CHECK_INTERVAL` auf eine Dauer, z. B. `6h`; das Minimum ist `1h`. Nach einem Neustart von Dozzle kann ein Alarm für ein bereits gemeldetes Update erneut kommen. Die Prüfung läuft nur, solange mindestens ein Ereignis-Alarm aktiviert ist, und gar nicht, wenn `--image-check-mode` auf `manual` oder `off` steht.
 
 | Attribut         | Beschreibung                               |
 | ---------------- | ------------------------------------------ |

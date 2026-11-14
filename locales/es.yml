@@ -694,7 +694,6 @@ notifications:
     checking: Comprobando…
     examples: "Ejemplos:"
     use-example: Usar este ejemplo
-    seconds-unit: seg
     log-filter: Condición de log
     log-filter-hint: Qué líneas de log disparan la alerta.
     logs-match: "1 línea coincidente en las últimas {window} | {count} líneas coincidentes en las últimas {window}"
@@ -731,6 +730,8 @@ notifications:
     cooldown-label: Tiempo de espera
     cooldown-hint: "{duration} entre alertas por contenedor"
     no-cooldown: Sin tiempo de espera
+    immediate-label: "Enviar de inmediato"
+    immediate-hint: "Entrega cada coincidencia al instante sin la revisión de Dozzle Cloud, hasta el límite diario de alertas de tu plan."
     alert-type: Tipo de alerta
     log-alert: Alerta de registro
     metric-alert: Alerta de métrica
@@ -862,9 +863,9 @@ cloud:
     privacy: "Los logs y las métricas de contenedores salen de tu instancia. Las variables de entorno nunca, y puedes excluir cualquier contenedor."
     privacy-link: "Qué se envía"
     beat-now: "Ahora"
-    beat-now-detail: "Cloud empieza a recopilar errores y avisos de tus contenedores."
+    beat-now-detail: "Cloud empieza a recopilar errores y avisos. En tu primera instancia también lee las últimas 24 horas, así que los primeros hallazgos están listos en pocos minutos."
     beat-tomorrow: "{day} por la mañana"
-    beat-tomorrow-detail: "Tus primeros hallazgos aparecen en Cloud y en tu correo."
+    beat-tomorrow-detail: "El análisis diario se ejecuta y te envía por correo lo que merece la pena arreglar."
     beat-after: "Cada día después"
     beat-after-detail: "Los hallazgos siguen abiertos hasta que cesan los errores que los provocan."
     next-alerts: "Siguiente: alertas en tiempo real"
@@ -888,7 +889,7 @@ cloud:
     done-title: "Todo preparado"
     done-body: "Aquí es donde aparece cada tipo de notificación."
     where-findings: "Hallazgos diarios"
-    where-findings-detail: "Ordenados en la página de Hallazgos y enviados por correo. Primer análisis el {day} por la mañana."
+    where-findings-detail: "Ordenados en la página de Hallazgos y enviados por correo. En tu primera instancia, los primeros están listos en pocos minutos; el análisis diario llega el {day} por la mañana."
     open-findings: "Hallazgos"
     where-alerts: "Alertas en tiempo real"
     where-alerts-detail: "{rules}, enviadas a {destination}."

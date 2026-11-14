@@ -65,6 +65,14 @@ func (m *Manager) processLogEvent(logEvent *container.LogEvent) {
 			return true
 		}
 
+		// Cooldown is per rule and container, regardless of log content.
+		if sub.IsEventCooldownActive(notificationContainer.ID) {
+			return true
+		}
+		if sub.Cooldown > 0 {
+			sub.SetEventCooldown(notificationContainer.ID)
+		}
+
 		// Update stats
 		sub.AddTriggeredContainer(notificationContainer.ID)
 		sub.TriggerCount.Add(1)
@@ -87,6 +95,8 @@ func (m *Manager) processLogEvent(logEvent *container.LogEvent) {
 				DispatcherID:        sub.DispatcherID,
 				LogExpression:       sub.LogExpression,
 				ContainerExpression: sub.ContainerExpression,
+				Immediate:           sub.Immediate,
+				Cooldown:            sub.Cooldown,
 			},
 			Timestamp: time.Now(),
 		}
@@ -184,6 +194,7 @@ func (m *Manager) processStatEvent(event *ContainerStatEvent) {
 				DispatcherID:        sub.DispatcherID,
 				MetricExpression:    sub.MetricExpression,
 				ContainerExpression: sub.ContainerExpression,
+				Immediate:           sub.Immediate,
 				Cooldown:            sub.Cooldown,
 				SampleWindow:        sub.SampleWindow,
 			},
@@ -278,6 +289,7 @@ func (m *Manager) processDockerEvent(event *ContainerEventEntry) {
 				DispatcherID:        sub.DispatcherID,
 				EventExpression:     sub.EventExpression,
 				ContainerExpression: sub.ContainerExpression,
+				Immediate:           sub.Immediate,
 				Cooldown:            sub.Cooldown,
 			},
 			Timestamp: time.Now(),

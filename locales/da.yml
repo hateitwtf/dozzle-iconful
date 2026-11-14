@@ -550,7 +550,6 @@ notifications:
     checking: Kontrollerer…
     examples: "Eksempler:"
     use-example: Brug dette eksempel
-    seconds-unit: sek
     log-filter: Log-betingelse
     log-filter-hint: Hvilke loglinjer der udløser alarmen.
     logs-match: "1 matchende linje i de sidste {window} | {count} matchende linjer i de sidste {window}"
@@ -587,6 +586,8 @@ notifications:
     cooldown-label: Afkøling
     cooldown-hint: "{duration} mellem alarmer pr. container"
     no-cooldown: Ingen afkøling
+    immediate-label: "Send med det samme"
+    immediate-hint: "Leverer hvert match med det samme uden Dozzle Clouds gennemgang, op til din plans daglige grænse for advarsler."
     alert-type: Alarmtype
     log-alert: Logalarm
     metric-alert: Metrikalarm
@@ -718,9 +719,9 @@ cloud:
     privacy: "Logs og containermetrikker forlader din instans. Miljøvariabler gør det aldrig, og du kan udelade enhver container."
     privacy-link: "Hvad der sendes"
     beat-now: "Nu"
-    beat-now-detail: "Cloud begynder at indsamle fejl og advarsler fra dine containere."
+    beat-now-detail: "Cloud begynder at indsamle fejl og advarsler. På din første instans læser den også de seneste 24 timer, så de første undersøgelser er klar inden for få minutter."
     beat-tomorrow: "{day} morgen"
-    beat-tomorrow-detail: "Dine første undersøgelser vises i Cloud og i din indbakke."
+    beat-tomorrow-detail: "Den daglige scanning kører og mailer dig det, der er værd at rette."
     beat-after: "Hver dag derefter"
     beat-after-detail: "Undersøgelser forbliver åbne, indtil fejlene bag dem stopper."
     next-alerts: "Næste: notifikationer i realtid"
@@ -744,7 +745,7 @@ cloud:
     done-title: "Så er du klar"
     done-body: "Her dukker hver type notifikation op."
     where-findings: "Daglige undersøgelser"
-    where-findings-detail: "Rangordnet på siden Undersøgelser og sendt til dig på mail. Første scanning {day} morgen."
+    where-findings-detail: "Rangordnet på siden Undersøgelser og sendt til dig på mail. På din første instans er de første klar inden for få minutter; den daglige scanning følger {day} morgen."
     open-findings: "Undersøgelser"
     where-alerts: "Notifikationer i realtid"
     where-alerts-detail: "{rules}, sendt til {destination}."

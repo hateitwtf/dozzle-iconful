@@ -1,7 +1,7 @@
 ---
 title: Alertas
 description: Configura alertas de Dozzle sobre los logs de contenedores Docker, las métricas de CPU y memoria y los eventos del ciclo de vida, y envíalas a un webhook, Slack, Discord o ntfy.
-sourceHash: 5a3bc907b39a
+sourceHash: 435658ff19fc
 ---
 
 # Alertas
@@ -161,6 +161,12 @@ message.status >= 500 && message.path contains "/api"
 
 Entre los operadores de cadena admitidos están `contains`, `startsWith`, `endsWith` y `matches` (expresión regular).
 
+### Tiempo de espera
+
+El tiempo de espera limita cada regla de logs a una alerta por contenedor durante el periodo elegido. Se omiten las siguientes coincidencias, aunque cambie el mensaje o su gravedad. Los demás contenedores y reglas no se ven afectados.
+
+Está desactivado por defecto, o fijado en 10 segundos para las reglas de Dozzle Cloud con **Enviar inmediatamente**. Déjalo desactivado si tu destino necesita recibir todas las coincidencias.
+
 ### Ejemplos de log
 
 **Alertar de todos los errores de los contenedores de producción:**
@@ -264,7 +270,7 @@ En los eventos `health_status`, Dozzle expone el estado actual como `attributes[
 
 ### Actualización disponible
 
-Dozzle también genera un evento `update_available` cuando se publica una imagen más reciente para un contenedor. Una vez al día, a una hora aleatoria, revisa todos los contenedores que no tengan la etiqueta `dev.dozzle.update: off`, y avisa una sola vez por cada imagen nueva. Un reinicio de Dozzle puede repetir una alerta de una actualización que ya envió. La comprobación solo se ejecuta mientras haya al menos una alerta de evento activada, y nunca cuando `--image-check-mode` es `manual` u `off`.
+Dozzle también genera un evento `update_available` cuando se publica una imagen más reciente para un contenedor. Una vez al día, a una hora aleatoria, revisa todos los contenedores que no tengan la etiqueta `dev.dozzle.update: off`, y avisa una sola vez por cada imagen nueva. Para comprobar con más o menos frecuencia, establece `DOZZLE_IMAGE_CHECK_INTERVAL` en una duración como `6h`, con un mínimo de `1h`. Un reinicio de Dozzle puede repetir una alerta de una actualización que ya envió. La comprobación solo se ejecuta mientras haya al menos una alerta de evento activada, y nunca cuando `--image-check-mode` es `manual` u `off`.
 
 | Atributo         | Descripción                                       |
 | ---------------- | ------------------------------------------------- |
