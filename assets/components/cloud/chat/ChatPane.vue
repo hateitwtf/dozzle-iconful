@@ -52,6 +52,7 @@
                     class="mb-1.5"
                   />
                   <ChatMarkdown :text="message.text" class="text-sm leading-relaxed" />
+                  <ChatVisual v-for="(visual, j) in message.visuals ?? []" :key="j" :visual="visual" class="mt-2" />
                 </template>
                 <ChatSteps
                   v-else
@@ -98,7 +99,8 @@
 
 <script lang="ts" setup>
 const { messages, status, activity, streaming, focused, ask, clearFocus } = useCloudChat();
-const view = useViewContext();
+// Widened by the scope chip, the turn is about the instance rather than the page.
+const { scopedView: view } = useCloudScope();
 const draft = ref("");
 const { t } = useI18n();
 
@@ -143,6 +145,15 @@ watch(
 // Arriving from a log row's menu means the question is already half asked.
 onMounted(() => composer.value?.focus());
 watch(focused, (line) => line && composer.value?.focus());
+// The composer is disabled while an answer streams, which drops its focus, and
+// re-enabling it does not bring focus back. Return it once the answer is in,
+// unless the reader has since put focus somewhere else on purpose.
+watch(streaming, async (now, before) => {
+  if (now || !before) return;
+  await nextTick();
+  const active = document.activeElement;
+  if (!active || active === document.body) composer.value?.focus();
+});
 
 function send() {
   const text = draft.value;

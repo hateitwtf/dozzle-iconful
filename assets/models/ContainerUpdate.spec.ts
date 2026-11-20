@@ -20,6 +20,9 @@ describe("shortDigest", () => {
 });
 
 describe("updateLabels", () => {
+  test("an update made outside Dozzle names only the image it started on", () => {
+    expect(updateLabels({ imageRef: "ghcr.io/x/api:v2", source: "external" })).toEqual({ from: "", to: "v2" });
+  });
   test("names the tag alone when no digest is known", () => {
     expect(updateLabels({ imageRef: "app:1.4" })).toEqual({ from: "1.4", to: "1.4" });
   });
@@ -59,6 +62,7 @@ describe("awaitingVerdict", () => {
     expect(awaitingVerdict(at, { deployId: "d", verdict: "clean" }, now)).toBe(false);
     expect(awaitingVerdict(at, { deployId: "d", verdict: "regressed", decision: "kept" }, now)).toBe(false);
     expect(awaitingVerdict(at, { deployId: "d", verdict: "rolled_back_by_dozzle" }, now)).toBe(false);
+    expect(awaitingVerdict(at, { deployId: "d", verdict: "unchecked" }, now)).toBe(false);
   });
 
   test("stops asking about an old update", () => {

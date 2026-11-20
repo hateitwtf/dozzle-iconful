@@ -5,7 +5,11 @@
     <div
       v-if="browsing"
       class="bg-base-100 pt-safe fixed inset-0 z-30 flex flex-col"
-      :style="{ paddingBottom: 'var(--mobile-tabbar-height)' }"
+      :style="{
+        paddingBottom: 'var(--mobile-tabbar-height)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }"
       data-testid="navigation"
     >
       <div class="flex min-h-0 flex-1 flex-col gap-3 p-3">
@@ -22,7 +26,7 @@
   <!-- Scrolling down shrinks the bar out of the way and scrolling up brings it back,
        the same as Dozzle Cloud's. Never while Browse is open, which is a full screen. -->
   <nav
-    class="tab-bar fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 flex items-end gap-2"
+    class="tab-bar fixed right-[calc(0.75rem+env(safe-area-inset-right))] bottom-[calc(0.75rem+env(safe-area-inset-bottom))] left-[calc(0.75rem+env(safe-area-inset-left))] z-40 flex items-end gap-2"
     :class="{ compact: compact && !browsing }"
     :aria-label="$t('mobile-nav.label')"
   >
@@ -47,19 +51,18 @@
         <mdi:format-list-bulleted class="size-6" />
         <span>{{ $t("mobile-nav.browse") }}</span>
       </button>
+      <!-- The rules and destinations, as on a desktop's bell. What fired lives
+           in the cloud sheet's Alerts panel. -->
       <router-link
         v-if="config.enableNotifications"
-        :to="{ name: '/notifications', query: unseenAlerts ? { tab: 'activity' } : undefined }"
-        class="tab-item relative"
+        :to="{ name: '/notifications' }"
+        class="tab-item"
         :class="{ active: active === 'notifications' }"
+        data-testid="notifications-tab"
         @click="browsing = false"
       >
         <mdi:bell-outline class="size-6" />
         <span>{{ $t("title.notifications") }}</span>
-        <span
-          v-if="unseenAlerts"
-          class="bg-warning absolute top-1.5 left-[calc(50%+0.5rem)] size-2 rounded-full"
-        ></span>
       </router-link>
       <router-link
         :to="{ name: '/settings' }"
@@ -90,7 +93,6 @@ defineEmits<{ search: [] }>();
 const route = useRoute();
 const browsing = ref(false);
 const compact = useCompactOnScroll();
-const { unseen: unseenAlerts } = useRecentAlerts();
 
 watch(
   () => route.fullPath,

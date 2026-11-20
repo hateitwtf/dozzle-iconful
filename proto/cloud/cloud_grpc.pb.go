@@ -24,8 +24,12 @@ const (
 	CloudToolService_GetAlerts_FullMethodName           = "/cloud.CloudToolService/GetAlerts"
 	CloudToolService_GetRecentAlerts_FullMethodName     = "/cloud.CloudToolService/GetRecentAlerts"
 	CloudToolService_GetRecentDeploys_FullMethodName    = "/cloud.CloudToolService/GetRecentDeploys"
+	CloudToolService_GetFindings_FullMethodName         = "/cloud.CloudToolService/GetFindings"
+	CloudToolService_IgnoreFinding_FullMethodName       = "/cloud.CloudToolService/IgnoreFinding"
 	CloudToolService_GetPatternContext_FullMethodName   = "/cloud.CloudToolService/GetPatternContext"
 	CloudToolService_GetContainerMetrics_FullMethodName = "/cloud.CloudToolService/GetContainerMetrics"
+	CloudToolService_GetHostMetrics_FullMethodName      = "/cloud.CloudToolService/GetHostMetrics"
+	CloudToolService_GetLogResume_FullMethodName        = "/cloud.CloudToolService/GetLogResume"
 	CloudToolService_Chat_FullMethodName                = "/cloud.CloudToolService/Chat"
 )
 
@@ -63,6 +67,20 @@ type CloudToolServiceClient interface {
 	// heard of a Dozzle user, so Dozzle narrows the answer to what the viewer may
 	// see.
 	GetRecentDeploys(ctx context.Context, in *GetRecentDeploysRequest, opts ...grpc.CallOption) (*GetRecentDeploysResponse, error)
+	// Dozzle-initiated unary call: what Cloud's scheduled log review found about
+	// the containers on screen. A finding records container NAMES only (the
+	// evidence the review cited, plus the container behind each of its log
+	// patterns), never a container id or host, so Dozzle resolves what it shows
+	// to names first, which is also where it checks the caller may see them.
+	// Scoped server-side to the (user_id, api_key_id) on the connection. A Cloud
+	// without this RPC answers Unimplemented.
+	GetFindings(ctx context.Context, in *GetFindingsRequest, opts ...grpc.CallOption) (*GetFindingsResponse, error)
+	// Dozzle-initiated unary call: ignore one finding, or take that back. The
+	// review keeps tracking it; no report, email or worklist raises it again.
+	// Account-wide state, so Dozzle only lets an unfiltered user with the cloud
+	// role call it. Cloud refuses a finding that belongs to another instance of
+	// the same account with NotFound, the same answer as an unknown id.
+	IgnoreFinding(ctx context.Context, in *IgnoreFindingRequest, opts ...grpc.CallOption) (*IgnoreFindingResponse, error)
 	// Dozzle-initiated unary call: what Cloud remembers about the error and
 	// warn lines on screen. Dozzle names each line by (container_id, log_id);
 	// Cloud finds the line in the logs it was streamed, groups it into its
@@ -78,6 +96,20 @@ type CloudToolServiceClient interface {
 	// these samples over StatsBatch; this reads them back. Scoped server-side to
 	// the (user_id, api_key_id) on the connection, like everything else here.
 	GetContainerMetrics(ctx context.Context, in *GetContainerMetricsRequest, opts ...grpc.CallOption) (*GetContainerMetricsResponse, error)
+	// Dozzle-initiated unary call: the same stats summed per host, for a page
+	// that is about the whole instance rather than one container. Every host this
+	// instance has reported comes back, as totals only. A Cloud without this RPC
+	// answers Unimplemented.
+	// Scoped server-side to the (user_id, api_key_id) on the connection.
+	GetHostMetrics(ctx context.Context, in *GetHostMetricsRequest, opts ...grpc.CallOption) (*GetHostMetricsResponse, error)
+	// Dozzle-initiated unary call, made once per ToolStream connection before
+	// the log streamer starts: where each container's log stream should resume,
+	// so lines written while the link was down are sent instead of lost. Cloud
+	// answers with the newest line it stored per container; a container it
+	// leaves out starts from now. A Cloud without this RPC answers Unimplemented
+	// and Dozzle starts every container from now, as before. Scoped server-side
+	// to the (user_id, api_key_id) on the connection.
+	GetLogResume(ctx context.Context, in *GetLogResumeRequest, opts ...grpc.CallOption) (*GetLogResumeResponse, error)
 	// One assistant turn, opened by the Dozzle request that started it.
 	//
 	// Deliberately not served over ToolStream. That stream is owned by the
@@ -150,6 +182,26 @@ func (c *cloudToolServiceClient) GetRecentDeploys(ctx context.Context, in *GetRe
 	return out, nil
 }
 
+func (c *cloudToolServiceClient) GetFindings(ctx context.Context, in *GetFindingsRequest, opts ...grpc.CallOption) (*GetFindingsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetFindingsResponse)
+	err := c.cc.Invoke(ctx, CloudToolService_GetFindings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cloudToolServiceClient) IgnoreFinding(ctx context.Context, in *IgnoreFindingRequest, opts ...grpc.CallOption) (*IgnoreFindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IgnoreFindingResponse)
+	err := c.cc.Invoke(ctx, CloudToolService_IgnoreFinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *cloudToolServiceClient) GetPatternContext(ctx context.Context, in *GetPatternContextRequest, opts ...grpc.CallOption) (*GetPatternContextResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetPatternContextResponse)
@@ -164,6 +216,26 @@ func (c *cloudToolServiceClient) GetContainerMetrics(ctx context.Context, in *Ge
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetContainerMetricsResponse)
 	err := c.cc.Invoke(ctx, CloudToolService_GetContainerMetrics_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cloudToolServiceClient) GetHostMetrics(ctx context.Context, in *GetHostMetricsRequest, opts ...grpc.CallOption) (*GetHostMetricsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetHostMetricsResponse)
+	err := c.cc.Invoke(ctx, CloudToolService_GetHostMetrics_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cloudToolServiceClient) GetLogResume(ctx context.Context, in *GetLogResumeRequest, opts ...grpc.CallOption) (*GetLogResumeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLogResumeResponse)
+	err := c.cc.Invoke(ctx, CloudToolService_GetLogResume_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -217,6 +289,20 @@ type CloudToolServiceServer interface {
 	// heard of a Dozzle user, so Dozzle narrows the answer to what the viewer may
 	// see.
 	GetRecentDeploys(context.Context, *GetRecentDeploysRequest) (*GetRecentDeploysResponse, error)
+	// Dozzle-initiated unary call: what Cloud's scheduled log review found about
+	// the containers on screen. A finding records container NAMES only (the
+	// evidence the review cited, plus the container behind each of its log
+	// patterns), never a container id or host, so Dozzle resolves what it shows
+	// to names first, which is also where it checks the caller may see them.
+	// Scoped server-side to the (user_id, api_key_id) on the connection. A Cloud
+	// without this RPC answers Unimplemented.
+	GetFindings(context.Context, *GetFindingsRequest) (*GetFindingsResponse, error)
+	// Dozzle-initiated unary call: ignore one finding, or take that back. The
+	// review keeps tracking it; no report, email or worklist raises it again.
+	// Account-wide state, so Dozzle only lets an unfiltered user with the cloud
+	// role call it. Cloud refuses a finding that belongs to another instance of
+	// the same account with NotFound, the same answer as an unknown id.
+	IgnoreFinding(context.Context, *IgnoreFindingRequest) (*IgnoreFindingResponse, error)
 	// Dozzle-initiated unary call: what Cloud remembers about the error and
 	// warn lines on screen. Dozzle names each line by (container_id, log_id);
 	// Cloud finds the line in the logs it was streamed, groups it into its
@@ -232,6 +318,20 @@ type CloudToolServiceServer interface {
 	// these samples over StatsBatch; this reads them back. Scoped server-side to
 	// the (user_id, api_key_id) on the connection, like everything else here.
 	GetContainerMetrics(context.Context, *GetContainerMetricsRequest) (*GetContainerMetricsResponse, error)
+	// Dozzle-initiated unary call: the same stats summed per host, for a page
+	// that is about the whole instance rather than one container. Every host this
+	// instance has reported comes back, as totals only. A Cloud without this RPC
+	// answers Unimplemented.
+	// Scoped server-side to the (user_id, api_key_id) on the connection.
+	GetHostMetrics(context.Context, *GetHostMetricsRequest) (*GetHostMetricsResponse, error)
+	// Dozzle-initiated unary call, made once per ToolStream connection before
+	// the log streamer starts: where each container's log stream should resume,
+	// so lines written while the link was down are sent instead of lost. Cloud
+	// answers with the newest line it stored per container; a container it
+	// leaves out starts from now. A Cloud without this RPC answers Unimplemented
+	// and Dozzle starts every container from now, as before. Scoped server-side
+	// to the (user_id, api_key_id) on the connection.
+	GetLogResume(context.Context, *GetLogResumeRequest) (*GetLogResumeResponse, error)
 	// One assistant turn, opened by the Dozzle request that started it.
 	//
 	// Deliberately not served over ToolStream. That stream is owned by the
@@ -266,11 +366,23 @@ func (UnimplementedCloudToolServiceServer) GetRecentAlerts(context.Context, *Get
 func (UnimplementedCloudToolServiceServer) GetRecentDeploys(context.Context, *GetRecentDeploysRequest) (*GetRecentDeploysResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetRecentDeploys not implemented")
 }
+func (UnimplementedCloudToolServiceServer) GetFindings(context.Context, *GetFindingsRequest) (*GetFindingsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetFindings not implemented")
+}
+func (UnimplementedCloudToolServiceServer) IgnoreFinding(context.Context, *IgnoreFindingRequest) (*IgnoreFindingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method IgnoreFinding not implemented")
+}
 func (UnimplementedCloudToolServiceServer) GetPatternContext(context.Context, *GetPatternContextRequest) (*GetPatternContextResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPatternContext not implemented")
 }
 func (UnimplementedCloudToolServiceServer) GetContainerMetrics(context.Context, *GetContainerMetricsRequest) (*GetContainerMetricsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetContainerMetrics not implemented")
+}
+func (UnimplementedCloudToolServiceServer) GetHostMetrics(context.Context, *GetHostMetricsRequest) (*GetHostMetricsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetHostMetrics not implemented")
+}
+func (UnimplementedCloudToolServiceServer) GetLogResume(context.Context, *GetLogResumeRequest) (*GetLogResumeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLogResume not implemented")
 }
 func (UnimplementedCloudToolServiceServer) Chat(grpc.BidiStreamingServer[ChatClientEvent, ChatServerEvent]) error {
 	return status.Error(codes.Unimplemented, "method Chat not implemented")
@@ -375,6 +487,42 @@ func _CloudToolService_GetRecentDeploys_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CloudToolService_GetFindings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFindingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CloudToolServiceServer).GetFindings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CloudToolService_GetFindings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CloudToolServiceServer).GetFindings(ctx, req.(*GetFindingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CloudToolService_IgnoreFinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IgnoreFindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CloudToolServiceServer).IgnoreFinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CloudToolService_IgnoreFinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CloudToolServiceServer).IgnoreFinding(ctx, req.(*IgnoreFindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CloudToolService_GetPatternContext_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetPatternContextRequest)
 	if err := dec(in); err != nil {
@@ -411,6 +559,42 @@ func _CloudToolService_GetContainerMetrics_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CloudToolService_GetHostMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetHostMetricsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CloudToolServiceServer).GetHostMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CloudToolService_GetHostMetrics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CloudToolServiceServer).GetHostMetrics(ctx, req.(*GetHostMetricsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CloudToolService_GetLogResume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLogResumeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CloudToolServiceServer).GetLogResume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CloudToolService_GetLogResume_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CloudToolServiceServer).GetLogResume(ctx, req.(*GetLogResumeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CloudToolService_Chat_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(CloudToolServiceServer).Chat(&grpc.GenericServerStream[ChatClientEvent, ChatServerEvent]{ServerStream: stream})
 }
@@ -442,12 +626,28 @@ var CloudToolService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CloudToolService_GetRecentDeploys_Handler,
 		},
 		{
+			MethodName: "GetFindings",
+			Handler:    _CloudToolService_GetFindings_Handler,
+		},
+		{
+			MethodName: "IgnoreFinding",
+			Handler:    _CloudToolService_IgnoreFinding_Handler,
+		},
+		{
 			MethodName: "GetPatternContext",
 			Handler:    _CloudToolService_GetPatternContext_Handler,
 		},
 		{
 			MethodName: "GetContainerMetrics",
 			Handler:    _CloudToolService_GetContainerMetrics_Handler,
+		},
+		{
+			MethodName: "GetHostMetrics",
+			Handler:    _CloudToolService_GetHostMetrics_Handler,
+		},
+		{
+			MethodName: "GetLogResume",
+			Handler:    _CloudToolService_GetLogResume_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

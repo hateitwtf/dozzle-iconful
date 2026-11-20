@@ -31,8 +31,11 @@
           <div class="flex flex-col gap-1 p-3 text-sm">
             <span class="font-semibold">{{ $t(`update-marker.${updateKind(mark.deploy)}`) }}</span>
             <span class="font-mono text-xs wrap-anywhere">
-              <span class="opacity-60">{{ updateLabels(mark.deploy).from }}</span>
-              <span class="mx-1 opacity-40">&rarr;</span>
+              <!-- An update made outside Dozzle names only the image it started on. -->
+              <template v-if="updateLabels(mark.deploy).from">
+                <span class="opacity-60">{{ updateLabels(mark.deploy).from }}</span>
+                <span class="mx-1 opacity-40">&rarr;</span>
+              </template>
               <span>{{ updateLabels(mark.deploy).to }}</span>
             </span>
             <span class="text-base-content/60 text-xs">{{ format(mark.ts) }}</span>
@@ -77,12 +80,12 @@ const { t } = useI18n();
 const store = useContainerStore();
 const { jumpTo } = useLogJump();
 
-// On a phone the rail is a sheet over the logs, so it closes too, or the jump
-// would happen out of sight beneath it.
-const { sheet, closeRail } = useCloudRail();
+// The cloud drawer is modal over the logs, so it closes too, or the jump would
+// happen out of sight beneath it.
+const { closeRail } = useCloudRail();
 function showMoment(mark: Extract<Mark, { kind: "deploy" }>, close: () => void) {
   close();
-  if (sheet.value) closeRail();
+  closeRail();
   jumpTo({ containerId: mark.deploy.newId, date: new Date(mark.ts) });
 }
 

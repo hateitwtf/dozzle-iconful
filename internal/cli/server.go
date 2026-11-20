@@ -181,8 +181,11 @@ func (c ServerCmd) Run(args Args, certs embed.FS) error {
 		GetRecentAlerts:   cloudClient.GetRecentAlerts,
 		GetRecentDeploys:  cloudClient.GetRecentDeploys,
 		GetPatternContext: cloudClient.GetPatternContext,
+		GetFindings:       cloudClient.GetFindings,
+		IgnoreFinding:     cloudClient.IgnoreFinding,
 
 		GetContainerMetrics: cloudClient.GetContainerMetrics,
+		GetHostMetrics:      cloudClient.GetHostMetrics,
 
 		Chat: func(ctx context.Context, message string, view cloud.ViewContext, userRef string, principal cloud.Principal, emit func(cloud.ChatEvent)) error {
 			// C10: credentials come from a resolver rather than the stored key.

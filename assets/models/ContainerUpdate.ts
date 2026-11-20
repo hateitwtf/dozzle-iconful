@@ -20,13 +20,18 @@ export interface ContainerUpdate {
   toImageId?: string;
   /** RFC 3339. When the update finished. */
   at: string;
-  /** schedule | dozzle | cloud | rollback. Empty when only Dozzle Cloud knows the update. */
+  /**
+   * schedule | dozzle | cloud | rollback. Empty when only Dozzle Cloud knows the
+   * update, and external for an image change Dozzle Cloud read from a container
+   * start that no update accounts for (made outside Dozzle).
+   */
   source: string;
   /** Dozzle's swap put the old container back because the new one failed. */
   rolledBack?: boolean;
 }
 
-export type DeployVerdictKind = "pending" | "clean" | "regressed" | "unsure" | "rolled_back_by_dozzle";
+// unchecked: Dozzle Cloud recorded the update without judging it.
+export type DeployVerdictKind = "pending" | "clean" | "regressed" | "unsure" | "rolled_back_by_dozzle" | "unchecked";
 
 /** What Dozzle Cloud made of an update. Mirrors cloud.DeployHit. */
 export interface DeployVerdict {
@@ -68,13 +73,17 @@ export function shortDigest(digest: string | undefined): string {
  * Dozzle Cloud's messages use, so the marker and the alert name the images alike.
  */
 export function updateLabels(
-  update: Pick<ContainerUpdate, "imageRef" | "fromDigest" | "toDigest" | "fromImageId" | "toImageId">,
+  update: Pick<ContainerUpdate, "imageRef" | "fromDigest" | "toDigest" | "fromImageId" | "toImageId"> &
+    Partial<Pick<ContainerUpdate, "source">>,
 ): {
   from: string;
   to: string;
 } {
   const tag = imageTag(update.imageRef);
   const label = (digest: string) => (tag && digest ? `${tag} (${digest})` : tag || digest);
+  // Read from the container's start: Dozzle Cloud knows the image it started on,
+  // and nothing of what ran before it.
+  if (update.source === "external") return { from: "", to: tag };
   return {
     from: label(shortDigest(update.fromDigest || update.fromImageId)),
     to: label(shortDigest(update.toDigest || update.toImageId)),
